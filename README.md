@@ -110,3 +110,39 @@ must be followed:
   * After docker image build is complete,
     deploy to the environment using the appropriate method.
 
+### Hotfixes
+
+Hotfixes should be used sparingly,
+as it short-circuits the usual release process,
+and may result in less thoroughly tested code.
+They are also only relevant for the staging and production environments.
+
+To create and deploy a hotfix:
+
+* Create a new branch called `hotfix/<name>`,
+  based on either the `env/<stage|staging>` or `env/prod` branch
+  (whichever environment is experiencing the problem
+  that needs to be addressed).
+* If possible, create unit-tests that detect the problem and fail.
+* Write a fix for the issue, which should cause the unit-tests to pass.
+* Update the version in package.json
+  (e.g. with a -hotfix-<name> suffix or minor version bump).
+* Push the changes to GitHub
+* Open a **DRAFT** Pull Request to merge `hotfix/<name>` into either
+  `env/<stage|staging>` or `env/prod` (as appropriate).
+  * This will trigger a build of the docker image using GitHub Actions
+    following the CI tests passing.
+* Once the image is built:
+  * Pick a development environment `env/<name>`
+    and confirm that it's not in use by anyone else.
+  * Restore data from production/staging (as appropriate) to that environment.
+  * Deploy image to that environment.
+  * Add a comment to the PR detailing the deployment.
+  * Test that the hotfix is working as expected
+* Once fully tested, reviewed and ready, mark the Pull Request as ready,
+  and merge it.
+* If possible, wait for CI checks on `env/<stage|staging>` or `env/prod` to
+  complete once more.
+* Deploy to the appropriate environment using the appropriate method.
+* Test that the fix is working in this environment.
+
