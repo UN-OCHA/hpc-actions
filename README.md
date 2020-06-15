@@ -30,6 +30,7 @@ The outlined workflow and actions are designed to:
   - [Development Work](#development-work)
   - [Releases + Deployment](#releases--deployment)
   - [Hotfixes](#hotfixes)
+- [Automation / Roadmap](#automation--roadmap)
 - [License](#license)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
