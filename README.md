@@ -53,3 +53,13 @@ must be followed:
 * `<other branches>` -
   any other branch, e.g. those dedicated to fixing a particular issue or
   introducing a new feature.
+
+### Development Work
+
+* Active development work should be based on `develop`
+  and PRs should target `develop`.
+* PRs should have status checks (linting, unit-tests, etc...) pass,
+  and be deployed and tested on a development environment before merging.
+* Anything in the `develop` branch is considered "reviewed",
+  and ready for deployment to the staging environment.
+  
