@@ -23,6 +23,14 @@ The outlined workflow and actions are designed to:
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
+
+- [Workflow](#workflow)
+  - [Branches](#branches)
+  - [Development Work](#development-work)
+  - [Releases + Deployment](#releases--deployment)
+  - [Hotfixes](#hotfixes)
+
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Workflow
