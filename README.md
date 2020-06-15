@@ -159,6 +159,104 @@ To create and deploy a hotfix:
 * Deploy to the appropriate environment using the appropriate method.
 * Test that the fix is working in this environment.
 
+## Automation / Roadmap
+
+This section describes what automation this repository aims to provide,
+and acts as a roadmap.
+
+* TODO: Pushes to `env/prod` and `env/<stage|staging>`:
+  * Check if there is an existing tag for the current version in `package.json`
+    * TODO: *(we'll need to allow for specifying the version in other ways for the
+      non-node repos).*
+    * If there is a tag existing:
+      * Check if the git tree hash for the tag matches the current HEAD,
+        and throw an error if not, (i.e. the version needs to be bumped)
+    * If there is no existing tag
+      * Create it and push it
+  * Check if there is an existing docker image tag for the given version.
+    * If there is not
+      * Run the docker build
+      * Fetch the git tag to check the git tree hash has not been changed
+        *(this will only happen with rapid concurrent pushes)*
+      * Push the image to DockerHub, using the version as the tag
+    * If there is
+      * get the git sha that was used to build the image from the docker metadata
+      * check that the git tree-sha of the commit matches the current tree-sha
+        (throw an error if not)
+  * Run CI Tasks
+  * Create and push a branch called `mergeback/<env>/<version>`
+    based on the current HEAD.
+    * (creating a new branch rather than merging the current branch itself allows us to resolve any conflicts if necessary)
+  * Open a mergeback PR to, either:
+    * Merge the new branch into `env/<stage|staging>`
+      (if the current branch is `env/prod`).
+    * Or merge the new branch into `develop`
+      (if the current branch is `env/<stage|staging>`).
+* TODO: Pushes to `env/<name>` (non-staging/production branches):
+  * Run CI Tasks (unit-tests etc…)
+  * Run the docker build
+  * Push the image to DockerHub, using the name of the environment as a tag.
+* TODO: Pushes to `hotfix/<name>`:
+  * Check if there is an open pull request for this branch:
+    * If there is not: fail
+    * If there is:
+      * Check that the base branch is either `env/<stage|staging>` or `env/prod`
+      * Check that the version in `package.json` has been updated between
+        the base branch and HEAD.
+      * Check that there is no existing tag for the current version in
+        `package.json` (that will be created automatically when merged).
+      * Check that the current HEAD of the base branch is an ancestor of the
+        HEAD of the hotfix branch (i.e., that the hotfix is a fast-forward, and
+        includes any other changes that may have been made to the target
+        environment).
+        * If not, post a comment suggesting rebasing the hotfix branch
+          on-top of the tracking branch.
+      * Run CI Tasks (unit-tests etc…)
+      * Run the docker build
+      * Push the image to DockerHub,
+        using the version as the tag
+        (regardless of whether the image already exists)
+        * This allows us to deploy this image to a dev environment,
+          and prevents us needing to rebuild the image once merged
+          to the respective environment,
+          ensuring we use the exact same image for both testing
+          and the final deployment!
+        * It also allows for updating the hotfixes with changes if it needs to
+          be corrected.
+* TODO: Pushes to `release/<version>`:
+  * Check if there is an open pull request for this branch:
+    * If there is not: fail
+    * If there is:
+      * Check that the base branch is `env/<stage|staging>`
+      * Check that the version in `package.json` has been updated between
+        the base branch and HEAD, and that it matches the name of the branch.
+      * Check that there is no existing tag for the current version in
+        `package.json` (that will be created automatically when merged).
+      * Check that the current HEAD of the base branch is an ancestor of the
+        HEAD of the release branch
+        (i.e., that the release is a fast-forward,
+        and includes any other changes that may have been made to the target
+        environment).
+        * If not, post a comment suggesting merging the base branch into the
+          release branch.
+          * *(this should only happen if a mergeback PR was not merged into
+            `develop` before branching off the `release/` branch).
+      * Run CI Tasks (unit-tests etc…)
+* TODO: Pushes to `develop`:
+  * Run CI Tasks (unit-tests etc…)
+* TODO: Pushes to all other branches
+  * Check if there is an open pull request for this branch:
+    * If there is not: fail
+    * If there is:
+      * Check that the base branch is **NOT** `env/<stage|staging>` or
+        `env/prod`
+        * If it is, post a comment detailing how changes to production or
+          staging environments must be made.
+      * Run CI Tasks (unit-tests etc…)
+* TODO: Pull requests opened:
+  * Re-Run all failed actions for the HEAD of the PR branch.
+    * (we expect push actions to fail for branches when there is no pull request opened for them yet (to save on actions minutes)).
+
 ## License
 
 Copyright 2020 United Nations Office for the Coordination of Humanitarian Affairs
