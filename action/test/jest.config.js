@@ -6,8 +6,12 @@ module.exports = {
     '<rootDir>/test/specs/**/*.spec.ts',
   ],
   coverageDirectory: '<rootDir>/.coverage',
+  coveragePathIgnorePatterns: [
+    '<rootDir>/test',
+  ],
   coverageReporters: [
-    ["lcov"]
+    ["text"],
+    ["lcov"],
   ],
   setupFilesAfterEnv: [
     '<rootDir>/test/jest-global-setup-hooks.ts'
