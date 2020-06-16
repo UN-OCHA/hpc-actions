@@ -5,6 +5,7 @@
     "test": "jest --projects test/jest.config.js --runInBand --verbose"
   },
   "devDependencies": {
+    "@octokit/webhooks": "^7.6.4",
     "@types/git-url-parse": "^9.0.0",
     "@types/jest": "^25.2.3",
     "@types/node": "^12.11.1",

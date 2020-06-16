@@ -6,17 +6,43 @@ import { promisify } from 'util';
 
 import * as util from '../util';
 
-import { Config } from '../../src/config';
+import { Config, Env } from '../../src/config';
 import * as action from '../../src/action';
 
 const exec = promisify(child_process.exec);
 
 const CONFIG_FILE = util.tmpConfigFilePath(__filename);
+const EVENT_FILE = util.tmpEventFilePath(__filename);
 
 const DEFAULT_CONFIG: Config = {
-  stagingEnvironmentBranch: 'env/stage',
+  stagingEnvironmentBranch: 'env/staging',
   repoType: 'node',
+  developmentEnvironmentBranches: [],
 };
+
+const DEFAULT_ENV: Env = {
+  CONFIG_FILE,
+  GITHUB_EVENT_NAME: 'push',
+  GITHUB_EVENT_PATH: EVENT_FILE,
+};
+
+const DEFAULT_PUSH_ENV = {
+
+};
+
+const newLogger = () => ({
+  log: jest.fn()
+});
+
+const author = {
+  email: 'foo@foo.com',
+  name: 'foo',
+}
+
+const setAuthor = async (cwd: string) => {
+  await exec(`git config --global user.name "${author.name}"`, { cwd });
+  await exec(`git config --global user.email "${author.email}"`, { cwd });
+}
 
 describe('action', () => {
 
@@ -25,10 +51,9 @@ describe('action', () => {
     it('Not in GitHub Repo', async () => {
       const dir = await util.createTmpDir();
       await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+      await fs.promises.writeFile(EVENT_FILE, JSON.stringify(DEFAULT_PUSH_ENV));
       await action.runAction({
-        env: {
-          CONFIG_FILE
-        },
+        env: DEFAULT_ENV,
         dir
       }).then(() => Promise.reject(new Error('Expected error to be thrown')))
         .catch((err: Error) => {
@@ -40,10 +65,9 @@ describe('action', () => {
       const dir = await util.createTmpDir();
       await git.init({ fs, dir });
       await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+      await fs.promises.writeFile(EVENT_FILE, JSON.stringify(DEFAULT_PUSH_ENV));
       await action.runAction({
-        env: {
-          CONFIG_FILE
-        },
+        env: DEFAULT_ENV,
         dir
       }).then(() => Promise.reject(new Error('Expected error to be thrown')))
         .catch((err: Error) => {
@@ -52,17 +76,14 @@ describe('action', () => {
     });
 
     it('Missing package.json', async () => {
-      const repo1 = await util.createTmpDir();
-      const repo2 = await util.createTmpDir();
-      await git.init({ fs, dir: repo1 });
-      await exec(`git clone ${repo1} ${repo2}`);
-      // Clone repo using command (non-http remotes not supported using isomorphic-git)
+      const dir = await util.createTmpDir();
+      await git.init({ fs, dir });
+      await git.addRemote({fs, dir, remote: 'origin', url: 'foo'})
       await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+      await fs.promises.writeFile(EVENT_FILE, JSON.stringify(DEFAULT_PUSH_ENV));
       await action.runAction({
-        env: {
-          CONFIG_FILE
-        },
-        dir: repo2
+        env: DEFAULT_ENV,
+        dir
       }).then(() => Promise.reject(new Error('Expected error to be thrown')))
         .catch((err: Error) => {
           expect(err.message.startsWith(
@@ -72,18 +93,15 @@ describe('action', () => {
     });
 
     it('Invalid package.json', async () => {
-      const repo1 = await util.createTmpDir();
-      const repo2 = await util.createTmpDir();
-      await git.init({ fs, dir: repo1 });
-      await exec(`git clone ${repo1} ${repo2}`);
-      // Clone repo using command (non-http remotes not supported using isomorphic-git)
+      const dir = await util.createTmpDir();
+      await git.init({ fs, dir });
+      await git.addRemote({ fs, dir, remote: 'origin', url: 'foo' })
       await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
-      await fs.promises.writeFile(path.join(repo2, 'package.json'), '{');
+      await fs.promises.writeFile(EVENT_FILE, JSON.stringify(DEFAULT_PUSH_ENV));
+      await fs.promises.writeFile(path.join(dir, 'package.json'), '{');
       await action.runAction({
-        env: {
-          CONFIG_FILE
-        },
-        dir: repo2
+        env: DEFAULT_ENV,
+        dir
       }).then(() => Promise.reject(new Error('Expected error to be thrown')))
         .catch((err: Error) => {
           expect(err.message.startsWith(
@@ -93,25 +111,79 @@ describe('action', () => {
     });
 
     it('Invalid package.json version', async () => {
-      const repo1 = await util.createTmpDir();
-      const repo2 = await util.createTmpDir();
-      await git.init({ fs, dir: repo1 });
-      await exec(`git clone ${repo1} ${repo2}`);
-      // Clone repo using command (non-http remotes not supported using isomorphic-git)
+      const dir = await util.createTmpDir();
+      await git.init({ fs, dir });
+      await git.addRemote({ fs, dir, remote: 'origin', url: 'foo' })
       await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
-      await fs.promises.writeFile(path.join(repo2, 'package.json'), JSON.stringify({
+      await fs.promises.writeFile(EVENT_FILE, JSON.stringify(DEFAULT_PUSH_ENV));
+      await fs.promises.writeFile(path.join(dir, 'package.json'), JSON.stringify({
         version: 1.2
       }));
       await action.runAction({
-        env: {
-          CONFIG_FILE
-        },
-        dir: repo2
+        env: DEFAULT_ENV,
+        dir
       }).then(() => Promise.reject(new Error('Expected error to be thrown')))
         .catch((err: Error) => {
           expect(err.message).toEqual('Invalid version in package.json');
         });
     });
-  });
 
+    it('Skip push events to tags', async () => {
+      const dir = await util.createTmpDir();
+      await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+      await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+        ref: 'refs/tags/v0.0.0'
+      }));
+      const logger = newLogger();
+      await action.runAction({
+        env: DEFAULT_ENV,
+        dir,
+        logger
+      });
+      expect(logger.log.mock.calls).toEqual([[
+        'Push is for tag, skipping action'
+      ]]);
+    });
+
+    describe('push to production or staging', () => {
+
+      for (const env of ['prod','staging']) {
+
+        describe(`env/${env}`, () => {
+          it('Non-Existant Tag', async () => {
+            const upstream = await util.createTmpDir();
+            const dir = await util.createTmpDir();
+            // Prepare upstream repository
+            await git.init({ fs, dir: upstream });
+            await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+              version: "1.2.0"
+            }));
+            await git.add({ fs, dir: upstream, filepath: 'package.json' });
+            await setAuthor(upstream);
+            await exec(`git commit -m package`, {
+              cwd: upstream
+            }).catch(err => {
+              console.log('out', err.stdout);
+              throw err;
+            });
+            // Clone into repo we'll run in
+            await exec(`git clone ${upstream} ${dir}`);
+            // Run action
+            await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+            await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+              ref: `refs/heads/env/${env}`
+            }));
+            const logger = newLogger();
+            await action.runAction({
+              env: DEFAULT_ENV,
+              dir,
+              logger
+            });
+            expect(logger.log.mock.calls).toMatchSnapshot();
+          });
+        });
+      }
+
+    });
+  });
 });

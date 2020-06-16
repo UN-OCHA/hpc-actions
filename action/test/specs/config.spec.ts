@@ -67,6 +67,7 @@ describe('config', () => {
     const c: config.Config = {
       stagingEnvironmentBranch: 'env/stage',
       repoType: 'node',
+      developmentEnvironmentBranches: [],
     }; 
 
     await fs.writeFile(TEST_CONFIG_PATH, JSON.stringify(c));

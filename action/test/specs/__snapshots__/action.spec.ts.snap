@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`action runAction push to production or staging env/prod Non-Existant Tag 1`] = `
+Array [
+  Array [
+    "Handling push to branch env/prod",
+  ],
+  Array [
+    "Checking if there is an existing tag for v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging Non-Existant Tag 1`] = `
+Array [
+  Array [
+    "Handling push to branch env/staging",
+  ],
+  Array [
+    "Checking if there is an existing tag for v1.2.0",
+  ],
+]
+`;
