@@ -1,0 +1,10 @@
+# action.yml
+name: 'HPC Workflow'
+description: 'Action that implements the development workflow for HPC repos'
+author: 'Sam Lanning <sam@samlanning.com>'
+runs:
+  using: 'node12'
+  main: 'action/dist/index.js'
+branding:
+  icon: 'upload-cloud'
+  color: 'purple'
