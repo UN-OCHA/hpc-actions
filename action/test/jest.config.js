@@ -9,4 +9,7 @@ module.exports = {
   coverageReporters: [
     ["lcov"]
   ],
+  setupFilesAfterEnv: [
+    '<rootDir>/test/jest-global-setup-hooks.ts'
+  ],
 };

@@ -1,10 +1,9 @@
-import {tmpdir} from 'os';
-import * as path from 'path';
-import {promises as fs} from 'fs'
+import {promises as fs} from 'fs';
+
+import * as util from '../util';
 
 import * as config from '../../src/config';
-
-const TEST_CONFIG_PATH = path.join(tmpdir(), 'config.spec.ts.json');
+const TEST_CONFIG_PATH = util.tmpConfigFilePath(__filename);
 
 describe('config', () => {
 
