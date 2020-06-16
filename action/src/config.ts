@@ -24,6 +24,17 @@ const CONFIG = t.type({
     'env/stage': null,
     'env/staging': null,
   }),
+  /**
+   * What type of repository is this?
+   * 
+   * This is used to work out how to calculate the current version
+   */
+  repoType: t.keyof({
+    /**
+     * Calculate the current version by reading the version from package.json
+     */
+    'node': null,
+  }),
 });
 
 /**

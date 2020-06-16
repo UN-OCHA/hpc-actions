@@ -64,9 +64,12 @@ describe('config', () => {
 
   it('Valid', async () => {
 
-    await fs.writeFile(TEST_CONFIG_PATH, JSON.stringify({
-      stagingEnvironmentBranch: 'env/stage'
-    }));
+    const c: config.Config = {
+      stagingEnvironmentBranch: 'env/stage',
+      repoType: 'node',
+    }; 
+
+    await fs.writeFile(TEST_CONFIG_PATH, JSON.stringify(c));
 
     await config.getConfig({
       CONFIG_FILE: TEST_CONFIG_PATH
