@@ -239,7 +239,7 @@ export const runAction = async (
       });
 
       info(`Checking for existing docker image with tag ${tag}`);
-      const imagePulled = await docker.pullImage(tag);
+      const imagePulled = await docker.pullImage(tag, logger);
       const image = imagePulled && await docker.getMetadata(tag);
 
       if (image) {

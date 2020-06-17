@@ -399,7 +399,7 @@ describe('action', () => {
                   );
                 });
               expect(logger.log.mock.calls).toMatchSnapshot();
-              expect(pullImage.mock.calls).toMatchSnapshot();
+              expect(pullImage.mock.calls.map(call => [call[0]])).toMatchSnapshot();
               expect(getMetadata.mock.calls).toMatchSnapshot();
             });
 
@@ -444,7 +444,7 @@ describe('action', () => {
                 .catch(err => expect(err).toBe(testCompleteError));;
               expect(logger.log.mock.calls).toMatchSnapshot();
               expect({
-                pullImage: pullImage.mock.calls,
+                pullImage: pullImage.mock.calls.map(call => [call[0]]),
                 getMetadata: getMetadata.mock.calls,
                 pushImage: pushImage.mock.calls,
               }).toMatchSnapshot();
@@ -511,7 +511,7 @@ describe('action', () => {
                 });
               expect(logger.log.mock.calls).toMatchSnapshot();
               expect({
-                pullImage: pullImage.mock.calls,
+                pullImage: pullImage.mock.calls.map(call => [call[0]]),
                 getMetadata: getMetadata.mock.calls,
                 pushImage: pushImage.mock.calls,
               }).toMatchSnapshot();

@@ -27,7 +27,7 @@ export interface DockerController {
    * Try and pull a docker image with the given tag,
    * return true if successful and false if not
    */
-  pullImage: (tag: string) => Promise<boolean>;
+  pullImage: (tag: string, logger: Logger) => Promise<boolean>;
   /**
    * Run the docker build, and tag the image with the given tag
    */
@@ -68,10 +68,12 @@ export const REAL_DOCKER: DockerInit = config => ({
     });
   },
 
-  pullImage: tag =>
-    exec(`docker pull ${config.repository}:${tag}`)
-    .then(() => true)
-    .catch(() => false),
+  pullImage: (tag, logger) =>
+    execAndPipeOutput({
+      command: `docker pull ${config.repository}:${tag}`,
+      cwd: __dirname,
+      logger
+    }).then(() => true).catch(() => false),
 
   getMetadata: async tag => {
     const res = await exec(`docker inspect ${config.repository}:${tag}`);
