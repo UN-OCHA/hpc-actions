@@ -74,6 +74,8 @@ export const runAction = async (
   }: Params
 ) => {
 
+  const info = (message: string) => logger.log(`##[info] ${message}`);
+
   const config = await getConfig(env);
 
   // Get event information
@@ -91,7 +93,7 @@ export const runAction = async (
       payload: JSON.parse((await fs.promises.readFile(env.GITHUB_EVENT_PATH)).toString())
     };
     if (event?.payload?.ref?.startsWith('refs/tags/')) {
-      logger.log(`Push is for tag, skipping action`);
+      info(`Push is for tag, skipping action`);
       return;
     }
   } else {
@@ -146,12 +148,58 @@ export const runAction = async (
     }
     const branch = branchExtract[1];
 
-    logger.log(`Handling push to branch ${branch}`);
+    info(`Handling push to branch ${branch}`);
 
     const mode = determineMode(config, branch);
 
+    // Check that the correct branch is checked out,
+    // and get the current commit info
+    const currentBranch = await git.currentBranch({fs, dir});
+    if (!currentBranch) {
+      throw new Error('no branch is currently checked out');
+    } else if (currentBranch !== branch) {
+      throw new Error('incorrect branch currently checked-out');
+    }
+    const headSha = await git.resolveRef({fs, dir, ref: currentBranch});
+    const head = await git.readCommit({ fs, dir, oid: headSha});
+
+    // Handle the push as appropriate for the given branch
+
     if (mode === 'env-production' || mode === 'env-staging') {
-      logger.log(`Checking if there is an existing tag for v${version}`);
+      const tag = `v${version}`;
+      info(`Checking if there is an existing tag for ${tag}`);
+      const existing =
+        await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })
+          .then(() => true)
+          .catch(err => {
+            if (err.stderr.indexOf(`fatal: couldn't find remote ref`) > -1) {
+              return false;
+            } else {
+              throw err;
+            }
+          });
+      if (existing) {
+        // Check that the tree hash of the existing tag matches
+        // (i.e. the content hasn't changed without changing the version)
+        info(`The tag ${tag} already exists, checking that tree hasn't changed`);
+        const tagSha = await git.resolveRef({ fs, dir, ref: `refs/tags/${tag}` });
+        const tagHead = await git.readCommit({ fs, dir, oid: tagSha });
+        if (tagHead.commit.tree !== head.commit.tree) {
+          throw new Error(`New push to ${branch} without bumping version`);
+        } else {
+          if (tagHead.oid === head.oid) {
+            info(`The tag is for the current commit, okay to continue`);
+          } else {
+            info(`The current tree matches the existing tag, okay to continue`);
+          }
+        }
+      } else {
+        // Create and push the tag
+        info(`Creating and pushing new tag ${tag}`);
+        await git.tag({ fs, dir, ref: tag });
+        await exec(`git push ${remote.remote} ${tag}`, { cwd: dir });
+      }
+    ;
     }
 
   }
