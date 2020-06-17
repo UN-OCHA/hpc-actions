@@ -5537,12 +5537,16 @@ const IMAGE_DETAILS = t.array(t.type({
     })
 }));
 exports.REAL_DOCKER = config => ({
-    login: async ({ user, pass, logger }) => {
+    login: async ({ user, pass }) => {
         // Login to docker
         await child_process_1.execAndPipeOutput({
             command: `docker login ${config.registry || ''} -u ${user}  --password-stdin`,
             cwd: __dirname,
-            logger,
+            // Drop all console output (it's mostly warning about storing credentials)
+            logger: {
+                error: () => { },
+                log: () => { }
+            },
             data: pass + '\n'
         });
     },
@@ -18330,8 +18334,7 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
             const docker = dockerInit(config.docker);
             docker.login({
                 user: env.DOCKER_USERNAME,
-                pass: env.DOCKER_PASSWORD,
-                logger,
+                pass: env.DOCKER_PASSWORD
             });
             info(`Checking for existing docker image with tag ${tag}`);
             const imagePulled = await docker.pullImage(tag);

@@ -235,8 +235,7 @@ export const runAction = async (
       const docker = dockerInit(config.docker);
       docker.login({
         user: env.DOCKER_USERNAME,
-        pass: env.DOCKER_PASSWORD,
-        logger,
+        pass: env.DOCKER_PASSWORD
       });
 
       info(`Checking for existing docker image with tag ${tag}`);

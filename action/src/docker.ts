@@ -18,7 +18,6 @@ export interface DockerController {
   login: (opts: {
     user: string;
     pass: string;
-    logger: Logger;
   }) => Promise<void>;
   /**
    * Get the metadata for a docker image that is tagged locally
@@ -55,12 +54,16 @@ const IMAGE_DETAILS = t.array(t.type({
 
 export const REAL_DOCKER: DockerInit = config => ({
 
-  login: async ({user, pass, logger}) => {
+  login: async ({user, pass}) => {
     // Login to docker
     await execAndPipeOutput({
       command: `docker login ${config.registry || ''} -u ${user}  --password-stdin`,
       cwd: __dirname,
-      logger,
+      // Drop all console output (it's mostly warning about storing credentials)
+      logger: {
+        error: () => {},
+        log: () => {}
+      },
       data: pass + '\n'
     });
   },
