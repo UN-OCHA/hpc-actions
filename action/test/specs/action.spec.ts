@@ -538,7 +538,6 @@ describe('action', () => {
                 ref: `refs/heads/env/${env}`
               }));
               const logger = newInterleavedLogger();
-              // Prepare docker mock
               await action.runAction({
                 env: DEFAULT_ENV,
                 dir,
@@ -580,7 +579,6 @@ describe('action', () => {
                 ref: `refs/heads/env/${env}`
               }));
               const logger = newInterleavedLogger();
-              // Prepare docker mock
               await action.runAction({
                 env: DEFAULT_ENV,
                 dir,
@@ -623,7 +621,6 @@ describe('action', () => {
                 ref: `refs/heads/env/${env}`
               }));
               const logger = newInterleavedLogger();
-              // Prepare docker mock
               await action.runAction({
                 env: DEFAULT_ENV,
                 dir,
@@ -639,6 +636,45 @@ describe('action', () => {
               expect(logger.fn.mock.calls).toMatchSnapshot();
             });
 
+          });
+
+          it('mergeback', async () => {
+            const upstream = await util.createTmpDir();
+            const dir = await util.createTmpDir();
+            // Prepare upstream repository
+            await git.init({ fs, dir: upstream });
+            await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+              version: "1.2.0"
+            }));
+            await git.add({ fs, dir: upstream, filepath: 'package.json' });
+            await setAuthor(upstream);
+            await exec(`git commit -m package`, { cwd: upstream });
+            await git.branch({ fs, dir: upstream, ref: `env/${env}` });
+            // Clone into repo we'll run in, and create appropriate branch
+            await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
+            // Run action
+            await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+            await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+              ref: `refs/heads/env/${env}`
+            }));
+            const logger = newLogger();
+            // Prepare GitHub mock
+            const openPullRequest = jest.fn().mockResolvedValue(null);
+            await action.runAction({
+              env: DEFAULT_ENV,
+              dir,
+              logger,
+              dockerInit: () => ({
+                checkExistingImage: jest.fn().mockResolvedValue(null),
+                runBuild: jest.fn().mockResolvedValue(null),
+                pushImage: jest.fn().mockResolvedValue(null),
+              }),
+              gitHubInit: () => ({
+                openPullRequest
+              }),
+            });
+            expect(logger.log.mock.calls).toMatchSnapshot();
+            expect(openPullRequest.mock.calls).toMatchSnapshot();
           });
 
         });

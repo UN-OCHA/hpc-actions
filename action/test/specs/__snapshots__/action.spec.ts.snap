@@ -352,6 +352,65 @@ Object {
 }
 `;
 
+exports[`action runAction push to production or staging env/prod mergeback 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag is unchanged",
+  ],
+  Array [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
+  ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
+  ],
+  Array [
+    "##[info] Pull Request Opened, workflow complete",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod mergeback 2`] = `
+Array [
+  Array [
+    Object {
+      "base": "env/staging",
+      "head": "mergeback/prod/1.2.0",
+      "title": "Update env/staging with changes from env/prod",
+    },
+  ],
+]
+`;
+
 exports[`action runAction push to production or staging env/prod tagging Existing tag (changed tree) 1`] = `
 Array [
   Array [
@@ -773,6 +832,65 @@ Object {
     ],
   ],
 }
+`;
+
+exports[`action runAction push to production or staging env/staging mergeback 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag is unchanged",
+  ],
+  Array [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
+  ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
+  ],
+  Array [
+    "##[info] Pull Request Opened, workflow complete",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging mergeback 2`] = `
+Array [
+  Array [
+    Object {
+      "base": "develop",
+      "head": "mergeback/staging/1.2.0",
+      "title": "Update develop with changes from env/staging",
+    },
+  ],
+]
 `;
 
 exports[`action runAction push to production or staging env/staging tagging Existing tag (changed tree) 1`] = `
