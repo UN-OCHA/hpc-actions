@@ -8,6 +8,7 @@ import { Webhooks } from '@octokit/webhooks';
 
 import { Env, Config, getConfig } from './config';
 import { DockerInit, REAL_DOCKER } from './docker';
+import { GitHubInit, REAL_GITHUB } from './github';
 
 const exec = promisify(child_process.exec);
 
@@ -31,6 +32,10 @@ interface Params {
    * Interface to interact with docker
    */
   dockerInit?: DockerInit;
+  /**
+   * Interface to interact with github
+   */
+  gitHubInit?: GitHubInit;
 }
 
 type GitHubEvent = {
@@ -77,7 +82,8 @@ export const runAction = async (
     env,
     dir = process.cwd(),
     logger = console,
-    dockerInit = REAL_DOCKER
+    dockerInit = REAL_DOCKER,
+    gitHubInit = REAL_GITHUB,
   }: Params
 ) => {
 
@@ -106,6 +112,8 @@ export const runAction = async (
   } else {
     throw new Error(`Unsupported GITHUB_EVENT_NAME: ${env.GITHUB_EVENT_NAME}`);
   }
+
+  const github = gitHubInit();
 
   if (event.name === 'push') {
 
@@ -295,6 +303,20 @@ export const runAction = async (
 
       info(`CI Checks Complete`);
 
+      const mergebackBranch = `mergeback/${branch.substr(4)}/${version}`;
+      info(`Creating and pushing mergeback Branch: ${mergebackBranch}`);
+      await git.branch({ fs, dir, ref: mergebackBranch });
+      await exec(`git push ${remote.remote} ${mergebackBranch}`, { cwd: dir });
+
+      info(`Opening Mergeback Pull Request`);
+      const base = mode === 'env-production' ? config.stagingEnvironmentBranch : 'develop';
+      await github.openPullRequest({
+        base,
+        head: mergebackBranch,
+        title: `Update ${base} with changes from ${branch}`,
+      });
+
+      info(`Pull Request Opened, workflow complete`);
 
     }
 

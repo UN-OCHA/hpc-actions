@@ -9,6 +9,7 @@ import * as util from '../util';
 import { Config, Env } from '../../src/config';
 import * as action from '../../src/action';
 import { DockerImageMetadata, DockerController, DockerInit } from '../../src/docker';
+import { GitHubInit, GitHubController } from '../../src/github';
 
 const exec = promisify(child_process.exec);
 
@@ -172,7 +173,12 @@ describe('action', () => {
         pushImage: () => Promise.reject(testCompleteError),
       }
 
+      const testCompleteGitHub: GitHubController = {
+        openPullRequest: () => Promise.reject(testCompleteError),
+      }
+
       const testCompleteDockerInit: DockerInit = () => testCompleteDockerController;
+      const testCompleteGitHubInit: GitHubInit = () => testCompleteGitHub;
 
       for (const env of ['prod','staging']) {
 
@@ -343,8 +349,10 @@ describe('action', () => {
                 dockerInit: () => ({
                   ...testCompleteDockerController,
                   checkExistingImage
-                })
-              });
+                }),
+                gitHubInit: testCompleteGitHubInit,
+              }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+                .catch(err => expect(err).toBe(testCompleteError));
               expect(logger.log.mock.calls).toMatchSnapshot();
               expect(checkExistingImage.mock.calls).toMatchSnapshot();
             });
@@ -427,8 +435,10 @@ describe('action', () => {
                   checkExistingImage,
                   runBuild,
                   pushImage,
-                })
-              });
+                }),
+                gitHubInit: testCompleteGitHubInit,
+              }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+                .catch(err => expect(err).toBe(testCompleteError));;
               expect(logger.log.mock.calls).toMatchSnapshot();
               expect({
                 checkExistingImage: checkExistingImage.mock.calls,
@@ -537,8 +547,10 @@ describe('action', () => {
                   checkExistingImage: jest.fn().mockResolvedValue(null),
                   runBuild: jest.fn().mockResolvedValue(null),
                   pushImage: jest.fn().mockResolvedValue(null),
-                })
-              });
+                }),
+                gitHubInit: testCompleteGitHubInit,
+              }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+                .catch(err => expect(err).toBe(testCompleteError));;
               expect(logger.fn.mock.calls).toMatchSnapshot();
             });
 
@@ -620,8 +632,10 @@ describe('action', () => {
                   checkExistingImage: jest.fn().mockResolvedValue(null),
                   runBuild: jest.fn().mockResolvedValue(null),
                   pushImage: jest.fn().mockResolvedValue(null),
-                })
-              })
+                }),
+                gitHubInit: testCompleteGitHubInit,
+              }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+                .catch(err => expect(err).toBe(testCompleteError));
               expect(logger.fn.mock.calls).toMatchSnapshot();
             });
 

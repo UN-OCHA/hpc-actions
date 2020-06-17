@@ -54,6 +54,14 @@ Array [
     "[stdout]",
     "##[info] CI Checks Complete",
   ],
+  Array [
+    "[stdout]",
+    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Opening Mergeback Pull Request",
+  ],
 ]
 `;
 
@@ -122,6 +130,14 @@ Array [
   Array [
     "[stdout]",
     "##[info] CI Checks Complete",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Opening Mergeback Pull Request",
   ],
 ]
 `;
@@ -229,6 +245,12 @@ Array [
   Array [
     "##[info] CI Checks Complete",
   ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
+  ],
 ]
 `;
 
@@ -305,6 +327,12 @@ Array [
   ],
   Array [
     "##[info] CI Checks Complete",
+  ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
   ],
 ]
 `;
@@ -449,6 +477,14 @@ Array [
     "[stdout]",
     "##[info] CI Checks Complete",
   ],
+  Array [
+    "[stdout]",
+    "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Opening Mergeback Pull Request",
+  ],
 ]
 `;
 
@@ -517,6 +553,14 @@ Array [
   Array [
     "[stdout]",
     "##[info] CI Checks Complete",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Opening Mergeback Pull Request",
   ],
 ]
 `;
@@ -624,6 +668,12 @@ Array [
   Array [
     "##[info] CI Checks Complete",
   ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
+  ],
 ]
 `;
 
@@ -700,6 +750,12 @@ Array [
   ],
   Array [
     "##[info] CI Checks Complete",
+  ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
   ],
 ]
 `;
