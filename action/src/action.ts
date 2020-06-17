@@ -25,6 +25,7 @@ interface Params {
    */
   logger?: {
     log: (...args: any[]) => void;
+    error: (...args: any[]) => void;
   }
   /**
    * Interface to interact with docker
@@ -249,6 +250,50 @@ export const runAction = async (
         await docker.pushImage(tag);
         info(`Image Pushed`);
       }
+
+      // Run CI Checks
+
+      info(`Running CI Checks`);
+
+      for (const cmd of config.ci) {
+        info(`Running: ${cmd}`);
+        const p = child_process.execFile('sh', ['-c', cmd], {
+          cwd: dir
+        });
+        const buffer = {
+          stderr: '',
+          stdout: ''
+        };
+        for (const stream of ['stdout', 'stderr'] as const) {
+          const handle = (data: string) => {
+            buffer[stream] += data;
+            let nextBreak: number;
+            while ((nextBreak = buffer[stream].indexOf('\n')) > -1) {
+              const ready = buffer[stream].substr(0, nextBreak);
+              buffer[stream] = buffer[stream].substr(nextBreak + 1);
+              logger[stream === 'stdout' ? 'log' : 'error'](ready);
+            }
+          }
+          p[stream]?.on('data', handle);
+        }
+        await new Promise((resolve, reject) =>
+          p.on('exit', code => {
+            // Print any remaining data
+            for (const stream of ['stdout', 'stderr'] as const) {
+              if (buffer[stream] !== '') {
+                logger[stream === 'stdout' ? 'log' : 'error'](buffer[stream]);
+              }
+            }
+            if (code === 0) {
+              resolve();
+            } else {
+              reject(new Error(`CI command ${cmd} exited with exit code ${code}`));
+            }
+          })
+        );
+      };
+
+      info(`CI Checks Complete`);
 
 
     }

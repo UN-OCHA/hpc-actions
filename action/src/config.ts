@@ -64,9 +64,13 @@ const CONFIG = t.type({
     'node': null,
   }),
   /**
-   * Configuration for the 
+   * Configuration for the docker image build and publication
    */
-  docker: DOCKER_CONFIG
+  docker: DOCKER_CONFIG,
+  /**
+   * List of shell commands to run as part of CI
+   */
+  ci: t.array(t.string)
 });
 
 /**

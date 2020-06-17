@@ -21,7 +21,8 @@ const DEFAULT_CONFIG: Config = {
   developmentEnvironmentBranches: [],
   docker: {
     path: '.'
-  }
+  },
+  ci: [],
 };
 
 const DEFAULT_ENV: Env = {
@@ -35,8 +36,18 @@ const DEFAULT_PUSH_ENV = {
 };
 
 const newLogger = () => ({
-  log: jest.fn()
+  log: jest.fn(),
+  error: jest.fn(),
 });
+
+const newInterleavedLogger = () => {
+  const fn = jest.fn();
+  return {
+    fn,
+    log: (...args: any[]) => fn('[stdout]', ...args),
+    error: (...args: any[]) => fn('[stderr]', ...args),
+  };
+}
 
 const author = {
   email: 'foo@foo.com',
@@ -488,6 +499,134 @@ describe('action', () => {
               expect(runBuild.mock.calls).toEqual([["v1.2.0", meta]]);
             });
           });
+
+          describe('ci', () => {
+
+            it('Command with interleaved stderr and stdout', async () => {
+              const upstream = await util.createTmpDir();
+              const dir = await util.createTmpDir();
+              // Prepare upstream repository
+              await git.init({ fs, dir: upstream });
+              await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+                version: "1.2.0"
+              }));
+              await git.add({ fs, dir: upstream, filepath: 'package.json' });
+              await setAuthor(upstream);
+              await exec(`git commit -m package`, { cwd: upstream });
+              await git.branch({ fs, dir: upstream, ref: `env/${env}` });
+              // Clone into repo we'll run in, and create appropriate branch
+              await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
+              // Run action
+              const config: Config = {
+                ...DEFAULT_CONFIG,
+                ci: [
+                  `echo && echo foo && sleep 0.1s && echo bar 1>&2 && sleep 0.1s && echo baz`
+                ]
+              };
+              await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(config));
+              await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+                ref: `refs/heads/env/${env}`
+              }));
+              const logger = newInterleavedLogger();
+              // Prepare docker mock
+              await action.runAction({
+                env: DEFAULT_ENV,
+                dir,
+                logger,
+                dockerInit: () => ({
+                  checkExistingImage: jest.fn().mockResolvedValue(null),
+                  runBuild: jest.fn().mockResolvedValue(null),
+                  pushImage: jest.fn().mockResolvedValue(null),
+                })
+              });
+              expect(logger.fn.mock.calls).toMatchSnapshot();
+            });
+
+            it('Command with nonzero exit code', async () => {
+              const upstream = await util.createTmpDir();
+              const dir = await util.createTmpDir();
+              // Prepare upstream repository
+              await git.init({ fs, dir: upstream });
+              await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+                version: "1.2.0"
+              }));
+              await git.add({ fs, dir: upstream, filepath: 'package.json' });
+              await setAuthor(upstream);
+              await exec(`git commit -m package`, { cwd: upstream });
+              await git.branch({ fs, dir: upstream, ref: `env/${env}` });
+              // Clone into repo we'll run in, and create appropriate branch
+              await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
+              // Run action
+              const config: Config = {
+                ...DEFAULT_CONFIG,
+                ci: [
+                  `exit 123`
+                ]
+              };
+              await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(config));
+              await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+                ref: `refs/heads/env/${env}`
+              }));
+              const logger = newInterleavedLogger();
+              // Prepare docker mock
+              await action.runAction({
+                env: DEFAULT_ENV,
+                dir,
+                logger,
+                dockerInit: () => ({
+                  checkExistingImage: jest.fn().mockResolvedValue(null),
+                  runBuild: jest.fn().mockResolvedValue(null),
+                  pushImage: jest.fn().mockResolvedValue(null),
+                })
+              }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+                .catch((err: Error) => {
+                  expect(err.message).toEqual('CI command exit 123 exited with exit code 123');
+                });
+              expect(logger.fn.mock.calls).toMatchSnapshot();
+            });
+
+            it('Check directory', async () => {
+              const upstream = await util.createTmpDir();
+              const dir = await util.createTmpDir();
+              // Prepare upstream repository
+              await git.init({ fs, dir: upstream });
+              await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+                version: "1.2.0"
+              }));
+              await git.add({ fs, dir: upstream, filepath: 'package.json' });
+              await setAuthor(upstream);
+              await exec(`git commit -m package`, { cwd: upstream });
+              await git.branch({ fs, dir: upstream, ref: `env/${env}` });
+              // Clone into repo we'll run in, and create appropriate branch
+              await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
+              // Run action
+              const config: Config = {
+                ...DEFAULT_CONFIG,
+                ci: [
+                  `cat package.json`
+                ]
+              };
+              await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(config));
+              await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+                ref: `refs/heads/env/${env}`
+              }));
+              const logger = newInterleavedLogger();
+              // Prepare docker mock
+              await action.runAction({
+                env: DEFAULT_ENV,
+                dir,
+                logger,
+                dockerInit: () => ({
+                  checkExistingImage: jest.fn().mockResolvedValue(null),
+                  runBuild: jest.fn().mockResolvedValue(null),
+                  pushImage: jest.fn().mockResolvedValue(null),
+                })
+              })
+              expect(logger.fn.mock.calls).toMatchSnapshot();
+            });
+
+          });
+
         });
       }
 

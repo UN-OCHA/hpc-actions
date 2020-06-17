@@ -70,7 +70,8 @@ describe('config', () => {
       developmentEnvironmentBranches: [],
       docker: {
         path: '.'
-      }
+      },
+      ci: []
     }; 
 
     await fs.writeFile(TEST_CONFIG_PATH, JSON.stringify(c));
