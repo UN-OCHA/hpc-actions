@@ -7,6 +7,7 @@ import { promisify } from 'util';
 import { Webhooks } from '@octokit/webhooks';
 
 import { Env, Config, getConfig } from './config';
+import { DockerInit, REAL_DOCKER } from './docker';
 
 const exec = promisify(child_process.exec);
 
@@ -25,6 +26,10 @@ interface Params {
   logger?: {
     log: (...args: any[]) => void;
   }
+  /**
+   * Interface to interact with docker
+   */
+  dockerInit?: DockerInit;
 }
 
 type GitHubEvent = {
@@ -71,6 +76,7 @@ export const runAction = async (
     env,
     dir = process.cwd(),
     logger = console,
+    dockerInit = REAL_DOCKER
   }: Params
 ) => {
 
@@ -101,6 +107,8 @@ export const runAction = async (
   }
 
   if (event.name === 'push') {
+
+    const docker = dockerInit(config.docker);
 
     // Get remote information
 
@@ -178,11 +186,16 @@ export const runAction = async (
               throw err;
             }
           });
+
+      /**
+       * The commit sha for the tag after it's been created or checked
+       */
+      let tagSha: string;
       if (existing) {
         // Check that the tree hash of the existing tag matches
         // (i.e. the content hasn't changed without changing the version)
         info(`The tag ${tag} already exists, checking that tree hasn't changed`);
-        const tagSha = await git.resolveRef({ fs, dir, ref: `refs/tags/${tag}` });
+        tagSha = await git.resolveRef({ fs, dir, ref: `refs/tags/${tag}` });
         const tagHead = await git.readCommit({ fs, dir, oid: tagSha });
         if (tagHead.commit.tree !== head.commit.tree) {
           throw new Error(`New push to ${branch} without bumping version`);
@@ -197,9 +210,47 @@ export const runAction = async (
         // Create and push the tag
         info(`Creating and pushing new tag ${tag}`);
         await git.tag({ fs, dir, ref: tag });
+        tagSha = await git.resolveRef({ fs, dir, ref: `refs/tags/${tag}` });
         await exec(`git push ${remote.remote} ${tag}`, { cwd: dir });
       }
-    ;
+
+      // Check whether there is an existing docker image, and build if needed
+
+      info(`Checking for existing docker image with tag ${tag}`);
+      const image = await docker.checkExistingImage(tag);
+
+      if (image) {
+        // An image already exists, make sure it was built using the same files
+        info(`Image already exists, checking it was built with same git tree`);
+        if (image.treeSha !== head.commit.tree) {
+          throw new Error(`New push to ${branch} without bumping version`);
+        } else {
+          info(`Image was built with same tree, no need to run build again`);
+        }
+      } else {
+        info(`Image with tag ${tag} does not yet exist, building image`);
+        await docker.runBuild(
+          tag,
+          {
+            commitSha: head.oid,
+            treeSha: head.commit.tree,
+          }
+        );
+        info(`Image built, checking tag is unchanged`);
+        await git.deleteRef({fs, dir, ref: `refs/tags/${tag}`});
+        await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir });
+        const newTagSha = await git.resolveRef({ fs, dir, ref: `refs/tags/${tag}` });
+        if (newTagSha !== tagSha) {
+          throw new Error('Tag has changed, aborting');
+        } else {
+          info(`Tag is unchanged, okay to continue`);
+        }
+        info(`Pushing image to docker repository`);
+        await docker.pushImage(tag);
+        info(`Image Pushed`);
+      }
+
+
     }
 
   }

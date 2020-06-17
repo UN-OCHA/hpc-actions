@@ -68,6 +68,9 @@ describe('config', () => {
       stagingEnvironmentBranch: 'env/stage',
       repoType: 'node',
       developmentEnvironmentBranches: [],
+      docker: {
+        path: '.'
+      }
     }; 
 
     await fs.writeFile(TEST_CONFIG_PATH, JSON.stringify(c));

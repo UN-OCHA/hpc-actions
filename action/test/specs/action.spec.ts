@@ -8,6 +8,7 @@ import * as util from '../util';
 
 import { Config, Env } from '../../src/config';
 import * as action from '../../src/action';
+import { DockerInit } from '../../src/docker';
 
 const exec = promisify(child_process.exec);
 
@@ -18,6 +19,9 @@ const DEFAULT_CONFIG: Config = {
   stagingEnvironmentBranch: 'env/staging',
   repoType: 'node',
   developmentEnvironmentBranches: [],
+  docker: {
+    path: '.'
+  }
 };
 
 const DEFAULT_ENV: Env = {
@@ -149,134 +153,154 @@ describe('action', () => {
 
     describe('push to production or staging', () => {
 
+      const testCompleteError = new Error('TEST COMPLETE');
+
+      const testCompleteDockerInit: DockerInit = config => ({
+        checkExistingImage: () => Promise.reject(testCompleteError),
+        runBuild: () => Promise.reject(testCompleteError),
+        pushImage: () => Promise.reject(testCompleteError),
+      });
+
       for (const env of ['prod','staging']) {
 
         describe(`env/${env}`, () => {
-          it('Non-Existant Tag', async () => {
-            const upstream = await util.createTmpDir();
-            const dir = await util.createTmpDir();
-            // Prepare upstream repository
-            await git.init({ fs, dir: upstream });
-            await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
-              version: "1.2.0"
-            }));
-            await git.add({ fs, dir: upstream, filepath: 'package.json' });
-            await setAuthor(upstream);
-            await exec(`git commit -m package`, {
-              cwd: upstream
-            }).catch(err => {
-              console.log('out', err.stdout);
-              throw err;
-            });
-            await git.branch({ fs, dir: upstream, ref: `env/${env}` });
-            // Clone into repo we'll run in, and create appropriate branch
-            await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
-            // Run action
-            await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
-            await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
-              ref: `refs/heads/env/${env}`
-            }));
-            const logger = newLogger();
-            await action.runAction({
-              env: DEFAULT_ENV,
-              dir,
-              logger
-            });
-            expect(logger.log.mock.calls).toMatchSnapshot();
-          });
-
-          it('Existing tag (current commit)', async () => {
-            const upstream = await util.createTmpDir();
-            const dir = await util.createTmpDir();
-            // Prepare upstream repository
-            await git.init({ fs, dir: upstream });
-            await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
-              version: "1.2.0"
-            }));
-            await git.add({ fs, dir: upstream, filepath: 'package.json' });
-            await setAuthor(upstream);
-            await exec(`git commit -m package`, { cwd: upstream });
-            await git.tag({ fs, dir: upstream, ref: `v1.2.0` });
-            await git.branch({ fs, dir: upstream, ref: `env/${env}` });
-            // Clone into repo we'll run in, and create appropriate branch
-            await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
-            // Run action
-            await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
-            await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
-              ref: `refs/heads/env/${env}`
-            }));
-            const logger = newLogger();
-            await action.runAction({
-              env: DEFAULT_ENV,
-              dir,
-              logger
-            });
-            expect(logger.log.mock.calls).toMatchSnapshot();
-          });
-
-          it('Existing tag (different commit, matching tree)', async () => {
-            const upstream = await util.createTmpDir();
-            const dir = await util.createTmpDir();
-            // Prepare upstream repository
-            await git.init({ fs, dir: upstream });
-            await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
-              version: "1.2.0"
-            }));
-            await git.add({ fs, dir: upstream, filepath: 'package.json' });
-            await setAuthor(upstream);
-            await exec(`git commit -m package`, { cwd: upstream });
-            await git.tag({ fs, dir: upstream, ref: `v1.2.0` });
-            await exec(`git commit -m followup --allow-empty`, { cwd: upstream });
-            await git.branch({ fs, dir: upstream, ref: `env/${env}` });
-            // Clone into repo we'll run in, and create appropriate branch
-            await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
-            // Run action
-            await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
-            await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
-              ref: `refs/heads/env/${env}`
-            }));
-            const logger = newLogger();
-            await action.runAction({
-              env: DEFAULT_ENV,
-              dir,
-              logger
-            });
-            expect(logger.log.mock.calls).toMatchSnapshot();
-          });
-
-          it('Existing tag (changed tree)', async () => {
-            const upstream = await util.createTmpDir();
-            const dir = await util.createTmpDir();
-            // Prepare upstream repository
-            await git.init({ fs, dir: upstream });
-            await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
-              version: "1.2.0"
-            }));
-            await git.add({ fs, dir: upstream, filepath: 'package.json' });
-            await setAuthor(upstream);
-            await exec(`git commit -m package`, { cwd: upstream });
-            await git.tag({ fs, dir: upstream, ref: `v1.2.0` });
-            await fs.promises.writeFile(path.join(upstream, 'foo'), 'bar');
-            await git.add({ fs, dir: upstream, filepath: 'foo' });
-            await exec(`git commit -m followup`, { cwd: upstream });
-            await git.branch({ fs, dir: upstream, ref: `env/${env}` });
-            // Clone into repo we'll run in, and create appropriate branch
-            await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
-            // Run action
-            await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
-            await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
-              ref: `refs/heads/env/${env}`
-            }));
-            const logger = newLogger();
-            await action.runAction({
-              env: DEFAULT_ENV,
-              dir,
-              logger
-            }).then(() => Promise.reject(new Error('Expected error to be thrown')))
-              .catch((err: Error) => {
-                expect(err.message).toEqual(`New push to env/${env} without bumping version`);
+          describe('tagging', () => {
+            it('Non-Existant Tag', async () => {
+              const upstream = await util.createTmpDir();
+              const dir = await util.createTmpDir();
+              // Prepare upstream repository
+              await git.init({ fs, dir: upstream });
+              await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+                version: "1.2.0"
+              }));
+              await git.add({ fs, dir: upstream, filepath: 'package.json' });
+              await setAuthor(upstream);
+              await exec(`git commit -m package`, {
+                cwd: upstream
+              }).catch(err => {
+                console.log('out', err.stdout);
+                throw err;
               });
-            expect(logger.log.mock.calls).toMatchSnapshot();
+              await git.branch({ fs, dir: upstream, ref: `env/${env}` });
+              // Clone into repo we'll run in, and create appropriate branch
+              await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
+              // Run action
+              await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+              await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+                ref: `refs/heads/env/${env}`
+              }));
+              const logger = newLogger();
+              await action.runAction({
+                env: DEFAULT_ENV,
+                dir,
+                logger,
+                dockerInit: testCompleteDockerInit
+              }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+                .catch(err => expect(err).toBe(testCompleteError));
+              expect(logger.log.mock.calls).toMatchSnapshot();
+            });
+
+            it('Existing tag (current commit)', async () => {
+              const upstream = await util.createTmpDir();
+              const dir = await util.createTmpDir();
+              // Prepare upstream repository
+              await git.init({ fs, dir: upstream });
+              await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+                version: "1.2.0"
+              }));
+              await git.add({ fs, dir: upstream, filepath: 'package.json' });
+              await setAuthor(upstream);
+              await exec(`git commit -m package`, { cwd: upstream });
+              await git.tag({ fs, dir: upstream, ref: `v1.2.0` });
+              await git.branch({ fs, dir: upstream, ref: `env/${env}` });
+              // Clone into repo we'll run in, and create appropriate branch
+              await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
+              // Run action
+              await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+              await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+                ref: `refs/heads/env/${env}`
+              }));
+              const logger = newLogger();
+              await action.runAction({
+                env: DEFAULT_ENV,
+                dir,
+                logger,
+                dockerInit: testCompleteDockerInit
+              }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+                .catch(err => expect(err).toBe(testCompleteError));
+              expect(logger.log.mock.calls).toMatchSnapshot();
+            });
+
+            it('Existing tag (different commit, matching tree)', async () => {
+              const upstream = await util.createTmpDir();
+              const dir = await util.createTmpDir();
+              // Prepare upstream repository
+              await git.init({ fs, dir: upstream });
+              await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+                version: "1.2.0"
+              }));
+              await git.add({ fs, dir: upstream, filepath: 'package.json' });
+              await setAuthor(upstream);
+              await exec(`git commit -m package`, { cwd: upstream });
+              await git.tag({ fs, dir: upstream, ref: `v1.2.0` });
+              await exec(`git commit -m followup --allow-empty`, { cwd: upstream });
+              await git.branch({ fs, dir: upstream, ref: `env/${env}` });
+              // Clone into repo we'll run in, and create appropriate branch
+              await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
+              // Run action
+              await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+              await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+                ref: `refs/heads/env/${env}`
+              }));
+              const logger = newLogger();
+              await action.runAction({
+                env: DEFAULT_ENV,
+                dir,
+                logger,
+                dockerInit: testCompleteDockerInit
+              }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+                .catch(err => expect(err).toBe(testCompleteError));
+              expect(logger.log.mock.calls).toMatchSnapshot();
+            });
+
+            it('Existing tag (changed tree)', async () => {
+              const upstream = await util.createTmpDir();
+              const dir = await util.createTmpDir();
+              // Prepare upstream repository
+              await git.init({ fs, dir: upstream });
+              await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+                version: "1.2.0"
+              }));
+              await git.add({ fs, dir: upstream, filepath: 'package.json' });
+              await setAuthor(upstream);
+              await exec(`git commit -m package`, { cwd: upstream });
+              await git.tag({ fs, dir: upstream, ref: `v1.2.0` });
+              await fs.promises.writeFile(path.join(upstream, 'foo'), 'bar');
+              await git.add({ fs, dir: upstream, filepath: 'foo' });
+              await exec(`git commit -m followup`, { cwd: upstream });
+              await git.branch({ fs, dir: upstream, ref: `env/${env}` });
+              // Clone into repo we'll run in, and create appropriate branch
+              await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
+              // Run action
+              await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+              await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+                ref: `refs/heads/env/${env}`
+              }));
+              const logger = newLogger();
+              await action.runAction({
+                env: DEFAULT_ENV,
+                dir,
+                logger
+              }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+                .catch((err: Error) => {
+                  expect(err.message).toEqual(`New push to env/${env} without bumping version`);
+                });
+              expect(logger.log.mock.calls).toMatchSnapshot();
+            });
+          });
+
+          describe('docker', () => {
+
           });
         });
       }

@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`action runAction push to production or staging env/prod Existing tag (changed tree) 1`] = `
+exports[`action runAction push to production or staging env/prod tagging Existing tag (changed tree) 1`] = `
 Array [
   Array [
     "##[info] Handling push to branch env/prod",
@@ -14,7 +14,7 @@ Array [
 ]
 `;
 
-exports[`action runAction push to production or staging env/prod Existing tag (current commit) 1`] = `
+exports[`action runAction push to production or staging env/prod tagging Existing tag (current commit) 1`] = `
 Array [
   Array [
     "##[info] Handling push to branch env/prod",
@@ -28,10 +28,13 @@ Array [
   Array [
     "##[info] The tag is for the current commit, okay to continue",
   ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
 ]
 `;
 
-exports[`action runAction push to production or staging env/prod Existing tag (different commit, matching tree) 1`] = `
+exports[`action runAction push to production or staging env/prod tagging Existing tag (different commit, matching tree) 1`] = `
 Array [
   Array [
     "##[info] Handling push to branch env/prod",
@@ -45,10 +48,13 @@ Array [
   Array [
     "##[info] The current tree matches the existing tag, okay to continue",
   ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
 ]
 `;
 
-exports[`action runAction push to production or staging env/prod Non-Existant Tag 1`] = `
+exports[`action runAction push to production or staging env/prod tagging Non-Existant Tag 1`] = `
 Array [
   Array [
     "##[info] Handling push to branch env/prod",
@@ -59,10 +65,13 @@ Array [
   Array [
     "##[info] Creating and pushing new tag v1.2.0",
   ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
 ]
 `;
 
-exports[`action runAction push to production or staging env/staging Existing tag (changed tree) 1`] = `
+exports[`action runAction push to production or staging env/staging tagging Existing tag (changed tree) 1`] = `
 Array [
   Array [
     "##[info] Handling push to branch env/staging",
@@ -76,7 +85,7 @@ Array [
 ]
 `;
 
-exports[`action runAction push to production or staging env/staging Existing tag (current commit) 1`] = `
+exports[`action runAction push to production or staging env/staging tagging Existing tag (current commit) 1`] = `
 Array [
   Array [
     "##[info] Handling push to branch env/staging",
@@ -90,10 +99,13 @@ Array [
   Array [
     "##[info] The tag is for the current commit, okay to continue",
   ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
 ]
 `;
 
-exports[`action runAction push to production or staging env/staging Existing tag (different commit, matching tree) 1`] = `
+exports[`action runAction push to production or staging env/staging tagging Existing tag (different commit, matching tree) 1`] = `
 Array [
   Array [
     "##[info] Handling push to branch env/staging",
@@ -107,10 +119,13 @@ Array [
   Array [
     "##[info] The current tree matches the existing tag, okay to continue",
   ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
 ]
 `;
 
-exports[`action runAction push to production or staging env/staging Non-Existant Tag 1`] = `
+exports[`action runAction push to production or staging env/staging tagging Non-Existant Tag 1`] = `
 Array [
   Array [
     "##[info] Handling push to branch env/staging",
@@ -120,6 +135,9 @@ Array [
   ],
   Array [
     "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
   ],
 ]
 `;

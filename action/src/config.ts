@@ -29,11 +29,17 @@ export interface Env {
   GITHUB_ACTOR?: string;
 }
 
-/**
- * Specify the configuration options using io-ts,
- * which provides both type-definitions for the configuration,
- * and validation that matches these definitions.
- */
+// Specify the configuration options using io-ts,
+// which provides both type-definitions for the configuration,
+// and validation that matches these definitions.
+
+const DOCKER_CONFIG = t.type({
+  /**
+   * Where in the repository should the build be run from
+   */
+  path: t.string
+});
+
 const CONFIG = t.type({
   /**
    * What is the branch for the staging environment.
@@ -57,12 +63,21 @@ const CONFIG = t.type({
      */
     'node': null,
   }),
+  /**
+   * Configuration for the 
+   */
+  docker: DOCKER_CONFIG
 });
 
 /**
  * The type of a valid configuration file
  */
 export type Config = t.TypeOf<typeof CONFIG>;
+
+/**
+ * The type for valid docker configuration
+ */
+export type DockerConfig = t.TypeOf<typeof DOCKER_CONFIG>;
 
 export const getConfig = async (env: Env): Promise<Config> => {
   if (!env.CONFIG_FILE) {
