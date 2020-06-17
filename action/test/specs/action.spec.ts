@@ -675,6 +675,10 @@ describe('action', () => {
             });
             expect(logger.log.mock.calls).toMatchSnapshot();
             expect(openPullRequest.mock.calls).toMatchSnapshot();
+            // Check expected mergeback branch has been pushed to remote
+            const shaA = await git.resolveRef({ fs, dir: upstream, ref: `refs/heads/mergeback/${env}/1.2.0` });
+            const shaB = await git.resolveRef({ fs, dir: upstream, ref: `refs/heads/env/${env}` });
+            expect(shaA).toEqual(shaB);
           });
 
         });
