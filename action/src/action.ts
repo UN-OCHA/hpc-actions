@@ -240,13 +240,15 @@ export const runAction = async (
         }
       } else {
         info(`Image with tag ${tag} does not yet exist, building image`);
-        await docker.runBuild(
+        await docker.runBuild({
           tag,
-          {
+          meta: {
             commitSha: head.oid,
             treeSha: head.commit.tree,
-          }
-        );
+          },
+          cwd: dir,
+          logger
+        });
         info(`Image built, checking tag is unchanged`);
         await git.deleteRef({fs, dir, ref: `refs/tags/${tag}`});
         await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir });

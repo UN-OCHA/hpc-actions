@@ -69,7 +69,16 @@ describe('config', () => {
       repoType: 'node',
       developmentEnvironmentBranches: [],
       docker: {
-        path: '.'
+        path: '.',
+        args: {
+          commitSha: '',
+          treeSha: '',
+        },
+        environmentVariables: {
+          commitSha: '',
+          treeSha: '',
+        },
+        repository: '',
       },
       ci: []
     }; 

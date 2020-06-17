@@ -21,7 +21,16 @@ const DEFAULT_CONFIG: Config = {
   repoType: 'node',
   developmentEnvironmentBranches: [],
   docker: {
-    path: '.'
+    path: '.',
+    args: {
+      commitSha: '',
+      treeSha: '',
+    },
+    environmentVariables: {
+      commitSha: '',
+      treeSha: '',
+    },
+    repository: ''
   },
   ci: [],
 };
@@ -32,23 +41,7 @@ const DEFAULT_ENV: Env = {
   GITHUB_EVENT_PATH: EVENT_FILE,
 };
 
-const DEFAULT_PUSH_ENV = {
-
-};
-
-const newLogger = () => ({
-  log: jest.fn(),
-  error: jest.fn(),
-});
-
-const newInterleavedLogger = () => {
-  const fn = jest.fn();
-  return {
-    fn,
-    log: (...args: any[]) => fn('[stdout]', ...args),
-    error: (...args: any[]) => fn('[stderr]', ...args),
-  };
-}
+const DEFAULT_PUSH_ENV = {};
 
 const author = {
   email: 'foo@foo.com',
@@ -152,7 +145,7 @@ describe('action', () => {
       await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
         ref: 'refs/tags/v0.0.0'
       }));
-      const logger = newLogger();
+      const logger = util.newLogger();
       await action.runAction({
         env: DEFAULT_ENV,
         dir,
@@ -203,7 +196,7 @@ describe('action', () => {
               await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
                 ref: `refs/heads/env/${env}`
               }));
-              const logger = newLogger();
+              const logger = util.newLogger();
               await action.runAction({
                 env: DEFAULT_ENV,
                 dir,
@@ -234,7 +227,7 @@ describe('action', () => {
               await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
                 ref: `refs/heads/env/${env}`
               }));
-              const logger = newLogger();
+              const logger = util.newLogger();
               await action.runAction({
                 env: DEFAULT_ENV,
                 dir,
@@ -266,7 +259,7 @@ describe('action', () => {
               await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
                 ref: `refs/heads/env/${env}`
               }));
-              const logger = newLogger();
+              const logger = util.newLogger();
               await action.runAction({
                 env: DEFAULT_ENV,
                 dir,
@@ -300,7 +293,7 @@ describe('action', () => {
               await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
                 ref: `refs/heads/env/${env}`
               }));
-              const logger = newLogger();
+              const logger = util.newLogger();
               await action.runAction({
                 env: DEFAULT_ENV,
                 dir,
@@ -333,7 +326,7 @@ describe('action', () => {
               await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
                 ref: `refs/heads/env/${env}`
               }));
-              const logger = newLogger();
+              const logger = util.newLogger();
               // Prepare docker mock
               const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
               const head = await git.readCommit({ fs, dir, oid: sha });
@@ -376,7 +369,7 @@ describe('action', () => {
               await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
                 ref: `refs/heads/env/${env}`
               }));
-              const logger = newLogger();
+              const logger = util.newLogger();
               // Prepare docker mock
               const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
               const head = await git.readCommit({ fs, dir, oid: sha });
@@ -422,7 +415,7 @@ describe('action', () => {
               await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
                 ref: `refs/heads/env/${env}`
               }));
-              const logger = newLogger();
+              const logger = util.newLogger();
               // Prepare docker mock
               const checkExistingImage = jest.fn().mockResolvedValue(null);
               const runBuild = jest.fn().mockResolvedValue(null);
@@ -450,7 +443,12 @@ describe('action', () => {
                 commitSha: head.oid,
                 treeSha: head.commit.tree,
               };
-              expect(runBuild.mock.calls).toEqual([["v1.2.0", meta]]);
+              expect(runBuild.mock.calls).toEqual([[{
+                cwd: dir,
+                logger,
+                tag: "v1.2.0",
+                meta
+              }]]);
             });
 
             it('Non-Existant Image (tag changed)', async () => {
@@ -472,7 +470,7 @@ describe('action', () => {
               await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
                 ref: `refs/heads/env/${env}`
               }));
-              const logger = newLogger();
+              const logger = util.newLogger();
               // Prepare docker mock
               const checkExistingImage = jest.fn().mockResolvedValue(null);
               const runBuild = jest.fn().mockImplementation(async () => {
@@ -506,7 +504,12 @@ describe('action', () => {
                 treeSha: head.commit.tree,
               };
               expect(pushImage.mock.calls).toEqual([]);
-              expect(runBuild.mock.calls).toEqual([["v1.2.0", meta]]);
+              expect(runBuild.mock.calls).toEqual([[{
+                cwd: dir,
+                logger,
+                tag: "v1.2.0",
+                meta
+              }]]);
             });
           });
 
@@ -537,7 +540,7 @@ describe('action', () => {
               await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
                 ref: `refs/heads/env/${env}`
               }));
-              const logger = newInterleavedLogger();
+              const logger = util.newInterleavedLogger();
               await action.runAction({
                 env: DEFAULT_ENV,
                 dir,
@@ -578,7 +581,7 @@ describe('action', () => {
               await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
                 ref: `refs/heads/env/${env}`
               }));
-              const logger = newInterleavedLogger();
+              const logger = util.newInterleavedLogger();
               await action.runAction({
                 env: DEFAULT_ENV,
                 dir,
@@ -620,7 +623,7 @@ describe('action', () => {
               await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
                 ref: `refs/heads/env/${env}`
               }));
-              const logger = newInterleavedLogger();
+              const logger = util.newInterleavedLogger();
               await action.runAction({
                 env: DEFAULT_ENV,
                 dir,
@@ -657,7 +660,7 @@ describe('action', () => {
             await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
               ref: `refs/heads/env/${env}`
             }));
-            const logger = newLogger();
+            const logger = util.newLogger();
             // Prepare GitHub mock
             const openPullRequest = jest.fn().mockResolvedValue(null);
             await action.runAction({

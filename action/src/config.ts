@@ -37,7 +37,39 @@ const DOCKER_CONFIG = t.type({
   /**
    * Where in the repository should the build be run from
    */
-  path: t.string
+  path: t.string,
+  /**
+   * What are the names of the build arguments that the docker image
+   * expects to be supplied
+   */
+  args: t.type({
+    /**
+     * What is the name of the build argument that expects the commit sha
+     */
+    commitSha: t.string,
+    /**
+     * What is the name of the build argument that expects the tree sha
+     */
+    treeSha: t.string,
+  }),
+  /**
+   * What are the names of the environment variables where important bits of
+   * information are stored
+   */
+  environmentVariables: t.type({
+    /**
+     * What environment variable is used to store the commit sha
+     */
+    commitSha: t.string,
+    /**
+     * What environment variable is used to store the tree sha
+     */
+    treeSha: t.string,
+  }),
+  /**
+   * What's the name of the repository that we'll be tagging
+   */
+  repository: t.string,
 });
 
 const CONFIG = t.type({
