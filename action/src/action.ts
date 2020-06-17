@@ -223,7 +223,7 @@ export const runAction = async (
         // An image already exists, make sure it was built using the same files
         info(`Image already exists, checking it was built with same git tree`);
         if (image.treeSha !== head.commit.tree) {
-          throw new Error(`New push to ${branch} without bumping version`);
+          throw new Error(`Image was built with different tree, aborting`);
         } else {
           info(`Image was built with same tree, no need to run build again`);
         }

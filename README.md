@@ -181,8 +181,8 @@ and acts as a roadmap.
         *(this will only happen with rapid concurrent pushes)*
       * Push the image to DockerHub, using the version as the tag
     * If there is
-      * get the git sha that was used to build the image from the docker metadata
-      * check that the git tree-sha of the commit matches the current tree-sha
+      * get the git tree sha that was used to build the image from the docker metadata
+      * check that the git tree-sha of image matches the current tree-sha
         (throw an error if not)
   * Run CI Tasks
   * Create and push a branch called `mergeback/<env>/<version>`

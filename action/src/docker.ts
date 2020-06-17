@@ -2,7 +2,7 @@ import { DockerConfig } from './config';
 
 export type DockerInit = (config: DockerConfig) => DockerController;
 
-interface ImageMetadata {
+export interface DockerImageMetadata {
   commitSha: string;
   treeSha: string;
 }
@@ -12,11 +12,11 @@ export interface DockerController {
    * Try and pull a docker image with the given tag,
    * and if successful, return the metadata for the image
    */
-  checkExistingImage: (tag: string) => Promise<ImageMetadata | null>;
+  checkExistingImage: (tag: string) => Promise<DockerImageMetadata | null>;
   /**
    * Run the docker build, and tag the image with the given tag
    */
-  runBuild: (tag: string, meta: ImageMetadata) => Promise<void>;
+  runBuild: (tag: string, meta: DockerImageMetadata) => Promise<void>;
   /**
    * Push the image with the given tag to the configured destination
    */

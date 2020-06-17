@@ -1,5 +1,142 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`action runAction push to production or staging env/prod docker Existing Image (different sha) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image already exists, checking it was built with same git tree",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Existing Image (different sha) 2`] = `
+Array [
+  Array [
+    "v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Existing Image (matching sha) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image already exists, checking it was built with same git tree",
+  ],
+  Array [
+    "##[info] Image was built with same tree, no need to run build again",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Existing Image (matching sha) 2`] = `
+Array [
+  Array [
+    "v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Non-Existant Image (tag changed) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag is unchanged",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Non-Existant Image (tag changed) 2`] = `
+Array [
+  Array [
+    "v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Non-Existant Image 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag is unchanged",
+  ],
+  Array [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Non-Existant Image 2`] = `
+Object {
+  "checkExistingImage": Array [
+    Array [
+      "v1.2.0",
+    ],
+  ],
+  "pushImage": Array [
+    Array [
+      "v1.2.0",
+    ],
+  ],
+}
+`;
+
 exports[`action runAction push to production or staging env/prod tagging Existing tag (changed tree) 1`] = `
 Array [
   Array [
@@ -69,6 +206,143 @@ Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
 ]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Existing Image (different sha) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image already exists, checking it was built with same git tree",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Existing Image (different sha) 2`] = `
+Array [
+  Array [
+    "v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Existing Image (matching sha) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image already exists, checking it was built with same git tree",
+  ],
+  Array [
+    "##[info] Image was built with same tree, no need to run build again",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Existing Image (matching sha) 2`] = `
+Array [
+  Array [
+    "v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Non-Existant Image (tag changed) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag is unchanged",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Non-Existant Image (tag changed) 2`] = `
+Array [
+  Array [
+    "v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Non-Existant Image 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag is unchanged",
+  ],
+  Array [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Non-Existant Image 2`] = `
+Object {
+  "checkExistingImage": Array [
+    Array [
+      "v1.2.0",
+    ],
+  ],
+  "pushImage": Array [
+    Array [
+      "v1.2.0",
+    ],
+  ],
+}
 `;
 
 exports[`action runAction push to production or staging env/staging tagging Existing tag (changed tree) 1`] = `
