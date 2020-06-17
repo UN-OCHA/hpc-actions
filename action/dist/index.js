@@ -18614,9 +18614,12 @@ exports.ioEither = {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const action_1 = __webpack_require__(568);
-console.log(action_1.runAction({
+action_1.runAction({
     env: process.env
-}));
+}).catch(err => {
+    console.error(err);
+    process.exit(1);
+});
 
 
 /***/ }),

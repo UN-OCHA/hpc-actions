@@ -1,5 +1,8 @@
 import { runAction } from './action';
 
-console.log(runAction({
+runAction({
   env: process.env
-}));
+}).catch(err => {
+  console.error(err);
+  process.exit(1);
+});
