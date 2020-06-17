@@ -56,8 +56,8 @@ const author = {
 }
 
 const setAuthor = async (cwd: string) => {
-  await exec(`git config --global user.name "${author.name}"`, { cwd });
-  await exec(`git config --global user.email "${author.email}"`, { cwd });
+  await exec(`git config user.name "${author.name}"`, { cwd });
+  await exec(`git config user.email "${author.email}"`, { cwd });
 }
 
 describe('action', () => {
