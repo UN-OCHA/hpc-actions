@@ -18616,9 +18616,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const action_1 = __webpack_require__(568);
 action_1.runAction({
     env: process.env
-}).catch(err => {
-    console.error(err);
-    process.exit(1);
+}).catch(async (err) => {
+    console.log(`##[error] ${err.message}`);
+    setTimeout(() => {
+        console.error(err);
+        process.exit(1);
+    }, 100);
 });
 
 
