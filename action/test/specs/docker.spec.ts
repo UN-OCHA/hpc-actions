@@ -62,6 +62,11 @@ describe('docker', () => {
       stdout: logger.log.mock.calls,
       stderr: logger.error.mock.calls,
     }).toMatchSnapshot();
+
+    expect(await(docker.getMetadata('some-tag'))).toEqual({
+      commitSha: 'foo',
+      treeSha: 'bar',
+    })
   });
 
 });

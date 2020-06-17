@@ -228,7 +228,8 @@ export const runAction = async (
       // Check whether there is an existing docker image, and build if needed
 
       info(`Checking for existing docker image with tag ${tag}`);
-      const image = await docker.checkExistingImage(tag);
+      const imagePulled = await docker.pullImage(tag);
+      const image = imagePulled && await docker.getMetadata(tag);
 
       if (image) {
         // An image already exists, make sure it was built using the same files

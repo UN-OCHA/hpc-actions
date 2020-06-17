@@ -219,6 +219,14 @@ Array [
 ]
 `;
 
+exports[`action runAction push to production or staging env/prod docker Existing Image (different sha) 3`] = `
+Array [
+  Array [
+    "v1.2.0",
+  ],
+]
+`;
+
 exports[`action runAction push to production or staging env/prod docker Existing Image (matching sha) 1`] = `
 Array [
   Array [
@@ -233,34 +241,10 @@ Array [
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
-  Array [
-    "##[info] Image already exists, checking it was built with same git tree",
-  ],
-  Array [
-    "##[info] Image was built with same tree, no need to run build again",
-  ],
-  Array [
-    "##[info] Running CI Checks",
-  ],
-  Array [
-    "##[info] CI Checks Complete",
-  ],
-  Array [
-    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
-  ],
-  Array [
-    "##[info] Opening Mergeback Pull Request",
-  ],
 ]
 `;
 
-exports[`action runAction push to production or staging env/prod docker Existing Image (matching sha) 2`] = `
-Array [
-  Array [
-    "v1.2.0",
-  ],
-]
-`;
+exports[`action runAction push to production or staging env/prod docker Existing Image (matching sha) 2`] = `Array []`;
 
 exports[`action runAction push to production or staging env/prod docker Non-Existant Image (tag changed) 1`] = `
 Array [
@@ -286,11 +270,15 @@ Array [
 `;
 
 exports[`action runAction push to production or staging env/prod docker Non-Existant Image (tag changed) 2`] = `
-Array [
-  Array [
-    "v1.2.0",
+Object {
+  "getMetadata": Array [],
+  "pullImage": Array [
+    Array [
+      "v1.2.0",
+    ],
   ],
-]
+  "pushImage": Array [],
+}
 `;
 
 exports[`action runAction push to production or staging env/prod docker Non-Existant Image 1`] = `
@@ -339,7 +327,8 @@ Array [
 
 exports[`action runAction push to production or staging env/prod docker Non-Existant Image 2`] = `
 Object {
-  "checkExistingImage": Array [
+  "getMetadata": Array [],
+  "pullImage": Array [
     Array [
       "v1.2.0",
     ],
@@ -701,6 +690,14 @@ Array [
 ]
 `;
 
+exports[`action runAction push to production or staging env/staging docker Existing Image (different sha) 3`] = `
+Array [
+  Array [
+    "v1.2.0",
+  ],
+]
+`;
+
 exports[`action runAction push to production or staging env/staging docker Existing Image (matching sha) 1`] = `
 Array [
   Array [
@@ -715,34 +712,10 @@ Array [
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
-  Array [
-    "##[info] Image already exists, checking it was built with same git tree",
-  ],
-  Array [
-    "##[info] Image was built with same tree, no need to run build again",
-  ],
-  Array [
-    "##[info] Running CI Checks",
-  ],
-  Array [
-    "##[info] CI Checks Complete",
-  ],
-  Array [
-    "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
-  ],
-  Array [
-    "##[info] Opening Mergeback Pull Request",
-  ],
 ]
 `;
 
-exports[`action runAction push to production or staging env/staging docker Existing Image (matching sha) 2`] = `
-Array [
-  Array [
-    "v1.2.0",
-  ],
-]
-`;
+exports[`action runAction push to production or staging env/staging docker Existing Image (matching sha) 2`] = `Array []`;
 
 exports[`action runAction push to production or staging env/staging docker Non-Existant Image (tag changed) 1`] = `
 Array [
@@ -768,11 +741,15 @@ Array [
 `;
 
 exports[`action runAction push to production or staging env/staging docker Non-Existant Image (tag changed) 2`] = `
-Array [
-  Array [
-    "v1.2.0",
+Object {
+  "getMetadata": Array [],
+  "pullImage": Array [
+    Array [
+      "v1.2.0",
+    ],
   ],
-]
+  "pushImage": Array [],
+}
 `;
 
 exports[`action runAction push to production or staging env/staging docker Non-Existant Image 1`] = `
@@ -821,7 +798,8 @@ Array [
 
 exports[`action runAction push to production or staging env/staging docker Non-Existant Image 2`] = `
 Object {
-  "checkExistingImage": Array [
+  "getMetadata": Array [],
+  "pullImage": Array [
     Array [
       "v1.2.0",
     ],

@@ -1,4 +1,5 @@
 import * as child_process from 'child_process';
+import { promisify } from 'util';
 
 import { Logger } from './interfaces';
 
@@ -47,3 +48,5 @@ export const execAndPipeOutput = (
     })
   );
 }
+
+export const exec = promisify(child_process.exec);

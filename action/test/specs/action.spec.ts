@@ -161,7 +161,8 @@ describe('action', () => {
       const testCompleteError = new Error('TEST COMPLETE');
 
       const testCompleteDockerController: DockerController = {
-        checkExistingImage: () => Promise.reject(testCompleteError),
+        pullImage: () => Promise.reject(testCompleteError),
+        getMetadata: () => Promise.reject(testCompleteError),
         runBuild: () => Promise.reject(testCompleteError),
         pushImage: () => Promise.reject(testCompleteError),
       }
@@ -377,14 +378,16 @@ describe('action', () => {
                 commitSha: 'foo',
                 treeSha: 'bar',
               };
-              const checkExistingImage = jest.fn().mockResolvedValue(meta);
+              const pullImage = jest.fn().mockResolvedValue(true);
+              const getMetadata = jest.fn().mockResolvedValue(meta);
               await action.runAction({
                 env: DEFAULT_ENV,
                 dir,
                 logger,
                 dockerInit: () => ({
                   ...testCompleteDockerController,
-                  checkExistingImage
+                  pullImage,
+                  getMetadata
                 })
               }).then(() => Promise.reject(new Error('Expected error to be thrown')))
                 .catch((err: Error) => {
@@ -393,7 +396,8 @@ describe('action', () => {
                   );
                 });
               expect(logger.log.mock.calls).toMatchSnapshot();
-              expect(checkExistingImage.mock.calls).toMatchSnapshot();
+              expect(pullImage.mock.calls).toMatchSnapshot();
+              expect(getMetadata.mock.calls).toMatchSnapshot();
             });
 
             it('Non-Existant Image', async () => {
@@ -417,7 +421,8 @@ describe('action', () => {
               }));
               const logger = util.newLogger();
               // Prepare docker mock
-              const checkExistingImage = jest.fn().mockResolvedValue(null);
+              const pullImage = jest.fn().mockResolvedValue(null);
+              const getMetadata = jest.fn().mockResolvedValue(null);
               const runBuild = jest.fn().mockResolvedValue(null);
               const pushImage = jest.fn().mockResolvedValue(null);
               await action.runAction({
@@ -425,7 +430,8 @@ describe('action', () => {
                 dir,
                 logger,
                 dockerInit: () => ({
-                  checkExistingImage,
+                  pullImage,
+                  getMetadata,
                   runBuild,
                   pushImage,
                 }),
@@ -434,7 +440,8 @@ describe('action', () => {
                 .catch(err => expect(err).toBe(testCompleteError));;
               expect(logger.log.mock.calls).toMatchSnapshot();
               expect({
-                checkExistingImage: checkExistingImage.mock.calls,
+                pullImage: pullImage.mock.calls,
+                getMetadata: getMetadata.mock.calls,
                 pushImage: pushImage.mock.calls,
               }).toMatchSnapshot();
               const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
@@ -472,7 +479,8 @@ describe('action', () => {
               }));
               const logger = util.newLogger();
               // Prepare docker mock
-              const checkExistingImage = jest.fn().mockResolvedValue(null);
+              const pullImage = jest.fn().mockResolvedValue(null);
+              const getMetadata = jest.fn().mockResolvedValue(null);
               const runBuild = jest.fn().mockImplementation(async () => {
                 // Simulate the tag changing by explicitly changing the tag
                 // in upstream branch when the build is run
@@ -487,7 +495,8 @@ describe('action', () => {
                 dir,
                 logger,
                 dockerInit: () => ({
-                  checkExistingImage,
+                  pullImage,
+                  getMetadata,
                   runBuild,
                   pushImage,
                 })
@@ -496,14 +505,17 @@ describe('action', () => {
                   expect(err.message).toEqual('Tag has changed, aborting');
                 });
               expect(logger.log.mock.calls).toMatchSnapshot();
-              expect(checkExistingImage.mock.calls).toMatchSnapshot();
+              expect({
+                pullImage: pullImage.mock.calls,
+                getMetadata: getMetadata.mock.calls,
+                pushImage: pushImage.mock.calls,
+              }).toMatchSnapshot();
               const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
               const head = await git.readCommit({ fs, dir, oid: sha });
               const meta: DockerImageMetadata = {
                 commitSha: head.oid,
                 treeSha: head.commit.tree,
               };
-              expect(pushImage.mock.calls).toEqual([]);
               expect(runBuild.mock.calls).toEqual([[{
                 cwd: dir,
                 logger,
@@ -546,7 +558,8 @@ describe('action', () => {
                 dir,
                 logger,
                 dockerInit: () => ({
-                  checkExistingImage: jest.fn().mockResolvedValue(null),
+                  pullImage: jest.fn().mockResolvedValue(false),
+                  getMetadata: () => Promise.reject(new Error('unexpected')),
                   runBuild: jest.fn().mockResolvedValue(null),
                   pushImage: jest.fn().mockResolvedValue(null),
                 }),
@@ -587,7 +600,8 @@ describe('action', () => {
                 dir,
                 logger,
                 dockerInit: () => ({
-                  checkExistingImage: jest.fn().mockResolvedValue(null),
+                  pullImage: jest.fn().mockResolvedValue(false),
+                  getMetadata: () => Promise.reject(new Error('unexpected')),
                   runBuild: jest.fn().mockResolvedValue(null),
                   pushImage: jest.fn().mockResolvedValue(null),
                 })
@@ -629,7 +643,8 @@ describe('action', () => {
                 dir,
                 logger,
                 dockerInit: () => ({
-                  checkExistingImage: jest.fn().mockResolvedValue(null),
+                  pullImage: jest.fn().mockResolvedValue(false),
+                  getMetadata: () => Promise.reject(new Error('unexpected')),
                   runBuild: jest.fn().mockResolvedValue(null),
                   pushImage: jest.fn().mockResolvedValue(null),
                 }),
@@ -668,7 +683,8 @@ describe('action', () => {
               dir,
               logger,
               dockerInit: () => ({
-                checkExistingImage: jest.fn().mockResolvedValue(null),
+                pullImage: jest.fn().mockResolvedValue(false),
+                getMetadata: () => Promise.reject(new Error('unexpected')),
                 runBuild: jest.fn().mockResolvedValue(null),
                 pushImage: jest.fn().mockResolvedValue(null),
               }),

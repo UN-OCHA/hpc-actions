@@ -1,4 +1,8 @@
-import { execAndPipeOutput } from './util/child_process';
+import * as t from 'io-ts';
+import { PathReporter } from 'io-ts/lib/PathReporter';
+import { isLeft } from 'fp-ts/lib/Either';
+
+import { exec, execAndPipeOutput } from './util/child_process';
 import { Logger } from './util/interfaces';
 
 import { DockerConfig } from './config';
@@ -12,10 +16,14 @@ export interface DockerImageMetadata {
 
 export interface DockerController {
   /**
-   * Try and pull a docker image with the given tag,
-   * and if successful, return the metadata for the image
+   * Get the metadata for a docker image that is tagged locally
    */
-  checkExistingImage: (tag: string) => Promise<DockerImageMetadata | null>;
+  getMetadata: (tag: string) => Promise<DockerImageMetadata>;
+  /**
+   * Try and pull a docker image with the given tag,
+   * return true if successful and false if not
+   */
+  pullImage: (tag: string) => Promise<boolean>;
   /**
    * Run the docker build, and tag the image with the given tag
    */
@@ -31,8 +39,56 @@ export interface DockerController {
   pushImage: (tag: string) => Promise<void>;
 }
 
+/**
+ * Codec to consume environment variables from a docker image
+ */
+const IMAGE_DETAILS = t.array(t.type({
+  Config: t.type({
+    Env: t.array(t.string)
+  })
+}));
+
 export const REAL_DOCKER: DockerInit = config => ({
-  checkExistingImage: () => Promise.reject(new Error('not yet implemented')),
+
+  pullImage: () => Promise.reject(new Error('not yet implemented')),
+
+  getMetadata: async tag => {
+    const res = await exec(`docker inspect ${config.repository}:${tag}`);
+    const data = JSON.parse(res.stdout);
+    const check = IMAGE_DETAILS.decode(data);
+    if (isLeft(check)) {
+      throw new Error(
+        'Unexpected output from docker inspect: \n* ' +
+        PathReporter.report(check).join('\n* ')
+      );
+    }
+    if (check.right.length !== 1) {
+      throw new Error('Unexpected output from docker inspect: multiple objects');
+    }
+    const image = check.right[0];
+    // Able to parse output
+    let commitSha: string | null = null;
+    let treeSha: string | null = null;
+    const varConfig = config.environmentVariables;
+    for (const envVar of image.Config.Env) {
+      if (envVar.startsWith(`${varConfig.commitSha}=`)) {
+        commitSha = envVar.substr(varConfig.commitSha.length + 1);
+      }
+      if (envVar.startsWith(`${varConfig.treeSha}=`)) {
+        treeSha = envVar.substr(varConfig.treeSha.length + 1);
+      }
+    }
+    if (!commitSha || !treeSha) {
+      throw new Error(
+        'Unable to extract treeSha and commitSha from docker image'
+      );
+    }
+    return {
+      commitSha,
+      treeSha,
+    };
+  },
+
   runBuild: async ({ cwd, tag, meta, logger }) => {
     await execAndPipeOutput({
       command: (
@@ -45,5 +101,7 @@ export const REAL_DOCKER: DockerInit = config => ({
       cwd
     })
   },
+
   pushImage: () => Promise.reject(new Error('not yet implemented')),
+
 });
