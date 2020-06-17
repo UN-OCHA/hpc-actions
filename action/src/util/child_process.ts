@@ -6,12 +6,18 @@ import { Logger } from './interfaces';
 /**
  * Like child_process.exec,
  * but pipe all stdout and stderr to the given logger.
+ * 
+ * Optionally, send data to the stdin of the child process
  */
 export const execAndPipeOutput = (
   opts: {
     command: string,
     cwd: string,
     logger: Logger,
+    /**
+     * If set, pipe the given data to the child process
+     */
+    data?: string,
   }
 ) => {
   const {command, cwd, logger} = opts;
@@ -31,6 +37,14 @@ export const execAndPipeOutput = (
       }
     }
     p[stream]?.on('data', handle);
+  }
+  if (opts.data) {
+    if (!p.stdin) {
+      throw new Error('Unexpected Error');
+    }
+    p.stdin.setDefaultEncoding('utf-8');
+    p.stdin.write(opts.data);
+    p.stdin.end();
   }
   return new Promise((resolve, reject) =>
     p.on('exit', code => {

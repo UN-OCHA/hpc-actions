@@ -15,6 +15,11 @@ export interface DockerImageMetadata {
 }
 
 export interface DockerController {
+  login: (opts: {
+    user: string;
+    pass: string;
+    logger: Logger;
+  }) => Promise<void>;
   /**
    * Get the metadata for a docker image that is tagged locally
    */
@@ -28,10 +33,10 @@ export interface DockerController {
    * Run the docker build, and tag the image with the given tag
    */
   runBuild: (opts: {
-    cwd: string,
-    tag: string,
-    meta: DockerImageMetadata,
-    logger: Logger,
+    cwd: string;
+    tag: string;
+    meta: DockerImageMetadata;
+    logger: Logger;
   }) => Promise<void>;
   /**
    * Push the image with the given tag to the configured destination
@@ -49,6 +54,16 @@ const IMAGE_DETAILS = t.array(t.type({
 }));
 
 export const REAL_DOCKER: DockerInit = config => ({
+
+  login: async ({user, pass, logger}) => {
+    // Login to docker
+    await execAndPipeOutput({
+      command: `docker login ${config.registry || ''} -u ${user}  --password-stdin`,
+      cwd: __dirname,
+      logger,
+      data: pass + '\n'
+    });
+  },
 
   pullImage: () => Promise.reject(new Error('not yet implemented')),
 

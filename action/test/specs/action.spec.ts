@@ -39,6 +39,8 @@ const DEFAULT_ENV: Env = {
   CONFIG_FILE,
   GITHUB_EVENT_NAME: 'push',
   GITHUB_EVENT_PATH: EVENT_FILE,
+  DOCKER_PASSWORD: 'pass',
+  DOCKER_USERNAME: 'user',
 };
 
 const DEFAULT_PUSH_ENV = {};
@@ -161,6 +163,7 @@ describe('action', () => {
       const testCompleteError = new Error('TEST COMPLETE');
 
       const testCompleteDockerController: DockerController = {
+        login: () => Promise.resolve(),
         pullImage: () => Promise.reject(testCompleteError),
         getMetadata: () => Promise.reject(testCompleteError),
         runBuild: () => Promise.reject(testCompleteError),
@@ -430,6 +433,7 @@ describe('action', () => {
                 dir,
                 logger,
                 dockerInit: () => ({
+                  login: () => Promise.resolve(),
                   pullImage,
                   getMetadata,
                   runBuild,
@@ -495,6 +499,7 @@ describe('action', () => {
                 dir,
                 logger,
                 dockerInit: () => ({
+                  login: () => Promise.resolve(),
                   pullImage,
                   getMetadata,
                   runBuild,
@@ -558,6 +563,7 @@ describe('action', () => {
                 dir,
                 logger,
                 dockerInit: () => ({
+                  login: () => Promise.resolve(),
                   pullImage: jest.fn().mockResolvedValue(false),
                   getMetadata: () => Promise.reject(new Error('unexpected')),
                   runBuild: jest.fn().mockResolvedValue(null),
@@ -600,6 +606,7 @@ describe('action', () => {
                 dir,
                 logger,
                 dockerInit: () => ({
+                  login: () => Promise.resolve(),
                   pullImage: jest.fn().mockResolvedValue(false),
                   getMetadata: () => Promise.reject(new Error('unexpected')),
                   runBuild: jest.fn().mockResolvedValue(null),
@@ -643,6 +650,7 @@ describe('action', () => {
                 dir,
                 logger,
                 dockerInit: () => ({
+                  login: () => Promise.resolve(),
                   pullImage: jest.fn().mockResolvedValue(false),
                   getMetadata: () => Promise.reject(new Error('unexpected')),
                   runBuild: jest.fn().mockResolvedValue(null),
@@ -683,6 +691,7 @@ describe('action', () => {
               dir,
               logger,
               dockerInit: () => ({
+                login: () => Promise.resolve(),
                 pullImage: jest.fn().mockResolvedValue(false),
                 getMetadata: () => Promise.reject(new Error('unexpected')),
                 runBuild: jest.fn().mockResolvedValue(null),

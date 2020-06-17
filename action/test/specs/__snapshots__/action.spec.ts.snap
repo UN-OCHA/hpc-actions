@@ -16,6 +16,10 @@ Array [
   ],
   Array [
     "[stdout]",
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "[stdout]",
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
   Array [
@@ -78,6 +82,10 @@ Array [
   Array [
     "[stdout]",
     "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Logging in to docker",
   ],
   Array [
     "[stdout]",
@@ -158,6 +166,10 @@ Array [
   ],
   Array [
     "[stdout]",
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "[stdout]",
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
   Array [
@@ -203,6 +215,9 @@ Array [
     "##[info] Creating and pushing new tag v1.2.0",
   ],
   Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
   Array [
@@ -239,6 +254,9 @@ Array [
     "##[info] Creating and pushing new tag v1.2.0",
   ],
   Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
 ]
@@ -256,6 +274,9 @@ Array [
   ],
   Array [
     "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
   ],
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -291,6 +312,9 @@ Array [
   ],
   Array [
     "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
   ],
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -351,6 +375,9 @@ Array [
   ],
   Array [
     "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
   ],
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -429,6 +456,9 @@ Array [
     "##[info] The tag is for the current commit, okay to continue",
   ],
   Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
 ]
@@ -449,6 +479,9 @@ Array [
     "##[info] The current tree matches the existing tag, okay to continue",
   ],
   Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
 ]
@@ -464,6 +497,9 @@ Array [
   ],
   Array [
     "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
   ],
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -484,6 +520,10 @@ Array [
   Array [
     "[stdout]",
     "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Logging in to docker",
   ],
   Array [
     "[stdout]",
@@ -549,6 +589,10 @@ Array [
   Array [
     "[stdout]",
     "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Logging in to docker",
   ],
   Array [
     "[stdout]",
@@ -629,6 +673,10 @@ Array [
   ],
   Array [
     "[stdout]",
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "[stdout]",
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
   Array [
@@ -674,6 +722,9 @@ Array [
     "##[info] Creating and pushing new tag v1.2.0",
   ],
   Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
   Array [
@@ -710,6 +761,9 @@ Array [
     "##[info] Creating and pushing new tag v1.2.0",
   ],
   Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
 ]
@@ -727,6 +781,9 @@ Array [
   ],
   Array [
     "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
   ],
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -762,6 +819,9 @@ Array [
   ],
   Array [
     "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
   ],
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -822,6 +882,9 @@ Array [
   ],
   Array [
     "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
   ],
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -900,6 +963,9 @@ Array [
     "##[info] The tag is for the current commit, okay to continue",
   ],
   Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
 ]
@@ -920,6 +986,9 @@ Array [
     "##[info] The current tree matches the existing tag, okay to continue",
   ],
   Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
 ]
@@ -935,6 +1004,9 @@ Array [
   ],
   Array [
     "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
   ],
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",

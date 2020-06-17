@@ -99,7 +99,13 @@ export const runAction = async (
     throw new Error('Expected GITHUB_EVENT_NAME');
   if (!env.GITHUB_EVENT_PATH)
     throw new Error('Expected GITHUB_EVENT_PATH');
-  
+
+  // Get docker credentials
+  if (!env.DOCKER_USERNAME)
+    throw new Error('Expected DOCKER_USERNAME');
+  if (!env.DOCKER_PASSWORD)
+    throw new Error('Expected DOCKER_PASSWORD');
+
   let event: GitHubEvent;
   
   if (env.GITHUB_EVENT_NAME === 'push') {
@@ -118,8 +124,6 @@ export const runAction = async (
   const github = gitHubInit();
 
   if (event.name === 'push') {
-
-    const docker = dockerInit(config.docker);
 
     // Get remote information
 
@@ -226,6 +230,14 @@ export const runAction = async (
       }
 
       // Check whether there is an existing docker image, and build if needed
+
+      info(`Logging in to docker`);
+      const docker = dockerInit(config.docker);
+      docker.login({
+        user: env.DOCKER_USERNAME,
+        pass: env.DOCKER_PASSWORD,
+        logger,
+      });
 
       info(`Checking for existing docker image with tag ${tag}`);
       const imagePulled = await docker.pullImage(tag);

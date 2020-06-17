@@ -21,6 +21,14 @@ export interface Env {
    * that adheres to the specification set out by CONFIG above.
    */
   CONFIG_FILE?: string;
+  /**
+   * The username to login to the docker registry with
+   */
+  DOCKER_USERNAME?: string;
+  /**
+   * The password to login to the docker registry with
+   */
+  DOCKER_PASSWORD?: string;
 
   // Implicit environment variables passed by GitHub
   GITHUB_REPOSITORY?: string;
