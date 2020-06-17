@@ -33,44 +33,57 @@ export interface Env {
 // which provides both type-definitions for the configuration,
 // and validation that matches these definitions.
 
-const DOCKER_CONFIG = t.type({
-  /**
-   * Where in the repository should the build be run from
-   */
-  path: t.string,
-  /**
-   * What are the names of the build arguments that the docker image
-   * expects to be supplied
-   */
-  args: t.type({
+const DOCKER_CONFIG = t.intersection([
+  // Required Config
+  t.type({
     /**
-     * What is the name of the build argument that expects the commit sha
+     * Where in the repository should the build be run from
      */
-    commitSha: t.string,
+    path: t.string,
     /**
-     * What is the name of the build argument that expects the tree sha
+     * What are the names of the build arguments that the docker image
+     * expects to be supplied
      */
-    treeSha: t.string,
+    args: t.type({
+      /**
+       * What is the name of the build argument that expects the commit sha
+       */
+      commitSha: t.string,
+      /**
+       * What is the name of the build argument that expects the tree sha
+       */
+      treeSha: t.string,
+    }),
+    /**
+     * What are the names of the environment variables where important bits of
+     * information are stored
+     */
+    environmentVariables: t.type({
+      /**
+       * What environment variable is used to store the commit sha
+       */
+      commitSha: t.string,
+      /**
+       * What environment variable is used to store the tree sha
+       */
+      treeSha: t.string,
+    }),
+    /**
+     * What's the name of the repository that we'll be tagging
+     */
+    repository: t.string,
   }),
-  /**
-   * What are the names of the environment variables where important bits of
-   * information are stored
-   */
-  environmentVariables: t.type({
+  // Optional config
+  t.partial({
     /**
-     * What environment variable is used to store the commit sha
+     * If provided, use the given registry instead of Docker Hub.
+     *
+     * When this is set, the docker repository must start with this string
+     * followed by a slash.
      */
-    commitSha: t.string,
-    /**
-     * What environment variable is used to store the tree sha
-     */
-    treeSha: t.string,
-  }),
-  /**
-   * What's the name of the repository that we'll be tagging
-   */
-  repository: t.string,
-});
+    registry: t.string,
+  })
+]);
 
 const CONFIG = t.type({
   /**
@@ -142,6 +155,15 @@ export const getConfig = async (env: Env): Promise<Config> => {
     if (!env.startsWith('env/')) {
       throw new Error('Invalid Configuration: All development environment branches must start with env/');
     }
+  }
+  if (
+    config.right.docker.registry &&
+    !config.right.docker.repository.startsWith(`${config.right.docker.registry}/`)
+  ) {
+    throw new Error(
+      'Invalid Configuration: Docker repository must start with: ' +
+      `${config.right.docker.registry}/`
+    );
   }
   return config.right;
 };
