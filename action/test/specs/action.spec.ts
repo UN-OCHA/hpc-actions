@@ -590,7 +590,7 @@ describe('action', () => {
                 })
               }).then(() => Promise.reject(new Error('Expected error to be thrown')))
                 .catch((err: Error) => {
-                  expect(err.message).toEqual('CI command exit 123 exited with exit code 123');
+                  expect(err.message).toEqual('Command "exit 123" exited with exit code 123');
                 });
               expect(logger.fn.mock.calls).toMatchSnapshot();
             });
