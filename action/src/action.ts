@@ -233,7 +233,7 @@ export const runAction = async (
 
       info(`Logging in to docker`);
       const docker = dockerInit(config.docker);
-      docker.login({
+      await docker.login({
         user: env.DOCKER_USERNAME,
         pass: env.DOCKER_PASSWORD
       });

@@ -18334,7 +18334,7 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
             // Check whether there is an existing docker image, and build if needed
             info(`Logging in to docker`);
             const docker = dockerInit(config.docker);
-            docker.login({
+            await docker.login({
                 user: env.DOCKER_USERNAME,
                 pass: env.DOCKER_PASSWORD
             });
