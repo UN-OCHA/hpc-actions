@@ -5550,9 +5550,11 @@ exports.REAL_DOCKER = config => ({
             data: pass + '\n'
         });
     },
-    pullImage: tag => child_process_1.exec(`docker pull ${config.repository}:${tag}`)
-        .then(() => true)
-        .catch(() => false),
+    pullImage: (tag, logger) => child_process_1.execAndPipeOutput({
+        command: `docker pull ${config.repository}:${tag}`,
+        cwd: __dirname,
+        logger
+    }).then(() => true).catch(() => false),
     getMetadata: async (tag) => {
         const res = await child_process_1.exec(`docker inspect ${config.repository}:${tag}`);
         const data = JSON.parse(res.stdout);
@@ -18337,7 +18339,7 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 pass: env.DOCKER_PASSWORD
             });
             info(`Checking for existing docker image with tag ${tag}`);
-            const imagePulled = await docker.pullImage(tag);
+            const imagePulled = await docker.pullImage(tag, logger);
             const image = imagePulled && await docker.getMetadata(tag);
             if (image) {
                 // An image already exists, make sure it was built using the same files
