@@ -5499,16 +5499,99 @@ exports.pipeable = pipeable;
 /***/ }),
 
 /***/ 197:
-/***/ (function(__unusedmodule, exports) {
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.REAL_DOCKER = void 0;
+const t = __importStar(__webpack_require__(338));
+const PathReporter_1 = __webpack_require__(306);
+const Either_1 = __webpack_require__(311);
+const child_process_1 = __webpack_require__(388);
+/**
+ * Codec to consume environment variables from a docker image
+ */
+const IMAGE_DETAILS = t.array(t.type({
+    Config: t.type({
+        Env: t.array(t.string)
+    })
+}));
 exports.REAL_DOCKER = config => ({
-    checkExistingImage: () => Promise.reject(new Error('not yet implemented')),
-    runBuild: () => Promise.reject(new Error('not yet implemented')),
-    pushImage: () => Promise.reject(new Error('not yet implemented')),
+    login: async ({ user, pass, logger }) => {
+        // Login to docker
+        await child_process_1.execAndPipeOutput({
+            command: `docker login ${config.registry || ''} -u ${user}  --password-stdin`,
+            cwd: __dirname,
+            logger,
+            data: pass + '\n'
+        });
+    },
+    pullImage: tag => child_process_1.exec(`docker pull ${config.repository}:${tag}`)
+        .then(() => true)
+        .catch(() => false),
+    getMetadata: async (tag) => {
+        const res = await child_process_1.exec(`docker inspect ${config.repository}:${tag}`);
+        const data = JSON.parse(res.stdout);
+        const check = IMAGE_DETAILS.decode(data);
+        if (Either_1.isLeft(check)) {
+            throw new Error('Unexpected output from docker inspect: \n* ' +
+                PathReporter_1.PathReporter.report(check).join('\n* '));
+        }
+        if (check.right.length !== 1) {
+            throw new Error('Unexpected output from docker inspect: multiple objects');
+        }
+        const image = check.right[0];
+        // Able to parse output
+        let commitSha = null;
+        let treeSha = null;
+        const varConfig = config.environmentVariables;
+        for (const envVar of image.Config.Env) {
+            if (envVar.startsWith(`${varConfig.commitSha}=`)) {
+                commitSha = envVar.substr(varConfig.commitSha.length + 1);
+            }
+            if (envVar.startsWith(`${varConfig.treeSha}=`)) {
+                treeSha = envVar.substr(varConfig.treeSha.length + 1);
+            }
+        }
+        if (!commitSha || !treeSha) {
+            throw new Error('Unable to extract treeSha and commitSha from docker image');
+        }
+        return {
+            commitSha,
+            treeSha,
+        };
+    },
+    runBuild: async ({ cwd, tag, meta, logger }) => {
+        await child_process_1.execAndPipeOutput({
+            command: (`docker build ${config.path} ` +
+                `--build-arg ${config.args.commitSha}=${meta.commitSha} ` +
+                `--build-arg ${config.args.treeSha}=${meta.treeSha} ` +
+                `-t ${config.repository}:${tag}`),
+            logger,
+            cwd
+        });
+    },
+    pushImage: tag => child_process_1.exec(`docker push ${config.repository}:${tag}`).then(() => { }),
 });
 
 
@@ -7858,12 +7941,57 @@ const fs_1 = __webpack_require__(747);
 // Specify the configuration options using io-ts,
 // which provides both type-definitions for the configuration,
 // and validation that matches these definitions.
-const DOCKER_CONFIG = t.type({
-    /**
-     * Where in the repository should the build be run from
-     */
-    path: t.string
-});
+const DOCKER_CONFIG = t.intersection([
+    // Required Config
+    t.type({
+        /**
+         * Where in the repository should the build be run from
+         */
+        path: t.string,
+        /**
+         * What are the names of the build arguments that the docker image
+         * expects to be supplied
+         */
+        args: t.type({
+            /**
+             * What is the name of the build argument that expects the commit sha
+             */
+            commitSha: t.string,
+            /**
+             * What is the name of the build argument that expects the tree sha
+             */
+            treeSha: t.string,
+        }),
+        /**
+         * What are the names of the environment variables where important bits of
+         * information are stored
+         */
+        environmentVariables: t.type({
+            /**
+             * What environment variable is used to store the commit sha
+             */
+            commitSha: t.string,
+            /**
+             * What environment variable is used to store the tree sha
+             */
+            treeSha: t.string,
+        }),
+        /**
+         * What's the name of the repository that we'll be tagging
+         */
+        repository: t.string,
+    }),
+    // Optional config
+    t.partial({
+        /**
+         * If provided, use the given registry instead of Docker Hub.
+         *
+         * When this is set, the docker repository must start with this string
+         * followed by a slash.
+         */
+        registry: t.string,
+    })
+]);
 const CONFIG = t.type({
     /**
      * What is the branch for the staging environment.
@@ -7926,6 +8054,11 @@ exports.getConfig = async (env) => {
         if (!env.startsWith('env/')) {
             throw new Error('Invalid Configuration: All development environment branches must start with env/');
         }
+    }
+    if (config.right.docker.registry &&
+        !config.right.docker.repository.startsWith(`${config.right.docker.registry}/`)) {
+        throw new Error('Invalid Configuration: Docker repository must start with: ' +
+            `${config.right.docker.registry}/`);
     }
     return config.right;
 };
@@ -13481,6 +13614,88 @@ exports.deflateTune = deflateTune;
 
 /***/ }),
 
+/***/ 388:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.exec = exports.execAndPipeOutput = void 0;
+const child_process = __importStar(__webpack_require__(129));
+const util_1 = __webpack_require__(669);
+/**
+ * Like child_process.exec,
+ * but pipe all stdout and stderr to the given logger.
+ *
+ * Optionally, send data to the stdin of the child process
+ */
+exports.execAndPipeOutput = (opts) => {
+    var _a;
+    const { command, cwd, logger } = opts;
+    const p = child_process.execFile('sh', ['-c', command], { cwd });
+    const buffer = {
+        stderr: '',
+        stdout: ''
+    };
+    for (const stream of ['stdout', 'stderr']) {
+        const handle = (data) => {
+            buffer[stream] += data;
+            let nextBreak;
+            while ((nextBreak = buffer[stream].indexOf('\n')) > -1) {
+                const ready = buffer[stream].substr(0, nextBreak);
+                buffer[stream] = buffer[stream].substr(nextBreak + 1);
+                logger[stream === 'stdout' ? 'log' : 'error'](ready);
+            }
+        };
+        (_a = p[stream]) === null || _a === void 0 ? void 0 : _a.on('data', handle);
+    }
+    if (opts.data) {
+        if (!p.stdin) {
+            throw new Error('Unexpected Error');
+        }
+        p.stdin.setDefaultEncoding('utf-8');
+        p.stdin.write(opts.data);
+        p.stdin.end();
+    }
+    return new Promise((resolve, reject) => p.on('exit', code => {
+        // Print any remaining data
+        for (const stream of ['stdout', 'stderr']) {
+            if (buffer[stream] !== '') {
+                logger[stream === 'stdout' ? 'log' : 'error'](buffer[stream]);
+            }
+        }
+        if (code === 0) {
+            resolve();
+        }
+        else {
+            reject(new Error(`Command "${command}" exited with exit code ${code}`));
+        }
+    }));
+};
+exports.exec = util_1.promisify(child_process.exec);
+
+
+/***/ }),
+
 /***/ 390:
 /***/ (function(module) {
 
@@ -17953,6 +18168,7 @@ const fs_1 = __importDefault(__webpack_require__(747));
 const isomorphic_git_1 = __importDefault(__webpack_require__(956));
 const path = __importStar(__webpack_require__(622));
 const util_1 = __webpack_require__(669);
+const child_process_1 = __webpack_require__(388);
 const config_1 = __webpack_require__(291);
 const docker_1 = __webpack_require__(197);
 const github_1 = __webpack_require__(812);
@@ -17986,7 +18202,7 @@ const determineMode = (config, branch) => {
     }
 };
 exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerInit = docker_1.REAL_DOCKER, gitHubInit = github_1.REAL_GITHUB, }) => {
-    var _a, _b, _c;
+    var _a, _b;
     const info = (message) => logger.log(`##[info] ${message}`);
     const config = await config_1.getConfig(env);
     // Get event information
@@ -17994,6 +18210,11 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
         throw new Error('Expected GITHUB_EVENT_NAME');
     if (!env.GITHUB_EVENT_PATH)
         throw new Error('Expected GITHUB_EVENT_PATH');
+    // Get docker credentials
+    if (!env.DOCKER_USERNAME)
+        throw new Error('Expected DOCKER_USERNAME');
+    if (!env.DOCKER_PASSWORD)
+        throw new Error('Expected DOCKER_PASSWORD');
     let event;
     if (env.GITHUB_EVENT_NAME === 'push') {
         event = {
@@ -18010,7 +18231,6 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
     }
     const github = gitHubInit();
     if (event.name === 'push') {
-        const docker = dockerInit(config.docker);
         // Get remote information
         const remotes = await isomorphic_git_1.default.listRemotes({
             fs: fs_1.default,
@@ -18106,8 +18326,16 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 await exec(`git push ${remote.remote} ${tag}`, { cwd: dir });
             }
             // Check whether there is an existing docker image, and build if needed
+            info(`Logging in to docker`);
+            const docker = dockerInit(config.docker);
+            docker.login({
+                user: env.DOCKER_USERNAME,
+                pass: env.DOCKER_PASSWORD,
+                logger,
+            });
             info(`Checking for existing docker image with tag ${tag}`);
-            const image = await docker.checkExistingImage(tag);
+            const imagePulled = await docker.pullImage(tag);
+            const image = imagePulled && await docker.getMetadata(tag);
             if (image) {
                 // An image already exists, make sure it was built using the same files
                 info(`Image already exists, checking it was built with same git tree`);
@@ -18120,9 +18348,14 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
             }
             else {
                 info(`Image with tag ${tag} does not yet exist, building image`);
-                await docker.runBuild(tag, {
-                    commitSha: head.oid,
-                    treeSha: head.commit.tree,
+                await docker.runBuild({
+                    tag,
+                    meta: {
+                        commitSha: head.oid,
+                        treeSha: head.commit.tree,
+                    },
+                    cwd: dir,
+                    logger
                 });
                 info(`Image built, checking tag is unchanged`);
                 await isomorphic_git_1.default.deleteRef({ fs: fs_1.default, dir, ref: `refs/tags/${tag}` });
@@ -18140,41 +18373,9 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
             }
             // Run CI Checks
             info(`Running CI Checks`);
-            for (const cmd of config.ci) {
-                info(`Running: ${cmd}`);
-                const p = child_process.execFile('sh', ['-c', cmd], {
-                    cwd: dir
-                });
-                const buffer = {
-                    stderr: '',
-                    stdout: ''
-                };
-                for (const stream of ['stdout', 'stderr']) {
-                    const handle = (data) => {
-                        buffer[stream] += data;
-                        let nextBreak;
-                        while ((nextBreak = buffer[stream].indexOf('\n')) > -1) {
-                            const ready = buffer[stream].substr(0, nextBreak);
-                            buffer[stream] = buffer[stream].substr(nextBreak + 1);
-                            logger[stream === 'stdout' ? 'log' : 'error'](ready);
-                        }
-                    };
-                    (_c = p[stream]) === null || _c === void 0 ? void 0 : _c.on('data', handle);
-                }
-                await new Promise((resolve, reject) => p.on('exit', code => {
-                    // Print any remaining data
-                    for (const stream of ['stdout', 'stderr']) {
-                        if (buffer[stream] !== '') {
-                            logger[stream === 'stdout' ? 'log' : 'error'](buffer[stream]);
-                        }
-                    }
-                    if (code === 0) {
-                        resolve();
-                    }
-                    else {
-                        reject(new Error(`CI command ${cmd} exited with exit code ${code}`));
-                    }
-                }));
+            for (const command of config.ci) {
+                info(`Running: ${command}`);
+                await child_process_1.execAndPipeOutput({ command, cwd: dir, logger });
             }
             ;
             info(`CI Checks Complete`);
