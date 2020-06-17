@@ -62,12 +62,50 @@ describe('config', () => {
 
   });
 
+  it('Invalid development environment', async () => {
+
+    const c: config.Config = {
+      stagingEnvironmentBranch: 'env/stage',
+      repoType: 'node',
+      developmentEnvironmentBranches: [
+        'dev'
+      ],
+      docker: {
+        path: '.',
+        args: {
+          commitSha: '',
+          treeSha: '',
+        },
+        environmentVariables: {
+          commitSha: '',
+          treeSha: '',
+        },
+        repository: '',
+      },
+      ci: []
+    };
+
+    await fs.writeFile(TEST_CONFIG_PATH, JSON.stringify(c));
+
+    await config.getConfig({
+      CONFIG_FILE: TEST_CONFIG_PATH
+    }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+      .catch((err: Error) => {
+        expect(err.message).toEqual(
+          'Invalid Configuration: All development environment branches must start with env/'
+        );
+      });
+
+  });
+
   it('Valid', async () => {
 
     const c: config.Config = {
       stagingEnvironmentBranch: 'env/stage',
       repoType: 'node',
-      developmentEnvironmentBranches: [],
+      developmentEnvironmentBranches: [
+        'env/dev1', 'env/dev2',
+      ],
       docker: {
         path: '.',
         args: {
