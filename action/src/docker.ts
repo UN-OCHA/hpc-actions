@@ -65,7 +65,10 @@ export const REAL_DOCKER: DockerInit = config => ({
     });
   },
 
-  pullImage: () => Promise.reject(new Error('not yet implemented')),
+  pullImage: tag =>
+    exec(`docker pull ${config.repository}:${tag}`)
+    .then(() => true)
+    .catch(() => false),
 
   getMetadata: async tag => {
     const res = await exec(`docker inspect ${config.repository}:${tag}`);
@@ -117,6 +120,7 @@ export const REAL_DOCKER: DockerInit = config => ({
     })
   },
 
-  pushImage: () => Promise.reject(new Error('not yet implemented')),
+  pushImage: tag =>
+    exec(`docker push ${config.repository}:${tag}`).then(() => {}),
 
 });
