@@ -87,6 +87,39 @@ Array [
 ]
 `;
 
+exports[`action runAction push to hotfix/<name> branch Pull request opened against invalid branch 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch hotfix/foo",
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Pull request opened against invalid branch 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "hotfix/foo",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Pull request opened against invalid branch 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "Pull requests from \`hotfix/<name>\` branches can only target \`env/prod\` and \`env/staging\`:
+
+* If this is supposed to be a hotfix, please re-target this pull request.
+* If this is not supposed to be a hotfix, please use a branch name that does not begin with \`hotfix/\`",
+      "pullRequestNumber": undefined,
+      "state": "reject",
+    },
+  ],
+]
+`;
+
 exports[`action runAction push to production or staging env/prod ci Check directory 1`] = `
 Array [
   Array [

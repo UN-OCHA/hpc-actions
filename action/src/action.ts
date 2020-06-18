@@ -10,7 +10,7 @@ import { execAndPipeOutput } from './util/child_process';
 
 import { Env, Config, getConfig } from './config';
 import { DockerInit, REAL_DOCKER } from './docker';
-import { GitHubInit, REAL_GITHUB } from './github';
+import { GitHubInit, REAL_GITHUB, PullRequest } from './github';
 
 const exec = promisify(child_process.exec);
 
@@ -309,6 +309,20 @@ export const runAction = async (
       }
     }
 
+    const failWithPRComment = async (opts: {
+      pullRequest: PullRequest,
+      comment: string,
+      error: string,
+    }) => {
+      const { pullRequest, comment, error} = opts;
+      github.reviewPullRequest({
+        pullRequestNumber: pullRequest.number,
+        body: comment,
+        state: 'reject',
+      });
+      throw new Error(error);
+    }
+
     // Handle the push as appropriate for the given branch
 
     if (mode === 'env-production' || mode === 'env-staging') {
@@ -398,6 +412,20 @@ export const runAction = async (
       await runCICommands();
     } else if (mode === 'hotfix') {
       const pr = await getUniquePullRequest();
+
+      if (pr.base.ref !== 'env/prod' && pr.base.ref !== config.stagingEnvironmentBranch) {
+        await failWithPRComment({
+          error: `Pull request from hotfix/ branch made against ${pr.base.ref}`,
+          pullRequest: pr,
+          comment: (
+            `Pull requests from \`hotfix/<name>\` branches can only target ` +
+            `\`env/prod\` and \`${config.stagingEnvironmentBranch}\`:\n\n` +
+            `* If this is supposed to be a hotfix, please re-target this pull request.\n` +
+            `* If this is not supposed to be a hotfix, ` +
+            `please use a branch name that does not begin with \`hotfix/\``
+          )
+        });
+      }
     }
 
   }
