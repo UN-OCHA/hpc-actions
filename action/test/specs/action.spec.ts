@@ -33,6 +33,7 @@ const DEFAULT_CONFIG: Config = {
     repository: ''
   },
   ci: [],
+  mergebackLabels: ['some-label']
 };
 
 const DEFAULT_ENV: Env = {
