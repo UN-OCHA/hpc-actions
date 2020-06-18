@@ -24899,7 +24899,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.runAction = void 0;
+exports.runAction = exports.NoPullRequestError = void 0;
 const child_process = __importStar(__webpack_require__(129));
 const fs_1 = __importDefault(__webpack_require__(747));
 const isomorphic_git_1 = __importDefault(__webpack_require__(956));
@@ -24938,6 +24938,9 @@ const determineMode = (config, branch) => {
         return 'other';
     }
 };
+class NoPullRequestError extends Error {
+}
+exports.NoPullRequestError = NoPullRequestError;
 exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerInit = docker_1.REAL_DOCKER, gitHubInit = github_1.REAL_GITHUB, }) => {
     var _a, _b;
     const info = (message) => logger.log(`##[info] ${message}`);
@@ -25094,6 +25097,29 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
             ;
             info(`CI Checks Complete`);
         };
+        const getUniquePullRequest = async () => {
+            const prs = await github.getOpenPullRequests({ branch });
+            if (prs.data.length === 0) {
+                throw new NoPullRequestError(`The branch ${branch} has no pull requests open yet, ` +
+                    `so it is not possible to run this workflow.`);
+            }
+            else if (prs.data.length > 1) {
+                throw new Error(`Multiple pull requests for branch ${branch} are open, ` +
+                    `so it is not possible to run this workflow.`);
+            }
+            else {
+                return prs.data[0];
+            }
+        };
+        const failWithPRComment = async (opts) => {
+            const { pullRequest, comment, error } = opts;
+            github.reviewPullRequest({
+                pullRequestNumber: pullRequest.number,
+                body: comment,
+                state: 'reject',
+            });
+            throw new Error(error);
+        };
         // Handle the push as appropriate for the given branch
         if (mode === 'env-production' || mode === 'env-staging') {
             const tag = `v${version}`;
@@ -25175,6 +25201,23 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 checkBehaviour: 'overwrite',
                 tag: branch
             });
+        }
+        else if (mode === 'develop') {
+            await runCICommands();
+        }
+        else if (mode === 'hotfix') {
+            const pr = await getUniquePullRequest();
+            if (pr.base.ref !== 'env/prod' && pr.base.ref !== config.stagingEnvironmentBranch) {
+                await failWithPRComment({
+                    error: `Pull request from hotfix/ branch made against ${pr.base.ref}`,
+                    pullRequest: pr,
+                    comment: (`Pull requests from \`hotfix/<name>\` branches can only target ` +
+                        `\`env/prod\` and \`${config.stagingEnvironmentBranch}\`:\n\n` +
+                        `* If this is supposed to be a hotfix, please re-target this pull request.\n` +
+                        `* If this is not supposed to be a hotfix, ` +
+                        `please use a branch name that does not begin with \`hotfix/\``)
+                });
+            }
         }
     }
 };
@@ -33174,6 +33217,19 @@ exports.REAL_GITHUB = ({ token, githubRepo }) => {
                 });
             }
         },
+        getOpenPullRequests: async ({ branch }) => octokit.pulls.list({
+            owner,
+            repo,
+            state: 'open',
+            head: `${owner}:${branch}`,
+        }),
+        reviewPullRequest: async ({ pullRequestNumber, body, state }) => octokit.pulls.createReview({
+            owner,
+            repo,
+            pull_number: pullRequestNumber,
+            body,
+            event: state === 'approve' ? 'APPROVE' : 'REQUEST_CHANGES'
+        }).then(() => { }),
     };
 };
 
