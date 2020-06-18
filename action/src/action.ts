@@ -142,7 +142,10 @@ export const runAction = async (
     const versionFilePath = (repoType: 'node') =>
       repoType === 'node' ? 'package.json' : 'UNKNOWN';
 
-    const readVersion = async (ref?: string): Promise<string> => {
+    const readRefShaAndVersion = async (ref?: string): Promise<{
+      sha: string;
+      version: string;
+    }> => {
       const sha = await git.resolveRef({ fs, dir, ref: ref || 'HEAD' });
       if (config.repoType === 'node') {
         const pkg = await git.readBlob({
@@ -167,7 +170,7 @@ export const runAction = async (
         if (typeof version !== 'string') {
           throw new Error(`Invalid version in package.json`);
         }
-        return version;
+        return {sha, version};
       } else {
         throw new Error('Unsupported repo type: ' + config.repoType);
       }
@@ -189,7 +192,8 @@ export const runAction = async (
 
     // Get current version information
 
-    const version = await readVersion();
+    const headShaAndVersion = await readRefShaAndVersion();
+    const version = headShaAndVersion.version;
 
     // Get branch name for event
     const branchExtract = BRANCH_EXTRACT.exec(event.payload.ref);
@@ -210,8 +214,7 @@ export const runAction = async (
     } else if (currentBranch !== branch) {
       throw new Error('incorrect branch currently checked-out');
     }
-    const headSha = await git.resolveRef({fs, dir, ref: currentBranch});
-    const head = await git.readCommit({ fs, dir, oid: headSha});
+    const head = await git.readCommit({ fs, dir, oid: headShaAndVersion.sha});
 
     const buildAndPushDockerImage = async (
       opts: {
@@ -454,8 +457,8 @@ export const runAction = async (
 
       // Check that the version in package.json has been updated between the base branch and HEAD.
       await exec(`git fetch ${remote.remote} ${baseBranch}`, { cwd: dir });
-      const baseVersion = await readVersion(`refs/remotes/${remote.remote}/${baseBranch}`);
-      if (baseVersion === version) {
+      const base = await readRefShaAndVersion(`refs/remotes/${remote.remote}/${baseBranch}`);
+      if (base.version === version) {
         const file = versionFilePath(config.repoType);
         await failWithPRComment({
           error: `Hotfix has same version as base (target) branch`,
@@ -488,6 +491,29 @@ export const runAction = async (
         });
       }
 
+      // Check that the current HEAD of the base branch is an ancestor of the
+      // HEAD of the hotfix branch (i.e., that the hotfix is a fast-forward,
+      // and includes any other changes that may have been made to the target
+      // environment).
+
+      if (!await git.isDescendent({
+        fs,
+        dir,
+        ancestor: base.sha,
+        oid: head.oid
+      })) {
+        await failWithPRComment({
+          error: `Hotfix is not a descendant of target (base) branch`,
+          pullRequest,
+          comment: (
+            `\`${branch}\` (${head.oid}) is not a descendant of ` +
+            `\`${baseBranch}\` (${base.sha}), which means there are new ` +
+            `commits in \`${baseBranch}\` that aren't included in \`${branch}\`.\n\n` +
+            `Please rebase \`${branch}\` on-top of \`${baseBranch}\` ` +
+            `(or merge \`${baseBranch}\` into \`${branch}\`).`
+          )
+        });
+      }
 
     }
 
