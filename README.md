@@ -1,5 +1,7 @@
 # HPC-Actions & Workflow Repository
 
+[![codecov](https://codecov.io/gh/UN-OCHA/hpc-actions/branch/develop/graph/badge.svg)](https://codecov.io/gh/UN-OCHA/hpc-actions)
+
 This repository contains GitHub Actions and documentation that supports the
 development, release & deployment workflows used for HPC repositories at OCHA.
 
