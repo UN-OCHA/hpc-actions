@@ -68,3 +68,40 @@ Object {
   ],
 }
 `;
+
+exports[`github Submit a PR rejection 1`] = `
+Object {
+  "octokit": Array [
+    Array [
+      Object {
+        "auth": "asdf",
+      },
+    ],
+    Array [
+      Object {
+        "auth": "asdf",
+      },
+    ],
+  ],
+  "pulls.createReview": Array [
+    Array [
+      Object {
+        "body": "fooo",
+        "event": "APPROVE",
+        "owner": "oooo",
+        "pull_number": 123,
+        "repo": "rrrr",
+      },
+    ],
+    Array [
+      Object {
+        "body": "fooo",
+        "event": "REQUEST_CHANGES",
+        "owner": "oooo",
+        "pull_number": 123,
+        "repo": "rrrr",
+      },
+    ],
+  ],
+}
+`;

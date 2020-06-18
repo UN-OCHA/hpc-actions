@@ -22,7 +22,14 @@ export interface GitHubController {
   getOpenPullRequests: (params: {
     branch: string
   }) => Promise<RestEndpointMethodTypes["pulls"]["list"]["response"]>;
+  reviewPullRequest: (params: {
+    pullRequestNumber: number;
+    state: 'approve' | 'reject';
+    body: string;
+  }) => Promise<void>;
 }
+
+export type PullRequest = RestEndpointMethodTypes["pulls"]["list"]["response"]["data"][number];
 
 export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
   const octokit = new Octokit({
@@ -59,5 +66,12 @@ export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
       state: 'open',
       head: `${owner}:${branch}`,
     }),
+    reviewPullRequest: async ({ pullRequestNumber, body, state }) => octokit.pulls.createReview({
+      owner,
+      repo,
+      pull_number: pullRequestNumber,
+      body,
+      event: state === 'approve' ? 'APPROVE' : 'REQUEST_CHANGES'
+    }).then(() => {}),
   };
 }

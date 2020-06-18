@@ -95,4 +95,42 @@ describe('github', () => {
 
   });
 
+  it('Submit a PR rejection', async () => {
+
+    const mock = octokit.Octokit as any as jest.Mock;
+
+    const api = {
+      pulls: {
+        createReview: jest.fn().mockResolvedValue([]),
+      },
+    };
+
+    mock.mockClear();
+    mock.mockReturnValue(api);
+
+    await github.REAL_GITHUB({
+      githubRepo: 'oooo/rrrr',
+      token: 'asdf'
+    }).reviewPullRequest({
+      body: 'fooo',
+      pullRequestNumber: 123,
+      state: 'approve'
+    });
+
+    await github.REAL_GITHUB({
+      githubRepo: 'oooo/rrrr',
+      token: 'asdf'
+    }).reviewPullRequest({
+      body: 'fooo',
+      pullRequestNumber: 123,
+      state: 'reject'
+    });
+
+    expect({
+      octokit: mock.mock.calls,
+      'pulls.createReview': api.pulls.createReview.mock.calls,
+    }).toMatchSnapshot();
+
+  });
+
 });
