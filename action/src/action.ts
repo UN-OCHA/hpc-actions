@@ -686,6 +686,46 @@ export const runAction = async (
 
       await commentOnPullRequestWithDockerInfo({ pullRequest, tag });
 
+    } else if (mode === 'other') {
+      const pullRequest = await getUniquePullRequest();
+
+      // check that the base branch is NOT env/<stage|staging> or env/prod
+
+      const baseBranch = pullRequest.base.ref;
+      if (baseBranch === config.stagingEnvironmentBranch) {
+        await failWithPRComment({
+          error: `Pull request from ${branch} made against ${baseBranch}`,
+          pullRequest,
+          comment: (
+            `Pull requests that modify \`${config.stagingEnvironmentBranch}\` must be either:\n\n` +
+            `* a release, merging \`release/<version>\` into \`${config.stagingEnvironmentBranch}\`, or\n` +
+            `* a hotfix, merging \`hotfix/<name>\` into \`${config.stagingEnvironmentBranch}\`\n\n` +
+            `For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)`
+          )
+        });
+      } else if (baseBranch === 'env/prod') {
+        await failWithPRComment({
+          error: `Pull request from ${branch} made against ${baseBranch}`,
+          pullRequest,
+          comment: (
+            `Pull requests that modify \`env/prod\` must be either:\n\n` +
+            `* an update, merging \`${config.stagingEnvironmentBranch}\` into \`env/prod\`, or\n` +
+            `* a hotfix, merging \`hotfix/<name>\` into \`env/prod\`\n\n` +
+            `For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)`
+          )
+        });
+      }
+
+      await runCICommands();
+
+      return github.reviewPullRequest({
+        pullRequestNumber: pullRequest.number,
+        body: (
+          `Checks have passed and this pull request is ready for manual review`
+        ),
+        state: 'approve',
+      });
+
     }
 
   }

@@ -339,6 +339,112 @@ You must update this branch with a version bump before a docker image will be bu
 ]
 `;
 
+exports[`action runAction push to other branch Invalid PR against prod 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch some-feature-branch",
+  ],
+]
+`;
+
+exports[`action runAction push to other branch Invalid PR against prod 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "some-feature-branch",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to other branch Invalid PR against prod 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "Pull requests that modify \`env/prod\` must be either:
+
+* an update, merging \`env/staging\` into \`env/prod\`, or
+* a hotfix, merging \`hotfix/<name>\` into \`env/prod\`
+
+For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)",
+      "pullRequestNumber": 321,
+      "state": "reject",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to other branch Invalid PR against staging 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch some-feature-branch",
+  ],
+]
+`;
+
+exports[`action runAction push to other branch Invalid PR against staging 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "some-feature-branch",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to other branch Invalid PR against staging 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "Pull requests that modify \`env/staging\` must be either:
+
+* a release, merging \`release/<version>\` into \`env/staging\`, or
+* a hotfix, merging \`hotfix/<name>\` into \`env/staging\`
+
+For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)",
+      "pullRequestNumber": 321,
+      "state": "reject",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to other branch Valid PR 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch some-feature-branch",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
+  ],
+]
+`;
+
+exports[`action runAction push to other branch Valid PR 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "some-feature-branch",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to other branch Valid PR 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "Checks have passed and this pull request is ready for manual review",
+      "pullRequestNumber": 321,
+      "state": "approve",
+    },
+  ],
+]
+`;
+
 exports[`action runAction push to production or staging env/prod ci Check directory 1`] = `
 Array [
   Array [

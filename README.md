@@ -165,7 +165,7 @@ To create and deploy a hotfix:
 This section describes what automation this repository aims to provide,
 and acts as a roadmap.
 
-* DONE: Pushes to `env/prod` and `env/<stage|staging>`:
+* Pushes to `env/prod` and `env/<stage|staging>`:
   * Check if there is an existing tag for the current version in `package.json`
     * TODO: *(we'll need to allow for specifying the version in other ways for the
       non-node repos).*
@@ -193,11 +193,11 @@ and acts as a roadmap.
       (if the current branch is `env/prod`).
     * Or merge the new branch into `develop`
       (if the current branch is `env/<stage|staging>`).
-* DONE: Pushes to `env/<name>` (non-staging/production branches):
+* Pushes to `env/<name>` (non-staging/production branches):
   * Run CI Tasks (unit-tests etc…)
   * Run the docker build
   * Push the image to DockerHub, using the name of the environment as a tag.
-* DONE: Pushes to `hotfix/<name>`:
+* Pushes to `hotfix/<name>`:
   * Check if there is an open pull request for this branch:
     * If there is not: fail
     * If there is:
@@ -224,7 +224,7 @@ and acts as a roadmap.
           and the final deployment!
         * It also allows for updating the hotfixes with changes if it needs to
           be corrected.
-* DONE: Pushes to `release/<version>`:
+* Pushes to `release/<version>`:
   * Check if there is an open pull request for this branch:
     * If there is not: fail
     * If there is:
@@ -254,9 +254,9 @@ and acts as a roadmap.
           and the final deployment!
         * It also allows for updating the release with changes if it needs to
           be corrected.
-* DONE: Pushes to `develop`:
+* Pushes to `develop`:
   * Run CI Tasks (unit-tests etc…)
-* TODO: Pushes to all other branches
+* Pushes to all other branches
   * Check if there is an open pull request for this branch:
     * If there is not: fail
     * If there is:
