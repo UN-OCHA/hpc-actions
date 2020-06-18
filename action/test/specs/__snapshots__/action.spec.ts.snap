@@ -120,6 +120,38 @@ Array [
 ]
 `;
 
+exports[`action runAction push to hotfix/<name> branch Version not bumped 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch hotfix/foo",
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Version not bumped 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "hotfix/foo",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Version not bumped 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "This hotfix pull request does not update the version in \`package.json\`
+
+You must update this branch with a version bump before a docker image will be built for you.",
+      "pullRequestNumber": undefined,
+      "state": "reject",
+    },
+  ],
+]
+`;
+
 exports[`action runAction push to production or staging env/prod ci Check directory 1`] = `
 Array [
   Array [

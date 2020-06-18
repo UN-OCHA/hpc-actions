@@ -113,7 +113,11 @@ describe('action', () => {
     it('Missing package.json', async () => {
       const dir = await util.createTmpDir();
       await git.init({ fs, dir });
-      await git.addRemote({fs, dir, remote: 'origin', url: 'foo'})
+      await git.addRemote({ fs, dir, remote: 'origin', url: 'foo' })
+      await fs.promises.writeFile(path.join(dir, 'foo'), 'bar');
+      await git.add({ fs, dir, filepath: 'foo' });
+      await setAuthor(dir);
+      await exec(`git commit -m package`, { cwd: dir });
       await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
       await fs.promises.writeFile(EVENT_FILE, JSON.stringify(DEFAULT_PUSH_ENV));
       await action.runAction({
@@ -122,7 +126,7 @@ describe('action', () => {
       }).then(() => Promise.reject(new Error('Expected error to be thrown')))
         .catch((err: Error) => {
           expect(err.message.startsWith(
-            'Unable to read version from package.json: ENOENT'
+            'Unable to read version from package.json: File not found in commit'
           )).toBeTruthy();
         });
     });
@@ -134,6 +138,9 @@ describe('action', () => {
       await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
       await fs.promises.writeFile(EVENT_FILE, JSON.stringify(DEFAULT_PUSH_ENV));
       await fs.promises.writeFile(path.join(dir, 'package.json'), '{');
+      await git.add({ fs, dir, filepath: 'package.json' });
+      await setAuthor(dir);
+      await exec(`git commit -m package`, { cwd: dir });
       await action.runAction({
         env: DEFAULT_ENV,
         dir
@@ -154,6 +161,9 @@ describe('action', () => {
       await fs.promises.writeFile(path.join(dir, 'package.json'), JSON.stringify({
         version: 1.2
       }));
+      await git.add({ fs, dir, filepath: 'package.json' });
+      await setAuthor(dir);
+      await exec(`git commit -m package`, { cwd: dir });
       await action.runAction({
         env: DEFAULT_ENV,
         dir
@@ -945,6 +955,55 @@ describe('action', () => {
           .catch(err => {
             expect(err.message).toEqual(
               `Pull request from hotfix/ branch made against develop`
+            );
+          });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+        expect(reviewPullRequest.mock.calls).toMatchSnapshot();
+      });
+
+      it('Version not bumped', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        await git.branch({ fs, dir: upstream, ref: `env/prod` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: [{
+            base: { ref: 'env/prod' }
+          }]
+        });
+        const reviewPullRequest = jest.fn().mockResolvedValue(null);
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/hotfix/foo`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: testCompleteDockerInit,
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests,
+            reviewPullRequest
+          }),
+        }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+          .catch(err => {
+            expect(err.message).toEqual(
+              `Hotfix has same version as base (target) branch`
             );
           });
         expect(logger.log.mock.calls).toMatchSnapshot();

@@ -136,6 +136,37 @@ export const runAction = async (
 
   if (event.name === 'push') {
 
+    const readVersion = async (ref?: string): Promise<string> => {
+      const sha = await git.resolveRef({ fs, dir, ref: ref || 'HEAD' });
+      if (config.repoType === 'node') {
+        const pkg = await git.readBlob({
+          fs,
+          dir,
+          oid: sha,
+          filepath: 'package.json'
+        }).catch(err => {
+          throw new Error(
+            `Unable to read version from package.json: File not found in commit ${sha}`
+          );
+        });
+        let json: any;
+        try {
+          json = JSON.parse(new TextDecoder("utf-8").decode(pkg.blob));
+        } catch (err) {
+          throw new Error(
+            `Unable to read version from package.json: Invalid JSON: ${err.message}`
+          );
+        }
+        const version = json.version;
+        if (typeof version !== 'string') {
+          throw new Error(`Invalid version in package.json`);
+        }
+        return version;
+      } else {
+        throw new Error('Unsupported repo type: ' + config.repoType);
+      }
+    }
+
     // Get remote information
 
     const remotes = await git.listRemotes({
@@ -152,28 +183,7 @@ export const runAction = async (
 
     // Get current version information
 
-    let version: string;
-    if (config.repoType === 'node') {
-      const pkg =
-        await fs.promises.readFile(path.join(dir, 'package.json'))
-        .catch(err => Promise.reject(new Error(
-          `Unable to read version from package.json: ${err.message}`
-        )));
-      let json: any;
-      try {
-        json = JSON.parse(pkg.toString());
-      } catch (err) {
-        throw new Error(
-          `Unable to read version from package.json: Invalid JSON: ${err.message}`
-        );
-      }
-      version = json.version;
-      if (typeof version !== 'string') {
-        throw new Error(`Invalid version in package.json`);
-      }
-    } else {
-      throw new Error('Unsupported repo type: ' + config.repoType);
-    }
+    const version = await readVersion();
 
     // Get branch name for event
     const branchExtract = BRANCH_EXTRACT.exec(event.payload.ref);
@@ -411,12 +421,15 @@ export const runAction = async (
     } else if (mode === 'develop') {
       await runCICommands();
     } else if (mode === 'hotfix') {
-      const pr = await getUniquePullRequest();
+      const pullRequest = await getUniquePullRequest();
 
-      if (pr.base.ref !== 'env/prod' && pr.base.ref !== config.stagingEnvironmentBranch) {
+      // Check that the base branch is either env/<stage|staging> or env/prod
+
+      const baseBranch = pullRequest.base.ref;
+      if (baseBranch !== 'env/prod' && baseBranch !== config.stagingEnvironmentBranch) {
         await failWithPRComment({
-          error: `Pull request from hotfix/ branch made against ${pr.base.ref}`,
-          pullRequest: pr,
+          error: `Pull request from hotfix/ branch made against ${pullRequest.base.ref}`,
+          pullRequest,
           comment: (
             `Pull requests from \`hotfix/<name>\` branches can only target ` +
             `\`env/prod\` and \`${config.stagingEnvironmentBranch}\`:\n\n` +
@@ -426,6 +439,23 @@ export const runAction = async (
           )
         });
       }
+
+      // Check that the version in package.json has been updated between the base branch and HEAD.
+      await exec(`git fetch ${remote.remote} ${baseBranch}`, { cwd: dir });
+      const baseVersion = await readVersion(`refs/remotes/${remote.remote}/${baseBranch}`);
+      if (baseVersion === version) {
+        const file = config.repoType === 'node' ? 'package.json' : 'UNKNOWN';
+        await failWithPRComment({
+          error: `Hotfix has same version as base (target) branch`,
+          pullRequest,
+          comment: (
+            `This hotfix pull request does not update the version in \`${file}\`\n\n` +
+            `You must update this branch with a version bump before a docker ` +
+            `image will be built for you.`
+          )
+        });
+      }
+      console.log(baseVersion);
     }
 
   }
