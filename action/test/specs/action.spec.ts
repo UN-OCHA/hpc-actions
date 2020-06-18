@@ -1240,6 +1240,9 @@ describe('action', () => {
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
         await exec(`git commit -m package`, { cwd: upstream });
+        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
+        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
+        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
         await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);

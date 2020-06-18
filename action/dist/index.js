@@ -25285,6 +25285,9 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
             // HEAD of the hotfix branch (i.e., that the hotfix is a fast-forward,
             // and includes any other changes that may have been made to the target
             // environment).
+            // Before checking descendant, fetch the most recent 1000 commits of the
+            // hotfix branch (as actions/checkout will have fetched with a depth of 1)
+            await exec(`git fetch --depth 1000 ${remote.remote} ${branch}`, { cwd: dir });
             if (!await isomorphic_git_1.default.isDescendent({
                 fs: fs_1.default,
                 dir,
