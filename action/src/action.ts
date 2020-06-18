@@ -195,6 +195,101 @@ export const runAction = async (
     const headSha = await git.resolveRef({fs, dir, ref: currentBranch});
     const head = await git.readCommit({ fs, dir, oid: headSha});
 
+    const buildAndPushDockerImage = async (
+      opts: {
+        env: { DOCKER_USERNAME: string, DOCKER_PASSWORD: string },
+        /**
+         * How should the registry be checked for existing images with the
+         * same tag before building a new one?
+         *
+         * * `check-tree`: if the image doesn't yet exist, build it, if it does,
+         *   check to see that it was built with the same git tree sha. If it
+         *   was, finish, if not, throw an error.
+         * * `overwrite`: Don't check the registry, just build and push a new
+         *   image.
+         */
+        checkBehaviour: 'check-tree' | 'overwrite',
+        /**
+         * Tag to use when building and pushing the docker image
+         */
+        tag: string,
+        /**
+         * If defined,
+         * check that the given tag has this sha in the upstream repo
+         * before pushing the image, and throw an error if it's changed.
+         *
+         * This is a safeguard against pushing different images with the same tag
+         */
+        checkTagSha?: string,
+      }
+    ) => {
+      const { tag, checkBehaviour } = opts;
+      info(`Logging in to docker`);
+      const docker = dockerInit(config.docker);
+      await docker.login({
+        user: opts.env.DOCKER_USERNAME,
+        pass: opts.env.DOCKER_PASSWORD
+      });
+
+      if (checkBehaviour === 'check-tree') {
+        info(`Checking for existing docker image with tag ${tag}`);
+        const imagePulled = await docker.pullImage(tag, logger);
+        const image = imagePulled && await docker.getMetadata(tag);
+
+        if (image) {
+          // An image already exists, make sure it was built using the same files
+          info(`Image already exists, checking it was built with same git tree`);
+          if (image.treeSha !== head.commit.tree) {
+            throw new Error(`Image was built with different tree, aborting`);
+          } else {
+            info(`Image was built with same tree, no need to run build again`);
+            return;
+          }
+        }
+      }
+      if (checkBehaviour === 'check-tree') {
+        info(`Image with tag ${tag} does not yet exist, building image`);
+      } else if (checkBehaviour === 'overwrite') {
+        info(`Skipping check for existing image with tag ${tag}, building new image`);
+      }
+      await docker.runBuild({
+        tag,
+        meta: {
+          commitSha: head.oid,
+          treeSha: head.commit.tree,
+        },
+        cwd: dir,
+        logger
+      });
+      if (opts.checkTagSha) {
+        info(`Image built, checking tag is unchanged`);
+        await git.deleteRef({ fs, dir, ref: `refs/tags/${tag}` });
+        await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir });
+        const newTagSha = await git.resolveRef({ fs, dir, ref: `refs/tags/${tag}` });
+        if (newTagSha !== opts.checkTagSha) {
+          throw new Error('Tag has changed, aborting');
+        } else {
+          info(`Tag is unchanged, okay to continue`);
+        }
+      } else {
+        info(`Image built`);
+      }
+      info(`Pushing image to docker repository`);
+      await docker.pushImage(tag);
+      info(`Image Pushed`);
+    }
+
+    const runCICommands = async () => {
+      info(`Running CI Checks`);
+
+      for (const command of config.ci) {
+        info(`Running: ${command}`);
+        await execAndPipeOutput({ command, cwd: dir, logger });
+      };
+
+      info(`CI Checks Complete`);
+    }
+
     // Handle the push as appropriate for the given branch
 
     if (mode === 'env-production' || mode === 'env-staging') {
@@ -239,61 +334,19 @@ export const runAction = async (
       }
 
       // Check whether there is an existing docker image, and build if needed
-
-      info(`Logging in to docker`);
-      const docker = dockerInit(config.docker);
-      await docker.login({
-        user: env.DOCKER_USERNAME,
-        pass: env.DOCKER_PASSWORD
+      await buildAndPushDockerImage({
+        // TODO: improve the type guarding to remove the need to do this
+        env: {
+          DOCKER_PASSWORD: env.DOCKER_PASSWORD,
+          DOCKER_USERNAME: env.DOCKER_PASSWORD,
+        },
+        checkBehaviour: 'check-tree',
+        tag,
+        checkTagSha: tagSha
       });
 
-      info(`Checking for existing docker image with tag ${tag}`);
-      const imagePulled = await docker.pullImage(tag, logger);
-      const image = imagePulled && await docker.getMetadata(tag);
-
-      if (image) {
-        // An image already exists, make sure it was built using the same files
-        info(`Image already exists, checking it was built with same git tree`);
-        if (image.treeSha !== head.commit.tree) {
-          throw new Error(`Image was built with different tree, aborting`);
-        } else {
-          info(`Image was built with same tree, no need to run build again`);
-        }
-      } else {
-        info(`Image with tag ${tag} does not yet exist, building image`);
-        await docker.runBuild({
-          tag,
-          meta: {
-            commitSha: head.oid,
-            treeSha: head.commit.tree,
-          },
-          cwd: dir,
-          logger
-        });
-        info(`Image built, checking tag is unchanged`);
-        await git.deleteRef({fs, dir, ref: `refs/tags/${tag}`});
-        await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir });
-        const newTagSha = await git.resolveRef({ fs, dir, ref: `refs/tags/${tag}` });
-        if (newTagSha !== tagSha) {
-          throw new Error('Tag has changed, aborting');
-        } else {
-          info(`Tag is unchanged, okay to continue`);
-        }
-        info(`Pushing image to docker repository`);
-        await docker.pushImage(tag);
-        info(`Image Pushed`);
-      }
-
       // Run CI Checks
-
-      info(`Running CI Checks`);
-
-      for (const command of config.ci) {
-        info(`Running: ${command}`);
-        await execAndPipeOutput({ command, cwd: dir, logger });
-      };
-
-      info(`CI Checks Complete`);
+      await runCICommands();
 
       const mergebackBranch = `mergeback/${branch.substr(4)}/${version}`;
       info(`Creating and pushing mergeback Branch: ${mergebackBranch}`);
@@ -311,6 +364,17 @@ export const runAction = async (
 
       info(`Pull Request Opened, workflow complete`);
 
+    } else if (mode === 'env-development') {
+      await runCICommands();
+      await buildAndPushDockerImage({
+        // TODO: improve the type guarding to remove the need to do this
+        env: {
+          DOCKER_PASSWORD: env.DOCKER_PASSWORD,
+          DOCKER_USERNAME: env.DOCKER_PASSWORD,
+        },
+        checkBehaviour: 'overwrite',
+        tag: branch
+      });
     }
 
   }

@@ -2,7 +2,7 @@ import {promises as fs} from 'fs';
 
 import * as util from './util';
 
-jest.setTimeout(10000);
+jest.setTimeout(20000);
 
 beforeAll(async () => {
   console.log('Creating Temporary Directory');

@@ -19,7 +19,9 @@ const EVENT_FILE = util.tmpEventFilePath(__filename);
 const DEFAULT_CONFIG: Config = {
   stagingEnvironmentBranch: 'env/staging',
   repoType: 'node',
-  developmentEnvironmentBranches: [],
+  developmentEnvironmentBranches: [
+    'env/dev'
+  ],
   docker: {
     path: '.',
     args: {
@@ -61,6 +63,23 @@ const setAuthor = async (cwd: string) => {
 describe('action', () => {
 
   describe('runAction', () => {
+
+    const testCompleteError = new Error('TEST COMPLETE');
+
+    const testCompleteDockerController: DockerController = {
+      login: () => Promise.resolve(),
+      pullImage: () => Promise.reject(testCompleteError),
+      getMetadata: () => Promise.reject(testCompleteError),
+      runBuild: () => Promise.reject(testCompleteError),
+      pushImage: () => Promise.reject(testCompleteError),
+    }
+
+    const testCompleteGitHub: GitHubController = {
+      openPullRequest: () => Promise.reject(testCompleteError),
+    }
+
+    const testCompleteDockerInit: DockerInit = () => testCompleteDockerController;
+    const testCompleteGitHubInit: GitHubInit = () => testCompleteGitHub;
 
     it('Not in GitHub Repo', async () => {
       const dir = await util.createTmpDir();
@@ -160,23 +179,6 @@ describe('action', () => {
     });
 
     describe('push to production or staging', () => {
-
-      const testCompleteError = new Error('TEST COMPLETE');
-
-      const testCompleteDockerController: DockerController = {
-        login: () => Promise.resolve(),
-        pullImage: () => Promise.reject(testCompleteError),
-        getMetadata: () => Promise.reject(testCompleteError),
-        runBuild: () => Promise.reject(testCompleteError),
-        pushImage: () => Promise.reject(testCompleteError),
-      }
-
-      const testCompleteGitHub: GitHubController = {
-        openPullRequest: () => Promise.reject(testCompleteError),
-      }
-
-      const testCompleteDockerInit: DockerInit = () => testCompleteDockerController;
-      const testCompleteGitHubInit: GitHubInit = () => testCompleteGitHub;
 
       for (const env of ['prod','staging']) {
 
@@ -712,6 +714,101 @@ describe('action', () => {
 
         });
       }
+
+    });
+
+    describe('push to env/<dev> branch', () => {
+
+      it('Invalid (unconfigured) branch', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `env/dev2` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch env/dev2 ${upstream} ${dir}`);
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/env/dev2`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: testCompleteDockerInit
+        }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+          .catch(err => expect(err.message).toEqual(
+            `Invalid development branch: env/dev2, must be one of: env/dev`
+          ));
+        expect(logger.log.mock.calls).toMatchSnapshot();
+      });
+
+      it('Valid Push and Build', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `env/dev` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch env/dev ${upstream} ${dir}`);
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/env/dev`
+        }));
+        const logger = util.newLogger();
+        // Prepare docker mock
+        const pullImage = jest.fn().mockResolvedValue(null);
+        const getMetadata = jest.fn().mockResolvedValue(null);
+        const runBuild = jest.fn().mockResolvedValue(null);
+        const pushImage = jest.fn().mockResolvedValue(null);
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: () => ({
+            login: () => Promise.resolve(),
+            pullImage,
+            getMetadata,
+            runBuild,
+            pushImage,
+          }),
+          gitHubInit: testCompleteGitHubInit,
+        });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(pullImage.mock.calls).toEqual([]);
+        expect(getMetadata.mock.calls).toEqual([]);
+        expect(pushImage.mock.calls).toEqual([[
+          'env/dev',
+        ]]);
+        const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
+        const head = await git.readCommit({ fs, dir, oid: sha });
+        const meta: DockerImageMetadata = {
+          commitSha: head.oid,
+          treeSha: head.commit.tree,
+        };
+        expect(runBuild.mock.calls).toEqual([[{
+          cwd: dir,
+          logger,
+          tag: "env/dev",
+          meta
+        }]]);
+      });
+
 
     });
   });

@@ -1,5 +1,42 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`action runAction push to env/<dev> branch Invalid (unconfigured) branch 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/dev2",
+  ],
+]
+`;
+
+exports[`action runAction push to env/<dev> branch Valid Push and Build 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/dev",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Skipping check for existing image with tag env/dev, building new image",
+  ],
+  Array [
+    "##[info] Image built",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+]
+`;
+
 exports[`action runAction push to production or staging env/prod ci Check directory 1`] = `
 Array [
   Array [
