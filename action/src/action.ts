@@ -304,7 +304,11 @@ export const runAction = async (
         }
       } else if(opts.checkTag?.mode === 'non-existant') {
         info(`Image built, checking tag ${tag} still does not exist`);
-        if (await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })) {
+        const exists =
+          await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })
+          .then(() => true)
+          .catch(() => false);
+        if (exists) {
           await opts.checkTag.onError();
         } else {
           info(`Tag has not been created, okay to continue`);
@@ -556,6 +560,18 @@ export const runAction = async (
             )
           })
         },
+      });
+
+      // Post about successful
+      github.reviewPullRequest({
+        pullRequestNumber: pullRequest.number,
+        body: (
+          `Docker image has been successfully built and pushed as: ` +
+          `\`${config.docker.repository}:${tag}\`\n\n` +
+          `Please deploy this image to a development environment, and test ` +
+          `it is working as expected before merging this pull request.`
+        ),
+        state: 'comment-only',
       });
 
     }

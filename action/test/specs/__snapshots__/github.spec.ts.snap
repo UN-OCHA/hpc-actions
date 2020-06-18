@@ -82,6 +82,11 @@ Object {
         "auth": "asdf",
       },
     ],
+    Array [
+      Object {
+        "auth": "asdf",
+      },
+    ],
   ],
   "pulls.createReview": Array [
     Array [
@@ -97,6 +102,15 @@ Object {
       Object {
         "body": "fooo",
         "event": "REQUEST_CHANGES",
+        "owner": "oooo",
+        "pull_number": 123,
+        "repo": "rrrr",
+      },
+    ],
+    Array [
+      Object {
+        "body": "fooo",
+        "event": "COMMENT",
         "owner": "oooo",
         "pull_number": 123,
         "repo": "rrrr",

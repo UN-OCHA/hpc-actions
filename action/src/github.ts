@@ -24,7 +24,7 @@ export interface GitHubController {
   }) => Promise<RestEndpointMethodTypes["pulls"]["list"]["response"]>;
   reviewPullRequest: (params: {
     pullRequestNumber: number;
-    state: 'approve' | 'reject';
+    state: 'approve' | 'reject' | 'comment-only';
     body: string;
   }) => Promise<void>;
 }
@@ -71,7 +71,7 @@ export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
       repo,
       pull_number: pullRequestNumber,
       body,
-      event: state === 'approve' ? 'APPROVE' : 'REQUEST_CHANGES'
+      event: state === 'approve' ? 'APPROVE' : state === 'comment-only' ? 'COMMENT': 'REQUEST_CHANGES'
     }).then(() => {}),
   };
 }

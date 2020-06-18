@@ -126,6 +126,15 @@ describe('github', () => {
       state: 'reject'
     });
 
+    await github.REAL_GITHUB({
+      githubRepo: 'oooo/rrrr',
+      token: 'asdf'
+    }).reviewPullRequest({
+      body: 'fooo',
+      pullRequestNumber: 123,
+      state: 'comment-only'
+    });
+
     expect({
       octokit: mock.mock.calls,
       'pulls.createReview': api.pulls.createReview.mock.calls,

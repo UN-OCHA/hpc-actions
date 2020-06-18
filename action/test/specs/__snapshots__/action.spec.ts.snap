@@ -120,6 +120,77 @@ Array [
 ]
 `;
 
+exports[`action runAction push to hotfix/<name> branch Successful hotfix 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch hotfix/foo",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.1",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Skipping check for existing image with tag v1.2.1, building new image",
+  ],
+  Array [
+    "##[info] Image built, checking tag v1.2.1 still does not exist",
+  ],
+  Array [
+    "##[info] Tag has not been created, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Successful hotfix 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "hotfix/foo",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Successful hotfix 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "Docker image has been successfully built and pushed as: \`:v1.2.1\`
+
+Please deploy this image to a development environment, and test it is working as expected before merging this pull request.",
+      "pullRequestNumber": 321,
+      "state": "comment-only",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Successful hotfix 4`] = `
+Object {
+  "getMetadata": Array [],
+  "pullImage": Array [],
+  "pushImage": Array [
+    Array [
+      "v1.2.1",
+    ],
+  ],
+}
+`;
+
 exports[`action runAction push to hotfix/<name> branch Tag already exists 1`] = `
 Array [
   Array [
