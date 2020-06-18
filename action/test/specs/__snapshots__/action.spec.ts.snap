@@ -120,6 +120,43 @@ Array [
 ]
 `;
 
+exports[`action runAction push to hotfix/<name> branch Tag already exists 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch hotfix/foo",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.1",
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Tag already exists 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "hotfix/foo",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Tag already exists 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "There is already a tag for version v1.2.1,so we can't create another release with the same version.
+
+Please update the version in \`package.json\`
+
+ to something that has not yet had peen deployed to \`env/prod\` or \`env/staging\`.",
+      "pullRequestNumber": undefined,
+      "state": "reject",
+    },
+  ],
+]
+`;
+
 exports[`action runAction push to hotfix/<name> branch Version not bumped 1`] = `
 Array [
   Array [

@@ -1011,6 +1011,62 @@ describe('action', () => {
         expect(reviewPullRequest.mock.calls).toMatchSnapshot();
       });
 
+      it('Tag already exists', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `env/prod` });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.1"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        await git.tag({ fs, dir: upstream, ref: 'v1.2.1' });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: [{
+            base: { ref: 'env/prod' }
+          }]
+        });
+        const reviewPullRequest = jest.fn().mockResolvedValue(null);
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/hotfix/foo`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: testCompleteDockerInit,
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests,
+            reviewPullRequest
+          }),
+        }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+          .catch(err => {
+            expect(err.message).toEqual(
+              `Tag already exists for version v1.2.1, aborting.`
+            );
+          });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+        expect(reviewPullRequest.mock.calls).toMatchSnapshot();
+      });
+
 
     });
 

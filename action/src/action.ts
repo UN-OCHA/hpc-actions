@@ -136,6 +136,12 @@ export const runAction = async (
 
   if (event.name === 'push') {
 
+    /**
+     * What is the path of the file that specifies the version?
+     */
+    const versionFilePath = (repoType: 'node') =>
+      repoType === 'node' ? 'package.json' : 'UNKNOWN';
+
     const readVersion = async (ref?: string): Promise<string> => {
       const sha = await git.resolveRef({ fs, dir, ref: ref || 'HEAD' });
       if (config.repoType === 'node') {
@@ -143,7 +149,7 @@ export const runAction = async (
           fs,
           dir,
           oid: sha,
-          filepath: 'package.json'
+          filepath: versionFilePath(config.repoType)
         }).catch(err => {
           throw new Error(
             `Unable to read version from package.json: File not found in commit ${sha}`
@@ -333,21 +339,27 @@ export const runAction = async (
       throw new Error(error);
     }
 
+    /**
+     * Try and fetch a specific tag from the remote,
+     * and return true if it exists and was successful
+     */
+    const fetchTag = (tag: string) =>
+      exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })
+        .then(() => true)
+        .catch(err => {
+          if (err.stderr.indexOf(`fatal: couldn't find remote ref`) > -1) {
+            return false;
+          } else {
+            throw err;
+          }
+        });
+
     // Handle the push as appropriate for the given branch
 
     if (mode === 'env-production' || mode === 'env-staging') {
       const tag = `v${version}`;
       info(`Checking if there is an existing tag for ${tag}`);
-      const existing =
-        await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })
-          .then(() => true)
-          .catch(err => {
-            if (err.stderr.indexOf(`fatal: couldn't find remote ref`) > -1) {
-              return false;
-            } else {
-              throw err;
-            }
-          });
+      const existing = await fetchTag(tag);
 
       /**
        * The commit sha for the tag after it's been created or checked
@@ -444,7 +456,7 @@ export const runAction = async (
       await exec(`git fetch ${remote.remote} ${baseBranch}`, { cwd: dir });
       const baseVersion = await readVersion(`refs/remotes/${remote.remote}/${baseBranch}`);
       if (baseVersion === version) {
-        const file = config.repoType === 'node' ? 'package.json' : 'UNKNOWN';
+        const file = versionFilePath(config.repoType);
         await failWithPRComment({
           error: `Hotfix has same version as base (target) branch`,
           pullRequest,
@@ -455,7 +467,28 @@ export const runAction = async (
           )
         });
       }
-      console.log(baseVersion);
+
+      // Check that there is no existing tag for the current version in package.json
+      // (this will be created automatically when merged).
+      const tag = `v${version}`;
+      info(`Checking if there is an existing tag for ${tag}`);
+      const existing = await fetchTag(tag);
+      if (existing) {
+        const file = versionFilePath(config.repoType);
+        await failWithPRComment({
+          error: `Tag already exists for version ${tag}, aborting.`,
+          pullRequest,
+          comment: (
+            `There is already a tag for version ${tag},` +
+            `so we can't create another release with the same version.\n\n` +
+            `Please update the version in \`${file}\`\n\n to something ` +
+            `that has not yet had peen deployed to \`env/prod\` ` +
+            `or \`${config.stagingEnvironmentBranch}\`.`
+          )
+        });
+      }
+
+
     }
 
   }
