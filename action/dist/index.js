@@ -8829,6 +8829,11 @@ const DOCKER_CONFIG = t.intersection([
          * followed by a slash.
          */
         registry: t.string,
+        /**
+         * If true, don't attempt to log in to docker,
+         * and assume that this has already been done before this action.
+         */
+        skipLogin: t.boolean,
     })
 ]);
 const CONFIG = t.intersection([
@@ -24949,10 +24954,12 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
     if (!env.GITHUB_REPOSITORY)
         throw new Error('Expected GITHUB_REPOSITORY');
     // Get docker credentials
-    if (!env.DOCKER_USERNAME)
-        throw new Error('Expected DOCKER_USERNAME');
-    if (!env.DOCKER_PASSWORD)
-        throw new Error('Expected DOCKER_PASSWORD');
+    if (!config.docker.skipLogin) {
+        if (!env.DOCKER_USERNAME)
+            throw new Error('Expected DOCKER_USERNAME');
+        if (!env.DOCKER_PASSWORD)
+            throw new Error('Expected DOCKER_PASSWORD');
+    }
     // Get GitHub credentials
     if (!env.GITHUB_TOKEN)
         throw new Error('Expected GITHUB_TOKEN');
@@ -25045,10 +25052,15 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
             const { tag, checkBehaviour } = opts;
             info(`Logging in to docker`);
             const docker = dockerInit(config.docker);
-            await docker.login({
-                user: opts.env.DOCKER_USERNAME,
-                pass: opts.env.DOCKER_PASSWORD
-            });
+            if (!config.docker.skipLogin) {
+                if (!env.DOCKER_USERNAME || !env.DOCKER_PASSWORD) {
+                    throw new Error('Unexpected error!');
+                }
+                await docker.login({
+                    user: env.DOCKER_USERNAME,
+                    pass: env.DOCKER_PASSWORD
+                });
+            }
             if (checkBehaviour === 'check-tree') {
                 info(`Checking for existing docker image with tag ${tag}`);
                 const imagePulled = await docker.pullImage(tag, logger);
@@ -25192,9 +25204,8 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
             }
         };
         const buildAndPushDockerImageForReleaseOrHotfix = (params) => {
-            const { env, tag, pullRequest } = params;
+            const { tag, pullRequest } = params;
             return buildAndPushDockerImage({
-                env,
                 checkBehaviour: 'overwrite',
                 tag,
                 checkTag: {
@@ -25258,11 +25269,6 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
             }
             // Check whether there is an existing docker image, and build if needed
             await buildAndPushDockerImage({
-                // TODO: improve the type guarding to remove the need to do this
-                env: {
-                    DOCKER_PASSWORD: env.DOCKER_PASSWORD,
-                    DOCKER_USERNAME: env.DOCKER_PASSWORD,
-                },
                 checkBehaviour: 'check-tree',
                 tag,
                 checkTag: { mode: 'match', sha: tagSha }
@@ -25286,11 +25292,6 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
         else if (mode === 'env-development') {
             await runCICommands();
             await buildAndPushDockerImage({
-                // TODO: improve the type guarding to remove the need to do this
-                env: {
-                    DOCKER_PASSWORD: env.DOCKER_PASSWORD,
-                    DOCKER_USERNAME: env.DOCKER_PASSWORD,
-                },
                 checkBehaviour: 'overwrite',
                 tag: branch
             });
@@ -25346,11 +25347,6 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
             });
             await runCICommands();
             await buildAndPushDockerImageForReleaseOrHotfix({
-                // TODO: improve the type guarding to remove the need to do this
-                env: {
-                    DOCKER_PASSWORD: env.DOCKER_PASSWORD,
-                    DOCKER_USERNAME: env.DOCKER_PASSWORD,
-                },
                 tag,
                 pullRequest
             });
@@ -25400,11 +25396,6 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
             });
             await runCICommands();
             await buildAndPushDockerImageForReleaseOrHotfix({
-                // TODO: improve the type guarding to remove the need to do this
-                env: {
-                    DOCKER_PASSWORD: env.DOCKER_PASSWORD,
-                    DOCKER_USERNAME: env.DOCKER_PASSWORD,
-                },
                 tag,
                 pullRequest
             });
