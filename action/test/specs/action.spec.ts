@@ -62,8 +62,6 @@ describe('action', () => {
 
   describe('runAction', () => {
 
-    jest.setTimeout(10000);
-
     it('Not in GitHub Repo', async () => {
       const dir = await util.createTmpDir();
       await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
