@@ -193,7 +193,7 @@ and acts as a roadmap.
       (if the current branch is `env/prod`).
     * Or merge the new branch into `develop`
       (if the current branch is `env/<stage|staging>`).
-* TODO: Pushes to `env/<name>` (non-staging/production branches):
+* DONE: Pushes to `env/<name>` (non-staging/production branches):
   * Run CI Tasks (unit-tests etc…)
   * Run the docker build
   * Push the image to DockerHub, using the name of the environment as a tag.
