@@ -197,7 +197,7 @@ and acts as a roadmap.
   * Run CI Tasks (unit-tests etc…)
   * Run the docker build
   * Push the image to DockerHub, using the name of the environment as a tag.
-* TODO: Pushes to `hotfix/<name>`:
+* DONE: Pushes to `hotfix/<name>`:
   * Check if there is an open pull request for this branch:
     * If there is not: fail
     * If there is:
