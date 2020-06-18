@@ -6234,10 +6234,7 @@ exports.REAL_DOCKER = config => ({
             command: `docker login ${config.registry || ''} -u ${user}  --password-stdin`,
             cwd: __dirname,
             // Drop all console output (it's mostly warning about storing credentials)
-            logger: {
-                error: () => { },
-                log: () => { }
-            },
+            logger: console,
             data: pass + '\n'
         });
     },
