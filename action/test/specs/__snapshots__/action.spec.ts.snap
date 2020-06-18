@@ -1,5 +1,19 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`action runAction push to develop branch 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch develop",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
+  ],
+]
+`;
+
 exports[`action runAction push to env/<dev> branch Invalid (unconfigured) branch 1`] = `
 Array [
   Array [
@@ -37,6 +51,294 @@ Array [
 ]
 `;
 
+exports[`action runAction push to hotfix/<name> branch Multiple pull request opened 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch hotfix/foo",
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Multiple pull request opened 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "hotfix/foo",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch No pull request opened 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch hotfix/foo",
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch No pull request opened 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "hotfix/foo",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Pull request opened against invalid branch 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch hotfix/foo",
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Pull request opened against invalid branch 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "hotfix/foo",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Pull request opened against invalid branch 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "Pull requests from \`hotfix/<name>\` branches can only target \`env/prod\` and \`env/staging\`:
+
+* If this is supposed to be a hotfix, please re-target this pull request.
+* If this is not supposed to be a hotfix, please use a branch name that does not begin with \`hotfix/\`",
+      "pullRequestNumber": 321,
+      "state": "reject",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Successful hotfix 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch hotfix/foo",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.1",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Skipping check for existing image with tag v1.2.1, building new image",
+  ],
+  Array [
+    "##[info] Image built, checking tag v1.2.1 still does not exist",
+  ],
+  Array [
+    "##[info] Tag has not been created, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Successful hotfix 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "hotfix/foo",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Successful hotfix 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "Docker image has been successfully built and pushed as: \`:v1.2.1\`
+
+Please deploy this image to a development environment, and test it is working as expected before merging this pull request.",
+      "pullRequestNumber": 321,
+      "state": "approve",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Successful hotfix 4`] = `
+Object {
+  "getMetadata": Array [],
+  "pullImage": Array [],
+  "pushImage": Array [
+    Array [
+      "v1.2.1",
+    ],
+  ],
+}
+`;
+
+exports[`action runAction push to hotfix/<name> branch Tag already exists 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch hotfix/foo",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.1",
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Tag already exists 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "hotfix/foo",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Tag already exists 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "There is already a tag for version v1.2.1,so we can't create another release with the same version.
+
+Please update the version in \`package.json\`
+
+ to something that has not yet had peen deployed to \`env/prod\` or \`env/staging\`.",
+      "pullRequestNumber": 321,
+      "state": "reject",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Tag created during build 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch hotfix/foo",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.1",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Skipping check for existing image with tag v1.2.1, building new image",
+  ],
+  Array [
+    "##[info] Image built, checking tag v1.2.1 still does not exist",
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Tag created during build 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "hotfix/foo",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Tag created during build 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "During the build of the docker image, the tag v1.2.1 was created, and so the workflow has been aborted, and the docker image has not been pushed.
+
+Please chose a new version and update the pull request.",
+      "pullRequestNumber": 321,
+      "state": "reject",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Tag created during build 4`] = `
+Object {
+  "getMetadata": Array [],
+  "pullImage": Array [],
+  "pushImage": Array [],
+}
+`;
+
+exports[`action runAction push to hotfix/<name> branch Target not an ancestor 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch hotfix/foo",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.1",
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Target not an ancestor 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "hotfix/foo",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Version not bumped 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch hotfix/foo",
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Version not bumped 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "hotfix/foo",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Version not bumped 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "This hotfix pull request does not update the version in \`package.json\`
+
+You must update this branch with a version bump before a docker image will be built for you.",
+      "pullRequestNumber": 321,
+      "state": "reject",
+    },
+  ],
+]
+`;
+
 exports[`action runAction push to production or staging env/prod ci Check directory 1`] = `
 Array [
   Array [
@@ -65,7 +367,7 @@ Array [
   ],
   Array [
     "[stdout]",
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "[stdout]",
@@ -134,7 +436,7 @@ Array [
   ],
   Array [
     "[stdout]",
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "[stdout]",
@@ -215,7 +517,7 @@ Array [
   ],
   Array [
     "[stdout]",
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "[stdout]",
@@ -322,7 +624,7 @@ Array [
     "##[info] Image with tag v1.2.0 does not yet exist, building image",
   ],
   Array [
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
 ]
 `;
@@ -360,7 +662,7 @@ Array [
     "##[info] Image with tag v1.2.0 does not yet exist, building image",
   ],
   Array [
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "##[info] Tag is unchanged, okay to continue",
@@ -423,7 +725,7 @@ Array [
     "##[info] Image with tag v1.2.0 does not yet exist, building image",
   ],
   Array [
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "##[info] Tag is unchanged, okay to continue",
@@ -575,7 +877,7 @@ Array [
   ],
   Array [
     "[stdout]",
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "[stdout]",
@@ -644,7 +946,7 @@ Array [
   ],
   Array [
     "[stdout]",
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "[stdout]",
@@ -725,7 +1027,7 @@ Array [
   ],
   Array [
     "[stdout]",
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "[stdout]",
@@ -832,7 +1134,7 @@ Array [
     "##[info] Image with tag v1.2.0 does not yet exist, building image",
   ],
   Array [
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
 ]
 `;
@@ -870,7 +1172,7 @@ Array [
     "##[info] Image with tag v1.2.0 does not yet exist, building image",
   ],
   Array [
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "##[info] Tag is unchanged, okay to continue",
@@ -933,7 +1235,7 @@ Array [
     "##[info] Image with tag v1.2.0 does not yet exist, building image",
   ],
   Array [
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "##[info] Tag is unchanged, okay to continue",

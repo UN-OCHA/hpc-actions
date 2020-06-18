@@ -76,6 +76,8 @@ describe('action', () => {
 
     const testCompleteGitHub: GitHubController = {
       openPullRequest: () => Promise.reject(testCompleteError),
+      getOpenPullRequests: () => Promise.reject(testCompleteError),
+      reviewPullRequest: () => Promise.reject(testCompleteError),
     }
 
     const testCompleteDockerInit: DockerInit = () => testCompleteDockerController;
@@ -111,7 +113,11 @@ describe('action', () => {
     it('Missing package.json', async () => {
       const dir = await util.createTmpDir();
       await git.init({ fs, dir });
-      await git.addRemote({fs, dir, remote: 'origin', url: 'foo'})
+      await git.addRemote({ fs, dir, remote: 'origin', url: 'foo' })
+      await fs.promises.writeFile(path.join(dir, 'foo'), 'bar');
+      await git.add({ fs, dir, filepath: 'foo' });
+      await setAuthor(dir);
+      await exec(`git commit -m package`, { cwd: dir });
       await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
       await fs.promises.writeFile(EVENT_FILE, JSON.stringify(DEFAULT_PUSH_ENV));
       await action.runAction({
@@ -120,7 +126,7 @@ describe('action', () => {
       }).then(() => Promise.reject(new Error('Expected error to be thrown')))
         .catch((err: Error) => {
           expect(err.message.startsWith(
-            'Unable to read version from package.json: ENOENT'
+            'Unable to read version from package.json: File not found in commit'
           )).toBeTruthy();
         });
     });
@@ -132,6 +138,9 @@ describe('action', () => {
       await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
       await fs.promises.writeFile(EVENT_FILE, JSON.stringify(DEFAULT_PUSH_ENV));
       await fs.promises.writeFile(path.join(dir, 'package.json'), '{');
+      await git.add({ fs, dir, filepath: 'package.json' });
+      await setAuthor(dir);
+      await exec(`git commit -m package`, { cwd: dir });
       await action.runAction({
         env: DEFAULT_ENV,
         dir
@@ -152,6 +161,9 @@ describe('action', () => {
       await fs.promises.writeFile(path.join(dir, 'package.json'), JSON.stringify({
         version: 1.2
       }));
+      await git.add({ fs, dir, filepath: 'package.json' });
+      await setAuthor(dir);
+      await exec(`git commit -m package`, { cwd: dir });
       await action.runAction({
         env: DEFAULT_ENV,
         dir
@@ -701,6 +713,7 @@ describe('action', () => {
                 pushImage: jest.fn().mockResolvedValue(null),
               }),
               gitHubInit: () => ({
+                ...testCompleteGitHub,
                 openPullRequest
               }),
             });
@@ -810,6 +823,515 @@ describe('action', () => {
       });
 
 
+    });
+
+    describe('push to hotfix/<name> branch', () => {
+
+      it('No pull request opened', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: []
+        });
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/hotfix/foo`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: testCompleteDockerInit,
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests
+          }),
+        }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+          .catch(err => {
+            expect(err.message).toEqual(
+              `The branch hotfix/foo has no pull requests open yet, so it is not possible to run this workflow.`
+            );
+            expect(err).toBeInstanceOf(action.NoPullRequestError);
+          });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+      });
+
+      it('Multiple pull request opened', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: [{}, {}]
+        });
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/hotfix/foo`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: testCompleteDockerInit,
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests
+          }),
+        }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+          .catch(err => {
+            expect(err.message).toEqual(
+              `Multiple pull requests for branch hotfix/foo are open, so it is not possible to run this workflow.`
+            );
+          });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+      });
+
+      it('Pull request opened against invalid branch', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: [{
+            number: 321,
+            base: { ref: 'develop' }
+          }]
+        });
+        const reviewPullRequest = jest.fn().mockResolvedValue(null);
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/hotfix/foo`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: testCompleteDockerInit,
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests,
+            reviewPullRequest
+          }),
+        }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+          .catch(err => {
+            expect(err.message).toEqual(
+              `Pull request from hotfix/ branch made against develop`
+            );
+          });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+        expect(reviewPullRequest.mock.calls).toMatchSnapshot();
+      });
+
+      it('Version not bumped', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        await git.branch({ fs, dir: upstream, ref: `env/prod` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: [{
+            number: 321,
+            base: { ref: 'env/prod' }
+          }]
+        });
+        const reviewPullRequest = jest.fn().mockResolvedValue(null);
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/hotfix/foo`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: testCompleteDockerInit,
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests,
+            reviewPullRequest
+          }),
+        }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+          .catch(err => {
+            expect(err.message).toEqual(
+              `Hotfix has same version as base (target) branch`
+            );
+          });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+        expect(reviewPullRequest.mock.calls).toMatchSnapshot();
+      });
+
+      it('Tag already exists', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `env/prod` });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.1"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        await git.tag({ fs, dir: upstream, ref: 'v1.2.1' });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: [{
+            number: 321,
+            base: { ref: 'env/prod' }
+          }]
+        });
+        const reviewPullRequest = jest.fn().mockResolvedValue(null);
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/hotfix/foo`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: testCompleteDockerInit,
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests,
+            reviewPullRequest
+          }),
+        }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+          .catch(err => {
+            expect(err.message).toEqual(
+              `Tag already exists for version v1.2.1, aborting.`
+            );
+          });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+        expect(reviewPullRequest.mock.calls).toMatchSnapshot();
+      });
+
+      it('Target not an ancestor', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `env/prod` });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.1"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        await git.checkout({ fs, dir: upstream, ref: `env/prod` });
+        await exec(`git commit --allow-empty -m another`, { cwd: upstream });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: [{
+            number: 321,
+            base: { ref: 'env/prod' }
+          }]
+        });
+        const reviewPullRequest = jest.fn().mockResolvedValue(null);
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/hotfix/foo`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: testCompleteDockerInit,
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests,
+            reviewPullRequest
+          }),
+        }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+          .catch(err => {
+            expect(err.message).toEqual(
+              `Hotfix is not a descendant of target (base) branch`
+            );
+          });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+        expect(reviewPullRequest.mock.calls).toEqual([[
+          {
+            body: expect.any(String),
+            pullRequestNumber: 321,
+            state: 'reject',
+          }
+        ]]);
+      });
+
+      it('Tag created during build', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `env/prod` });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.1"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: [{
+            number: 321,
+            base: { ref: 'env/prod' }
+          }]
+        });
+        const reviewPullRequest = jest.fn().mockResolvedValue(null);
+        // Prepare docker mock
+        const pullImage = jest.fn().mockResolvedValue(null);
+        const getMetadata = jest.fn().mockResolvedValue(null);
+        const runBuild = jest.fn().mockImplementation(async () => {
+          // Simulate the tag changing by explicitly changing the tag
+          // in upstream branch when the build is run
+          await git.tag({ fs, dir: upstream, ref: `v1.2.1`, force: true });
+        });
+        const pushImage = jest.fn().mockResolvedValue(null);
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/hotfix/foo`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: () => ({
+            login: () => Promise.resolve(),
+            pullImage,
+            getMetadata,
+            runBuild,
+            pushImage,
+          }),
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests,
+            reviewPullRequest
+          }),
+        }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+          .catch(err => {
+            expect(err.message).toEqual(
+              `Tag v1.2.1 has been created, aborting`
+            );
+          });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+        expect(reviewPullRequest.mock.calls).toMatchSnapshot();
+        expect({
+          pullImage: pullImage.mock.calls.map(call => [call[0]]),
+          getMetadata: getMetadata.mock.calls,
+          pushImage: pushImage.mock.calls,
+        }).toMatchSnapshot();
+        const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
+        const head = await git.readCommit({ fs, dir, oid: sha });
+        const meta: DockerImageMetadata = {
+          commitSha: head.oid,
+          treeSha: head.commit.tree,
+        };
+        expect(runBuild.mock.calls).toEqual([[{
+          cwd: dir,
+          logger,
+          tag: "v1.2.1",
+          meta
+        }]]);
+      });
+
+      it('Successful hotfix', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `env/prod` });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.1"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
+        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
+        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: [{
+            number: 321,
+            base: { ref: 'env/prod' }
+          }]
+        });
+        const reviewPullRequest = jest.fn().mockResolvedValue(null);
+        // Prepare docker mock
+        const pullImage = jest.fn().mockResolvedValue(null);
+        const getMetadata = jest.fn().mockResolvedValue(null);
+        const runBuild = jest.fn().mockResolvedValue(null);
+        const pushImage = jest.fn().mockResolvedValue(null);
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/hotfix/foo`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: () => ({
+            login: () => Promise.resolve(),
+            pullImage,
+            getMetadata,
+            runBuild,
+            pushImage,
+          }),
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests,
+            reviewPullRequest
+          }),
+        });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+        expect(reviewPullRequest.mock.calls).toMatchSnapshot();
+        expect({
+          pullImage: pullImage.mock.calls.map(call => [call[0]]),
+          getMetadata: getMetadata.mock.calls,
+          pushImage: pushImage.mock.calls,
+        }).toMatchSnapshot();
+        const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
+        const head = await git.readCommit({ fs, dir, oid: sha });
+        const meta: DockerImageMetadata = {
+          commitSha: head.oid,
+          treeSha: head.commit.tree,
+        };
+        expect(runBuild.mock.calls).toEqual([[{
+          cwd: dir,
+          logger,
+          tag: "v1.2.1",
+          meta
+        }]]);
+      });
+
+    });
+
+    it('push to develop branch', async () => {
+      const upstream = await util.createTmpDir();
+      const dir = await util.createTmpDir();
+      // Prepare upstream repository
+      await git.init({ fs, dir: upstream });
+      await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+        version: "1.2.0"
+      }));
+      await git.add({ fs, dir: upstream, filepath: 'package.json' });
+      await setAuthor(upstream);
+      await exec(`git commit -m package`, { cwd: upstream });
+      await git.branch({ fs, dir: upstream, ref: `develop` });
+      // Clone into repo we'll run in, and create appropriate branch
+      await exec(`git clone --branch develop ${upstream} ${dir}`);
+      // Run action
+      await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+      await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+        ref: `refs/heads/develop`
+      }));
+      const logger = util.newLogger();
+      await action.runAction({
+        env: DEFAULT_ENV,
+        dir,
+        logger,
+      });
+      expect(logger.log.mock.calls).toMatchSnapshot();
     });
   });
 });

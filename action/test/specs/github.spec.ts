@@ -68,4 +68,78 @@ describe('github', () => {
 
   });
 
+  it('Check existing pull requests', async () => {
+
+    const mock = octokit.Octokit as any as jest.Mock;
+
+    const api = {
+      pulls: {
+        list: jest.fn().mockResolvedValue([]),
+      },
+    };
+
+    mock.mockClear();
+    mock.mockReturnValue(api);
+
+    await github.REAL_GITHUB({
+      githubRepo: 'oooo/rrrr',
+      token: 'asdf'
+    }).getOpenPullRequests({
+      branch: 'env/foo'
+    });
+
+    expect({
+      octokit: mock.mock.calls,
+      'pulls.list': api.pulls.list.mock.calls,
+    }).toMatchSnapshot();
+
+  });
+
+  it('Submit a PR rejection', async () => {
+
+    const mock = octokit.Octokit as any as jest.Mock;
+
+    const api = {
+      pulls: {
+        createReview: jest.fn().mockResolvedValue([]),
+      },
+    };
+
+    mock.mockClear();
+    mock.mockReturnValue(api);
+
+    await github.REAL_GITHUB({
+      githubRepo: 'oooo/rrrr',
+      token: 'asdf'
+    }).reviewPullRequest({
+      body: 'fooo',
+      pullRequestNumber: 123,
+      state: 'approve'
+    });
+
+    await github.REAL_GITHUB({
+      githubRepo: 'oooo/rrrr',
+      token: 'asdf'
+    }).reviewPullRequest({
+      body: 'fooo',
+      pullRequestNumber: 123,
+      state: 'reject'
+    });
+
+    await github.REAL_GITHUB({
+      githubRepo: 'oooo/rrrr',
+      token: 'asdf'
+    }).reviewPullRequest({
+      body: 'fooo',
+      pullRequestNumber: 123,
+      state: 'comment-only'
+    });
+
+    expect({
+      octokit: mock.mock.calls,
+      'pulls.createReview': api.pulls.createReview.mock.calls,
+    }).toMatchSnapshot();
+
+  });
+
 });

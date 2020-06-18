@@ -24899,11 +24899,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.runAction = void 0;
+exports.runAction = exports.NoPullRequestError = void 0;
 const child_process = __importStar(__webpack_require__(129));
 const fs_1 = __importDefault(__webpack_require__(747));
 const isomorphic_git_1 = __importDefault(__webpack_require__(956));
-const path = __importStar(__webpack_require__(622));
 const util_1 = __webpack_require__(669);
 const child_process_1 = __webpack_require__(388);
 const config_1 = __webpack_require__(291);
@@ -24938,6 +24937,9 @@ const determineMode = (config, branch) => {
         return 'other';
     }
 };
+class NoPullRequestError extends Error {
+}
+exports.NoPullRequestError = NoPullRequestError;
 exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerInit = docker_1.REAL_DOCKER, gitHubInit = github_1.REAL_GITHUB, }) => {
     var _a, _b;
     const info = (message) => logger.log(`##[info] ${message}`);
@@ -24976,6 +24978,38 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
         token: env.GITHUB_TOKEN,
     });
     if (event.name === 'push') {
+        /**
+         * What is the path of the file that specifies the version?
+         */
+        const versionFilePath = (repoType) => repoType === 'node' ? 'package.json' : 'UNKNOWN';
+        const readRefShaAndVersion = async (ref) => {
+            const sha = await isomorphic_git_1.default.resolveRef({ fs: fs_1.default, dir, ref: ref || 'HEAD' });
+            if (config.repoType === 'node') {
+                const pkg = await isomorphic_git_1.default.readBlob({
+                    fs: fs_1.default,
+                    dir,
+                    oid: sha,
+                    filepath: versionFilePath(config.repoType)
+                }).catch(err => {
+                    throw new Error(`Unable to read version from package.json: File not found in commit ${sha}`);
+                });
+                let json;
+                try {
+                    json = JSON.parse(new TextDecoder("utf-8").decode(pkg.blob));
+                }
+                catch (err) {
+                    throw new Error(`Unable to read version from package.json: Invalid JSON: ${err.message}`);
+                }
+                const version = json.version;
+                if (typeof version !== 'string') {
+                    throw new Error(`Invalid version in package.json`);
+                }
+                return { sha, version };
+            }
+            else {
+                throw new Error('Unsupported repo type: ' + config.repoType);
+            }
+        };
         // Get remote information
         const remotes = await isomorphic_git_1.default.listRemotes({
             fs: fs_1.default,
@@ -24989,25 +25023,8 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
         }
         const remote = remotes[0];
         // Get current version information
-        let version;
-        if (config.repoType === 'node') {
-            const pkg = await fs_1.default.promises.readFile(path.join(dir, 'package.json'))
-                .catch(err => Promise.reject(new Error(`Unable to read version from package.json: ${err.message}`)));
-            let json;
-            try {
-                json = JSON.parse(pkg.toString());
-            }
-            catch (err) {
-                throw new Error(`Unable to read version from package.json: Invalid JSON: ${err.message}`);
-            }
-            version = json.version;
-            if (typeof version !== 'string') {
-                throw new Error(`Invalid version in package.json`);
-            }
-        }
-        else {
-            throw new Error('Unsupported repo type: ' + config.repoType);
-        }
+        const headShaAndVersion = await readRefShaAndVersion();
+        const version = headShaAndVersion.version;
         // Get branch name for event
         const branchExtract = BRANCH_EXTRACT.exec(event.payload.ref);
         if (!branchExtract) {
@@ -25025,9 +25042,9 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
         else if (currentBranch !== branch) {
             throw new Error('incorrect branch currently checked-out');
         }
-        const headSha = await isomorphic_git_1.default.resolveRef({ fs: fs_1.default, dir, ref: currentBranch });
-        const head = await isomorphic_git_1.default.readCommit({ fs: fs_1.default, dir, oid: headSha });
+        const head = await isomorphic_git_1.default.readCommit({ fs: fs_1.default, dir, oid: headShaAndVersion.sha });
         const buildAndPushDockerImage = async (opts) => {
+            var _a, _b;
             const { tag, checkBehaviour } = opts;
             info(`Logging in to docker`);
             const docker = dockerInit(config.docker);
@@ -25066,16 +25083,28 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 cwd: dir,
                 logger
             });
-            if (opts.checkTagSha) {
-                info(`Image built, checking tag is unchanged`);
+            if (((_a = opts.checkTag) === null || _a === void 0 ? void 0 : _a.mode) === 'match') {
+                info(`Image built, checking tag ${tag} is unchanged`);
                 await isomorphic_git_1.default.deleteRef({ fs: fs_1.default, dir, ref: `refs/tags/${tag}` });
                 await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir });
                 const newTagSha = await isomorphic_git_1.default.resolveRef({ fs: fs_1.default, dir, ref: `refs/tags/${tag}` });
-                if (newTagSha !== opts.checkTagSha) {
+                if (newTagSha !== opts.checkTag.sha) {
                     throw new Error('Tag has changed, aborting');
                 }
                 else {
                     info(`Tag is unchanged, okay to continue`);
+                }
+            }
+            else if (((_b = opts.checkTag) === null || _b === void 0 ? void 0 : _b.mode) === 'non-existant') {
+                info(`Image built, checking tag ${tag} still does not exist`);
+                const exists = await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })
+                    .then(() => true)
+                    .catch(() => false);
+                if (exists) {
+                    await opts.checkTag.onError();
+                }
+                else {
+                    info(`Tag has not been created, okay to continue`);
                 }
             }
             else {
@@ -25094,20 +25123,48 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
             ;
             info(`CI Checks Complete`);
         };
+        const getUniquePullRequest = async () => {
+            const prs = await github.getOpenPullRequests({ branch });
+            if (prs.data.length === 0) {
+                throw new NoPullRequestError(`The branch ${branch} has no pull requests open yet, ` +
+                    `so it is not possible to run this workflow.`);
+            }
+            else if (prs.data.length > 1) {
+                throw new Error(`Multiple pull requests for branch ${branch} are open, ` +
+                    `so it is not possible to run this workflow.`);
+            }
+            else {
+                return prs.data[0];
+            }
+        };
+        const failWithPRComment = async (opts) => {
+            const { pullRequest, comment, error } = opts;
+            github.reviewPullRequest({
+                pullRequestNumber: pullRequest.number,
+                body: comment,
+                state: 'reject',
+            });
+            throw new Error(error);
+        };
+        /**
+         * Try and fetch a specific tag from the remote,
+         * and return true if it exists and was successful
+         */
+        const fetchTag = (tag) => exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })
+            .then(() => true)
+            .catch(err => {
+            if (err.stderr.indexOf(`fatal: couldn't find remote ref`) > -1) {
+                return false;
+            }
+            else {
+                throw err;
+            }
+        });
         // Handle the push as appropriate for the given branch
         if (mode === 'env-production' || mode === 'env-staging') {
             const tag = `v${version}`;
             info(`Checking if there is an existing tag for ${tag}`);
-            const existing = await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })
-                .then(() => true)
-                .catch(err => {
-                if (err.stderr.indexOf(`fatal: couldn't find remote ref`) > -1) {
-                    return false;
-                }
-                else {
-                    throw err;
-                }
-            });
+            const existing = await fetchTag(tag);
             /**
              * The commit sha for the tag after it's been created or checked
              */
@@ -25146,7 +25203,7 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 },
                 checkBehaviour: 'check-tree',
                 tag,
-                checkTagSha: tagSha
+                checkTag: { mode: 'match', sha: tagSha }
             });
             // Run CI Checks
             await runCICommands();
@@ -25174,6 +25231,109 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 },
                 checkBehaviour: 'overwrite',
                 tag: branch
+            });
+        }
+        else if (mode === 'develop') {
+            await runCICommands();
+        }
+        else if (mode === 'hotfix') {
+            const pullRequest = await getUniquePullRequest();
+            // Check that the base branch is either env/<stage|staging> or env/prod
+            const baseBranch = pullRequest.base.ref;
+            if (baseBranch !== 'env/prod' && baseBranch !== config.stagingEnvironmentBranch) {
+                await failWithPRComment({
+                    error: `Pull request from hotfix/ branch made against ${pullRequest.base.ref}`,
+                    pullRequest,
+                    comment: (`Pull requests from \`hotfix/<name>\` branches can only target ` +
+                        `\`env/prod\` and \`${config.stagingEnvironmentBranch}\`:\n\n` +
+                        `* If this is supposed to be a hotfix, please re-target this pull request.\n` +
+                        `* If this is not supposed to be a hotfix, ` +
+                        `please use a branch name that does not begin with \`hotfix/\``)
+                });
+            }
+            // Check that the version in package.json has been updated between the base branch and HEAD.
+            await exec(`git fetch ${remote.remote} ${baseBranch}`, { cwd: dir });
+            const base = await readRefShaAndVersion(`refs/remotes/${remote.remote}/${baseBranch}`);
+            if (base.version === version) {
+                const file = versionFilePath(config.repoType);
+                await failWithPRComment({
+                    error: `Hotfix has same version as base (target) branch`,
+                    pullRequest,
+                    comment: (`This hotfix pull request does not update the version in \`${file}\`\n\n` +
+                        `You must update this branch with a version bump before a docker ` +
+                        `image will be built for you.`)
+                });
+            }
+            // Check that there is no existing tag for the current version in package.json
+            // (this will be created automatically when merged).
+            const tag = `v${version}`;
+            info(`Checking if there is an existing tag for ${tag}`);
+            const existing = await fetchTag(tag);
+            if (existing) {
+                const file = versionFilePath(config.repoType);
+                await failWithPRComment({
+                    error: `Tag already exists for version ${tag}, aborting.`,
+                    pullRequest,
+                    comment: (`There is already a tag for version ${tag},` +
+                        `so we can't create another release with the same version.\n\n` +
+                        `Please update the version in \`${file}\`\n\n to something ` +
+                        `that has not yet had peen deployed to \`env/prod\` ` +
+                        `or \`${config.stagingEnvironmentBranch}\`.`)
+                });
+            }
+            // Check that the current HEAD of the base branch is an ancestor of the
+            // HEAD of the hotfix branch (i.e., that the hotfix is a fast-forward,
+            // and includes any other changes that may have been made to the target
+            // environment).
+            // Before checking descendant, fetch the most recent 1000 commits of the
+            // hotfix branch (as actions/checkout will have fetched with a depth of 1)
+            await exec(`git fetch --depth 1000 ${remote.remote} ${branch}`, { cwd: dir });
+            if (!await isomorphic_git_1.default.isDescendent({
+                fs: fs_1.default,
+                dir,
+                ancestor: base.sha,
+                oid: head.oid
+            })) {
+                await failWithPRComment({
+                    error: `Hotfix is not a descendant of target (base) branch`,
+                    pullRequest,
+                    comment: (`\`${branch}\` (${head.oid}) is not a descendant of ` +
+                        `\`${baseBranch}\` (${base.sha}), which means there are new ` +
+                        `commits in \`${baseBranch}\` that aren't included in \`${branch}\`.\n\n` +
+                        `Please rebase \`${branch}\` on-top of \`${baseBranch}\` ` +
+                        `(or merge \`${baseBranch}\` into \`${branch}\`).`)
+                });
+            }
+            // Run CI Checks
+            await runCICommands();
+            await buildAndPushDockerImage({
+                // TODO: improve the type guarding to remove the need to do this
+                env: {
+                    DOCKER_PASSWORD: env.DOCKER_PASSWORD,
+                    DOCKER_USERNAME: env.DOCKER_PASSWORD,
+                },
+                checkBehaviour: 'overwrite',
+                tag,
+                checkTag: {
+                    mode: 'non-existant',
+                    onError: () => failWithPRComment({
+                        error: `Tag ${tag} has been created, aborting`,
+                        pullRequest,
+                        comment: (`During the build of the docker image, the tag ${tag} was ` +
+                            `created, and so the workflow has been aborted, ` +
+                            `and the docker image has not been pushed.\n\n` +
+                            `Please chose a new version and update the pull request.`)
+                    })
+                },
+            });
+            // Post about successful
+            github.reviewPullRequest({
+                pullRequestNumber: pullRequest.number,
+                body: (`Docker image has been successfully built and pushed as: ` +
+                    `\`${config.docker.repository}:${tag}\`\n\n` +
+                    `Please deploy this image to a development environment, and test ` +
+                    `it is working as expected before merging this pull request.`),
+                state: 'approve',
             });
         }
     }
@@ -33174,6 +33334,19 @@ exports.REAL_GITHUB = ({ token, githubRepo }) => {
                 });
             }
         },
+        getOpenPullRequests: async ({ branch }) => octokit.pulls.list({
+            owner,
+            repo,
+            state: 'open',
+            head: `${owner}:${branch}`,
+        }),
+        reviewPullRequest: async ({ pullRequestNumber, body, state }) => octokit.pulls.createReview({
+            owner,
+            repo,
+            pull_number: pullRequestNumber,
+            body,
+            event: state === 'approve' ? 'APPROVE' : state === 'comment-only' ? 'COMMENT' : 'REQUEST_CHANGES'
+        }).then(() => { }),
     };
 };
 

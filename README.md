@@ -197,7 +197,7 @@ and acts as a roadmap.
   * Run CI Tasks (unit-tests etc…)
   * Run the docker build
   * Push the image to DockerHub, using the name of the environment as a tag.
-* TODO: Pushes to `hotfix/<name>`:
+* DONE: Pushes to `hotfix/<name>`:
   * Check if there is an open pull request for this branch:
     * If there is not: fail
     * If there is:
@@ -243,7 +243,7 @@ and acts as a roadmap.
           * *(this should only happen if a mergeback PR was not merged into
             `develop` before branching off the `release/` branch).
       * Run CI Tasks (unit-tests etc…)
-* TODO: Pushes to `develop`:
+* DONE: Pushes to `develop`:
   * Run CI Tasks (unit-tests etc…)
 * TODO: Pushes to all other branches
   * Check if there is an open pull request for this branch:

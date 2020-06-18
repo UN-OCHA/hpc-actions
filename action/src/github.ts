@@ -1,4 +1,4 @@
-import { Octokit } from '@octokit/rest';
+import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
 
 interface GitHubParams {
   token: string;
@@ -19,7 +19,17 @@ interface PullRequestParameters {
 
 export interface GitHubController {
   openPullRequest: (params: PullRequestParameters) => Promise<void>;
+  getOpenPullRequests: (params: {
+    branch: string
+  }) => Promise<RestEndpointMethodTypes["pulls"]["list"]["response"]>;
+  reviewPullRequest: (params: {
+    pullRequestNumber: number;
+    state: 'approve' | 'reject' | 'comment-only';
+    body: string;
+  }) => Promise<void>;
 }
+
+export type PullRequest = RestEndpointMethodTypes["pulls"]["list"]["response"]["data"][number];
 
 export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
   const octokit = new Octokit({
@@ -50,5 +60,18 @@ export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
         });
       }
     },
+    getOpenPullRequests: async ({ branch }) => octokit.pulls.list({
+      owner,
+      repo,
+      state: 'open',
+      head: `${owner}:${branch}`,
+    }),
+    reviewPullRequest: async ({ pullRequestNumber, body, state }) => octokit.pulls.createReview({
+      owner,
+      repo,
+      pull_number: pullRequestNumber,
+      body,
+      event: state === 'approve' ? 'APPROVE' : state === 'comment-only' ? 'COMMENT': 'REQUEST_CHANGES'
+    }).then(() => {}),
   };
 }
