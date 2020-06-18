@@ -269,6 +269,78 @@ and acts as a roadmap.
   * Re-Run all failed actions for the HEAD of the PR branch.
     * (we expect push actions to fail for branches when there is no pull request opened for them yet (to save on actions minutes)).
 
+## Usage
+
+To use the automated workflows of this repository, firstly create a
+`workflow.json` configuration file somewhere in your repository, something like
+this:
+
+```json
+{
+  "stagingEnvironmentBranch": "env/staging",
+  "repoType": "node",
+  "developmentEnvironmentBranches": [],
+  "docker": {
+    "path": "docker",
+    "args": {
+        "commitSha": "COMMIT_SHA",
+        "treeSha": "TREE_SHA"
+    },
+      "environmentVariables": {
+        "commitSha": "HPC_ACTIONS_COMMIT_SHA",
+        "treeSha": "HPC_ACTIONS_TREE_SHA"
+    },
+    "repository": "dockerhub-org/repo",
+  },
+  "ci": [],
+  "mergebackLabels": ["mergeback"]
+}
+```
+
+*(for full details of what you can put in your configuration file,
+please see the [`config.ts` module](https://github.com/UN-OCHA/hpc-actions/blob/develop/action/src/config.ts))*
+
+Then create a GitHub actions `.yml` workflow in `.github/workflows` that looks like this:
+
+```yml
+name: CI
+
+on: [push]
+
+jobs:
+  workflow:
+    name: Run Workflow
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - uses: UN-OCHA/hpc-actions@develop
+      env:
+        # this should point to the location of the file described above
+        # relative to the root of your repo
+        CONFIG_FILE: workflow.json
+        # Add credentials as repository secrets for the docker registry you use
+        # (it doesn't need to be DockerHub, but can be)
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### Docker Images
+
+For the docker image functionality to work properly,
+you need to embed the tree sha and commit sha in your image
+as environment variables.
+
+If you use the same names as in the example config above,
+you need to also add the following lines to your `Dockerfile`:
+
+```Dockerfile
+ARG COMMIT_SHA
+ARG TREE_SHA
+ENV HPC_ACTIONS_COMMIT_SHA $COMMIT_SHA
+ENV HPC_ACTIONS_TREE_SHA $TREE_SHA
+```
+
 ## License
 
 Copyright 2020 United Nations Office for the Coordination of Humanitarian Affairs
