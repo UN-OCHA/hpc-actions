@@ -1,0 +1,1021 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`action runAction push to production or staging env/prod ci Check directory 1`] = `
+Array [
+  Array [
+    "[stdout]",
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image built, checking tag is unchanged",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Running: cat package.json",
+  ],
+  Array [
+    "[stdout]",
+    "{\\"version\\":\\"1.2.0\\"}",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] CI Checks Complete",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Opening Mergeback Pull Request",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod ci Command with interleaved stderr and stdout 1`] = `
+Array [
+  Array [
+    "[stdout]",
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image built, checking tag is unchanged",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Running: echo && echo foo && sleep 0.1s && echo bar 1>&2 && sleep 0.1s && echo baz",
+  ],
+  Array [
+    "[stdout]",
+    "",
+  ],
+  Array [
+    "[stdout]",
+    "foo",
+  ],
+  Array [
+    "[stderr]",
+    "bar",
+  ],
+  Array [
+    "[stdout]",
+    "baz",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] CI Checks Complete",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Opening Mergeback Pull Request",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod ci Command with nonzero exit code 1`] = `
+Array [
+  Array [
+    "[stdout]",
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image built, checking tag is unchanged",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Running: exit 123",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Existing Image (different sha) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image already exists, checking it was built with same git tree",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Existing Image (different sha) 2`] = `
+Array [
+  Array [
+    "v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Existing Image (different sha) 3`] = `
+Array [
+  Array [
+    "v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Existing Image (matching sha) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Existing Image (matching sha) 2`] = `Array []`;
+
+exports[`action runAction push to production or staging env/prod docker Non-Existant Image (tag changed) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag is unchanged",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Non-Existant Image (tag changed) 2`] = `
+Object {
+  "getMetadata": Array [],
+  "pullImage": Array [
+    Array [
+      "v1.2.0",
+    ],
+  ],
+  "pushImage": Array [],
+}
+`;
+
+exports[`action runAction push to production or staging env/prod docker Non-Existant Image 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag is unchanged",
+  ],
+  Array [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
+  ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Non-Existant Image 2`] = `
+Object {
+  "getMetadata": Array [],
+  "pullImage": Array [
+    Array [
+      "v1.2.0",
+    ],
+  ],
+  "pushImage": Array [
+    Array [
+      "v1.2.0",
+    ],
+  ],
+}
+`;
+
+exports[`action runAction push to production or staging env/prod mergeback 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag is unchanged",
+  ],
+  Array [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
+  ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
+  ],
+  Array [
+    "##[info] Pull Request Opened, workflow complete",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod mergeback 2`] = `
+Array [
+  Array [
+    Object {
+      "base": "env/staging",
+      "head": "mergeback/prod/1.2.0",
+      "labels": Array [
+        "some-label",
+      ],
+      "title": "Update env/staging with changes from env/prod",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod tagging Existing tag (changed tree) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] The tag v1.2.0 already exists, checking that tree hasn't changed",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod tagging Existing tag (current commit) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] The tag v1.2.0 already exists, checking that tree hasn't changed",
+  ],
+  Array [
+    "##[info] The tag is for the current commit, okay to continue",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod tagging Existing tag (different commit, matching tree) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] The tag v1.2.0 already exists, checking that tree hasn't changed",
+  ],
+  Array [
+    "##[info] The current tree matches the existing tag, okay to continue",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod tagging Non-Existant Tag 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging ci Check directory 1`] = `
+Array [
+  Array [
+    "[stdout]",
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image built, checking tag is unchanged",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Running: cat package.json",
+  ],
+  Array [
+    "[stdout]",
+    "{\\"version\\":\\"1.2.0\\"}",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] CI Checks Complete",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Opening Mergeback Pull Request",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging ci Command with interleaved stderr and stdout 1`] = `
+Array [
+  Array [
+    "[stdout]",
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image built, checking tag is unchanged",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Running: echo && echo foo && sleep 0.1s && echo bar 1>&2 && sleep 0.1s && echo baz",
+  ],
+  Array [
+    "[stdout]",
+    "",
+  ],
+  Array [
+    "[stdout]",
+    "foo",
+  ],
+  Array [
+    "[stderr]",
+    "bar",
+  ],
+  Array [
+    "[stdout]",
+    "baz",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] CI Checks Complete",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Opening Mergeback Pull Request",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging ci Command with nonzero exit code 1`] = `
+Array [
+  Array [
+    "[stdout]",
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image built, checking tag is unchanged",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "[stdout]",
+    "##[info] Running: exit 123",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Existing Image (different sha) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image already exists, checking it was built with same git tree",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Existing Image (different sha) 2`] = `
+Array [
+  Array [
+    "v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Existing Image (different sha) 3`] = `
+Array [
+  Array [
+    "v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Existing Image (matching sha) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Existing Image (matching sha) 2`] = `Array []`;
+
+exports[`action runAction push to production or staging env/staging docker Non-Existant Image (tag changed) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag is unchanged",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Non-Existant Image (tag changed) 2`] = `
+Object {
+  "getMetadata": Array [],
+  "pullImage": Array [
+    Array [
+      "v1.2.0",
+    ],
+  ],
+  "pushImage": Array [],
+}
+`;
+
+exports[`action runAction push to production or staging env/staging docker Non-Existant Image 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag is unchanged",
+  ],
+  Array [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
+  ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Non-Existant Image 2`] = `
+Object {
+  "getMetadata": Array [],
+  "pullImage": Array [
+    Array [
+      "v1.2.0",
+    ],
+  ],
+  "pushImage": Array [
+    Array [
+      "v1.2.0",
+    ],
+  ],
+}
+`;
+
+exports[`action runAction push to production or staging env/staging mergeback 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag is unchanged",
+  ],
+  Array [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
+  ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
+  ],
+  Array [
+    "##[info] Pull Request Opened, workflow complete",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging mergeback 2`] = `
+Array [
+  Array [
+    Object {
+      "base": "develop",
+      "head": "mergeback/staging/1.2.0",
+      "labels": Array [
+        "some-label",
+      ],
+      "title": "Update develop with changes from env/staging",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging tagging Existing tag (changed tree) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] The tag v1.2.0 already exists, checking that tree hasn't changed",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging tagging Existing tag (current commit) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] The tag v1.2.0 already exists, checking that tree hasn't changed",
+  ],
+  Array [
+    "##[info] The tag is for the current commit, okay to continue",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging tagging Existing tag (different commit, matching tree) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] The tag v1.2.0 already exists, checking that tree hasn't changed",
+  ],
+  Array [
+    "##[info] The current tree matches the existing tag, okay to continue",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging tagging Non-Existant Tag 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+]
+`;

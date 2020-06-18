@@ -165,7 +165,7 @@ To create and deploy a hotfix:
 This section describes what automation this repository aims to provide,
 and acts as a roadmap.
 
-* TODO: Pushes to `env/prod` and `env/<stage|staging>`:
+* DONE: Pushes to `env/prod` and `env/<stage|staging>`:
   * Check if there is an existing tag for the current version in `package.json`
     * TODO: *(we'll need to allow for specifying the version in other ways for the
       non-node repos).*
@@ -181,8 +181,8 @@ and acts as a roadmap.
         *(this will only happen with rapid concurrent pushes)*
       * Push the image to DockerHub, using the version as the tag
     * If there is
-      * get the git sha that was used to build the image from the docker metadata
-      * check that the git tree-sha of the commit matches the current tree-sha
+      * get the git tree sha that was used to build the image from the docker metadata
+      * check that the git tree-sha of image matches the current tree-sha
         (throw an error if not)
   * Run CI Tasks
   * Create and push a branch called `mergeback/<env>/<version>`
