@@ -94,6 +94,11 @@ const DOCKER_CONFIG = t.intersection([
      * followed by a slash.
      */
     registry: t.string,
+    /**
+     * If true, don't attempt to log in to docker,
+     * and assume that this has already been done before this action.
+     */
+    skipLogin: t.boolean,
   })
 ]);
 

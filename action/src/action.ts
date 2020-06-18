@@ -105,10 +105,12 @@ export const runAction = async (
     throw new Error('Expected GITHUB_REPOSITORY');
 
   // Get docker credentials
-  if (!env.DOCKER_USERNAME)
-    throw new Error('Expected DOCKER_USERNAME');
-  if (!env.DOCKER_PASSWORD)
-    throw new Error('Expected DOCKER_PASSWORD');
+  if (!config.docker.skipLogin) {
+    if (!env.DOCKER_USERNAME)
+      throw new Error('Expected DOCKER_USERNAME');
+    if (!env.DOCKER_PASSWORD)
+      throw new Error('Expected DOCKER_PASSWORD');
+  }
 
   // Get GitHub credentials
   if (!env.GITHUB_TOKEN)
@@ -218,7 +220,6 @@ export const runAction = async (
 
     const buildAndPushDockerImage = async (
       opts: {
-        env: { DOCKER_USERNAME: string, DOCKER_PASSWORD: string },
         /**
          * How should the registry be checked for existing images with the
          * same tag before building a new one?
@@ -257,10 +258,15 @@ export const runAction = async (
       const { tag, checkBehaviour } = opts;
       info(`Logging in to docker`);
       const docker = dockerInit(config.docker);
-      await docker.login({
-        user: opts.env.DOCKER_USERNAME,
-        pass: opts.env.DOCKER_PASSWORD
-      });
+      if (!config.docker.skipLogin) {
+        if (!env.DOCKER_USERNAME || !env.DOCKER_PASSWORD) {
+          throw new Error('Unexpected error!');
+        }
+        await docker.login({
+          user: env.DOCKER_USERNAME,
+          pass: env.DOCKER_PASSWORD
+        });
+      }
 
       if (checkBehaviour === 'check-tree') {
         info(`Checking for existing docker image with tag ${tag}`);
@@ -423,13 +429,12 @@ export const runAction = async (
     }
 
     const buildAndPushDockerImageForReleaseOrHotfix = (params: {
-      env: { DOCKER_USERNAME: string, DOCKER_PASSWORD: string },
       tag: string;
       pullRequest: PullRequest;
     }) => {
-      const { env, tag, pullRequest } = params;
+      const { tag, pullRequest } = params;
+
       return buildAndPushDockerImage({
-        env,
         checkBehaviour: 'overwrite',
         tag,
         checkTag: {
@@ -502,11 +507,6 @@ export const runAction = async (
 
       // Check whether there is an existing docker image, and build if needed
       await buildAndPushDockerImage({
-        // TODO: improve the type guarding to remove the need to do this
-        env: {
-          DOCKER_PASSWORD: env.DOCKER_PASSWORD,
-          DOCKER_USERNAME: env.DOCKER_PASSWORD,
-        },
         checkBehaviour: 'check-tree',
         tag,
         checkTag: { mode: 'match', sha: tagSha }
@@ -534,11 +534,6 @@ export const runAction = async (
     } else if (mode === 'env-development') {
       await runCICommands();
       await buildAndPushDockerImage({
-        // TODO: improve the type guarding to remove the need to do this
-        env: {
-          DOCKER_PASSWORD: env.DOCKER_PASSWORD,
-          DOCKER_USERNAME: env.DOCKER_PASSWORD,
-        },
         checkBehaviour: 'overwrite',
         tag: branch
       });
@@ -606,11 +601,6 @@ export const runAction = async (
       await runCICommands();
 
       await buildAndPushDockerImageForReleaseOrHotfix({
-        // TODO: improve the type guarding to remove the need to do this
-        env: {
-          DOCKER_PASSWORD: env.DOCKER_PASSWORD,
-          DOCKER_USERNAME: env.DOCKER_PASSWORD,
-        },
         tag,
         pullRequest
       });
@@ -675,11 +665,6 @@ export const runAction = async (
       await runCICommands();
 
       await buildAndPushDockerImageForReleaseOrHotfix({
-        // TODO: improve the type guarding to remove the need to do this
-        env: {
-          DOCKER_PASSWORD: env.DOCKER_PASSWORD,
-          DOCKER_USERNAME: env.DOCKER_PASSWORD,
-        },
         tag,
         pullRequest
       });
