@@ -1134,6 +1134,93 @@ describe('action', () => {
         ]]);
       });
 
+      it('Tag created during build', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `env/prod` });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.1"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: [{
+            number: 321,
+            base: { ref: 'env/prod' }
+          }]
+        });
+        const reviewPullRequest = jest.fn().mockResolvedValue(null);
+        // Prepare docker mock
+        const pullImage = jest.fn().mockResolvedValue(null);
+        const getMetadata = jest.fn().mockResolvedValue(null);
+        const runBuild = jest.fn().mockImplementation(async () => {
+          // Simulate the tag changing by explicitly changing the tag
+          // in upstream branch when the build is run
+          await git.tag({ fs, dir: upstream, ref: `v1.2.1`, force: true });
+        });
+        const pushImage = jest.fn().mockResolvedValue(null);
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/hotfix/foo`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: () => ({
+            login: () => Promise.resolve(),
+            pullImage,
+            getMetadata,
+            runBuild,
+            pushImage,
+          }),
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests,
+            reviewPullRequest
+          }),
+        }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+          .catch(err => {
+            expect(err.message).toEqual(
+              `Tag v1.2.1 has been created, aborting`
+            );
+          });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+        expect(reviewPullRequest.mock.calls).toMatchSnapshot();
+        expect({
+          pullImage: pullImage.mock.calls.map(call => [call[0]]),
+          getMetadata: getMetadata.mock.calls,
+          pushImage: pushImage.mock.calls,
+        }).toMatchSnapshot();
+        const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
+        const head = await git.readCommit({ fs, dir, oid: sha });
+        const meta: DockerImageMetadata = {
+          commitSha: head.oid,
+          treeSha: head.commit.tree,
+        };
+        expect(runBuild.mock.calls).toEqual([[{
+          cwd: dir,
+          logger,
+          tag: "v1.2.1",
+          meta
+        }]]);
+      });
 
     });
 

@@ -236,12 +236,22 @@ export const runAction = async (
         tag: string,
         /**
          * If defined,
-         * check that the given tag has this sha in the upstream repo
-         * before pushing the image, and throw an error if it's changed.
+         * check the state of the given tag in the upstream repo before pushing
+         * the image, and throw an error if the constraint isn't met.
          *
          * This is a safeguard against pushing different images with the same tag
          */
-        checkTagSha?: string,
+        checkTag?:
+          | { mode: 'match'; sha: string }
+          | {
+            mode: 'non-existant';
+            /**
+             * run this callback when the constraint is not met.
+             *
+             * This allows for a custom error message to be posted to GitHub
+             */
+            onError: () => Promise<void>;
+          },
       }
     ) => {
       const { tag, checkBehaviour } = opts;
@@ -282,15 +292,22 @@ export const runAction = async (
         cwd: dir,
         logger
       });
-      if (opts.checkTagSha) {
-        info(`Image built, checking tag is unchanged`);
+      if (opts.checkTag?.mode === 'match') {
+        info(`Image built, checking tag ${tag} is unchanged`);
         await git.deleteRef({ fs, dir, ref: `refs/tags/${tag}` });
         await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir });
         const newTagSha = await git.resolveRef({ fs, dir, ref: `refs/tags/${tag}` });
-        if (newTagSha !== opts.checkTagSha) {
+        if (newTagSha !== opts.checkTag.sha) {
           throw new Error('Tag has changed, aborting');
         } else {
           info(`Tag is unchanged, okay to continue`);
+        }
+      } else if(opts.checkTag?.mode === 'non-existant') {
+        info(`Image built, checking tag ${tag} still does not exist`);
+        if (await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })) {
+          await opts.checkTag.onError();
+        } else {
+          info(`Tag has not been created, okay to continue`);
         }
       } else {
         info(`Image built`);
@@ -400,7 +417,7 @@ export const runAction = async (
         },
         checkBehaviour: 'check-tree',
         tag,
-        checkTagSha: tagSha
+        checkTag: { mode: 'match', sha: tagSha }
       });
 
       // Run CI Checks
@@ -514,6 +531,32 @@ export const runAction = async (
           )
         });
       }
+
+      // Run CI Checks
+      await runCICommands();
+
+      await buildAndPushDockerImage({
+        // TODO: improve the type guarding to remove the need to do this
+        env: {
+          DOCKER_PASSWORD: env.DOCKER_PASSWORD,
+          DOCKER_USERNAME: env.DOCKER_PASSWORD,
+        },
+        checkBehaviour: 'overwrite',
+        tag,
+        checkTag: {
+          mode: 'non-existant',
+          onError: () => failWithPRComment({
+            error: `Tag ${tag} has been created, aborting`,
+            pullRequest,
+            comment: (
+              `During the build of the docker image, the tag ${tag} was ` +
+              `created, and so the workflow has been aborted, ` +
+              `and the docker image has not been pushed.\n\n` +
+              `Please chose a new version and update the pull request.`
+            )
+          })
+        },
+      });
 
     }
 

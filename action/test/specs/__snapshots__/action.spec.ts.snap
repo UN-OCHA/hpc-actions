@@ -157,6 +157,64 @@ Please update the version in \`package.json\`
 ]
 `;
 
+exports[`action runAction push to hotfix/<name> branch Tag created during build 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch hotfix/foo",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.1",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Skipping check for existing image with tag v1.2.1, building new image",
+  ],
+  Array [
+    "##[info] Image built, checking tag v1.2.1 still does not exist",
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Tag created during build 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "hotfix/foo",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Tag created during build 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "During the build of the docker image, the tag v1.2.1 was created, and so the workflow has been aborted, and the docker image has not been pushed.
+
+Please chose a new version and update the pull request.",
+      "pullRequestNumber": 321,
+      "state": "reject",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Tag created during build 4`] = `
+Object {
+  "getMetadata": Array [],
+  "pullImage": Array [],
+  "pushImage": Array [],
+}
+`;
+
 exports[`action runAction push to hotfix/<name> branch Target not an ancestor 1`] = `
 Array [
   Array [
@@ -238,7 +296,7 @@ Array [
   ],
   Array [
     "[stdout]",
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "[stdout]",
@@ -307,7 +365,7 @@ Array [
   ],
   Array [
     "[stdout]",
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "[stdout]",
@@ -388,7 +446,7 @@ Array [
   ],
   Array [
     "[stdout]",
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "[stdout]",
@@ -495,7 +553,7 @@ Array [
     "##[info] Image with tag v1.2.0 does not yet exist, building image",
   ],
   Array [
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
 ]
 `;
@@ -533,7 +591,7 @@ Array [
     "##[info] Image with tag v1.2.0 does not yet exist, building image",
   ],
   Array [
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "##[info] Tag is unchanged, okay to continue",
@@ -596,7 +654,7 @@ Array [
     "##[info] Image with tag v1.2.0 does not yet exist, building image",
   ],
   Array [
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "##[info] Tag is unchanged, okay to continue",
@@ -748,7 +806,7 @@ Array [
   ],
   Array [
     "[stdout]",
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "[stdout]",
@@ -817,7 +875,7 @@ Array [
   ],
   Array [
     "[stdout]",
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "[stdout]",
@@ -898,7 +956,7 @@ Array [
   ],
   Array [
     "[stdout]",
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "[stdout]",
@@ -1005,7 +1063,7 @@ Array [
     "##[info] Image with tag v1.2.0 does not yet exist, building image",
   ],
   Array [
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
 ]
 `;
@@ -1043,7 +1101,7 @@ Array [
     "##[info] Image with tag v1.2.0 does not yet exist, building image",
   ],
   Array [
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "##[info] Tag is unchanged, okay to continue",
@@ -1106,7 +1164,7 @@ Array [
     "##[info] Image with tag v1.2.0 does not yet exist, building image",
   ],
   Array [
-    "##[info] Image built, checking tag is unchanged",
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
   ],
   Array [
     "##[info] Tag is unchanged, okay to continue",
