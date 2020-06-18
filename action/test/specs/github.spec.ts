@@ -68,4 +68,31 @@ describe('github', () => {
 
   });
 
+  it('Check existing pull requests', async () => {
+
+    const mock = octokit.Octokit as any as jest.Mock;
+
+    const api = {
+      pulls: {
+        list: jest.fn().mockResolvedValue([]),
+      },
+    };
+
+    mock.mockClear();
+    mock.mockReturnValue(api);
+
+    await github.REAL_GITHUB({
+      githubRepo: 'oooo/rrrr',
+      token: 'asdf'
+    }).getOpenPullRequests({
+      branch: 'env/foo'
+    });
+
+    expect({
+      octokit: mock.mock.calls,
+      'pulls.list': api.pulls.list.mock.calls,
+    }).toMatchSnapshot();
+
+  });
+
 });

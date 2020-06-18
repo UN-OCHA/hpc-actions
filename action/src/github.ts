@@ -1,4 +1,4 @@
-import { Octokit } from '@octokit/rest';
+import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
 
 interface GitHubParams {
   token: string;
@@ -19,6 +19,9 @@ interface PullRequestParameters {
 
 export interface GitHubController {
   openPullRequest: (params: PullRequestParameters) => Promise<void>;
+  getOpenPullRequests: (params: {
+    branch: string
+  }) => Promise<RestEndpointMethodTypes["pulls"]["list"]["response"]>;
 }
 
 export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
@@ -50,5 +53,11 @@ export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
         });
       }
     },
+    getOpenPullRequests: async ({ branch }) => octokit.pulls.list({
+      owner,
+      repo,
+      state: 'open',
+      head: `${owner}:${branch}`,
+    }),
   };
 }
