@@ -224,7 +224,7 @@ and acts as a roadmap.
           and the final deployment!
         * It also allows for updating the hotfixes with changes if it needs to
           be corrected.
-* TODO: Pushes to `release/<version>`:
+* DONE: Pushes to `release/<version>`:
   * Check if there is an open pull request for this branch:
     * If there is not: fail
     * If there is:
@@ -243,6 +243,17 @@ and acts as a roadmap.
           * *(this should only happen if a mergeback PR was not merged into
             `develop` before branching off the `release/` branch).
       * Run CI Tasks (unit-tests etc…)
+      * Run the docker build
+      * Push the image to DockerHub,
+        using the version as the tag
+        (regardless of whether the image already exists)
+        * This allows us to deploy this image to a dev environment,
+          and prevents us needing to rebuild the image once merged
+          to the respective environment,
+          ensuring we use the exact same image for both testing
+          and the final deployment!
+        * It also allows for updating the release with changes if it needs to
+          be corrected.
 * DONE: Pushes to `develop`:
   * Run CI Tasks (unit-tests etc…)
 * TODO: Pushes to all other branches
