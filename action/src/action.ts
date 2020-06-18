@@ -375,6 +375,8 @@ export const runAction = async (
         checkBehaviour: 'overwrite',
         tag: branch
       });
+    } else if (mode === 'develop') {
+      await runCICommands();
     }
 
   }

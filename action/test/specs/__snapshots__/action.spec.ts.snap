@@ -1,5 +1,19 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`action runAction push to develop branch 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch develop",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
+  ],
+]
+`;
+
 exports[`action runAction push to env/<dev> branch Invalid (unconfigured) branch 1`] = `
 Array [
   Array [

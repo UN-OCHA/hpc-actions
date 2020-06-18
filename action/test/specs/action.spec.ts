@@ -811,5 +811,33 @@ describe('action', () => {
 
 
     });
+
+    it('push to develop branch', async () => {
+      const upstream = await util.createTmpDir();
+      const dir = await util.createTmpDir();
+      // Prepare upstream repository
+      await git.init({ fs, dir: upstream });
+      await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+        version: "1.2.0"
+      }));
+      await git.add({ fs, dir: upstream, filepath: 'package.json' });
+      await setAuthor(upstream);
+      await exec(`git commit -m package`, { cwd: upstream });
+      await git.branch({ fs, dir: upstream, ref: `develop` });
+      // Clone into repo we'll run in, and create appropriate branch
+      await exec(`git clone --branch develop ${upstream} ${dir}`);
+      // Run action
+      await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+      await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+        ref: `refs/heads/develop`
+      }));
+      const logger = util.newLogger();
+      await action.runAction({
+        env: DEFAULT_ENV,
+        dir,
+        logger,
+      });
+      expect(logger.log.mock.calls).toMatchSnapshot();
+    });
   });
 });
