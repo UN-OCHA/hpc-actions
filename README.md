@@ -31,6 +31,8 @@ The outlined workflow and actions are designed to:
   - [Releases + Deployment](#releases--deployment)
   - [Hotfixes](#hotfixes)
 - [Automation / Roadmap](#automation--roadmap)
+- [Usage](#usage)
+  - [Docker Images](#docker-images)
 - [License](#license)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -165,7 +167,7 @@ To create and deploy a hotfix:
 This section describes what automation this repository aims to provide,
 and acts as a roadmap.
 
-* DONE: Pushes to `env/prod` and `env/<stage|staging>`:
+* Pushes to `env/prod` and `env/<stage|staging>`:
   * Check if there is an existing tag for the current version in `package.json`
     * TODO: *(we'll need to allow for specifying the version in other ways for the
       non-node repos).*
@@ -193,11 +195,11 @@ and acts as a roadmap.
       (if the current branch is `env/prod`).
     * Or merge the new branch into `develop`
       (if the current branch is `env/<stage|staging>`).
-* DONE: Pushes to `env/<name>` (non-staging/production branches):
+* Pushes to `env/<name>` (non-staging/production branches):
   * Run CI Tasks (unit-tests etc…)
   * Run the docker build
   * Push the image to DockerHub, using the name of the environment as a tag.
-* DONE: Pushes to `hotfix/<name>`:
+* Pushes to `hotfix/<name>`:
   * Check if there is an open pull request for this branch:
     * If there is not: fail
     * If there is:
@@ -224,7 +226,7 @@ and acts as a roadmap.
           and the final deployment!
         * It also allows for updating the hotfixes with changes if it needs to
           be corrected.
-* TODO: Pushes to `release/<version>`:
+* Pushes to `release/<version>`:
   * Check if there is an open pull request for this branch:
     * If there is not: fail
     * If there is:
@@ -243,9 +245,20 @@ and acts as a roadmap.
           * *(this should only happen if a mergeback PR was not merged into
             `develop` before branching off the `release/` branch).
       * Run CI Tasks (unit-tests etc…)
-* DONE: Pushes to `develop`:
+      * Run the docker build
+      * Push the image to DockerHub,
+        using the version as the tag
+        (regardless of whether the image already exists)
+        * This allows us to deploy this image to a dev environment,
+          and prevents us needing to rebuild the image once merged
+          to the respective environment,
+          ensuring we use the exact same image for both testing
+          and the final deployment!
+        * It also allows for updating the release with changes if it needs to
+          be corrected.
+* Pushes to `develop`:
   * Run CI Tasks (unit-tests etc…)
-* TODO: Pushes to all other branches
+* Pushes to all other branches
   * Check if there is an open pull request for this branch:
     * If there is not: fail
     * If there is:
@@ -257,6 +270,78 @@ and acts as a roadmap.
 * TODO: Pull requests opened:
   * Re-Run all failed actions for the HEAD of the PR branch.
     * (we expect push actions to fail for branches when there is no pull request opened for them yet (to save on actions minutes)).
+
+## Usage
+
+To use the automated workflows of this repository, firstly create a
+`workflow.json` configuration file somewhere in your repository, something like
+this:
+
+```json
+{
+  "stagingEnvironmentBranch": "env/staging",
+  "repoType": "node",
+  "developmentEnvironmentBranches": [],
+  "docker": {
+    "path": "docker",
+    "args": {
+        "commitSha": "COMMIT_SHA",
+        "treeSha": "TREE_SHA"
+    },
+      "environmentVariables": {
+        "commitSha": "HPC_ACTIONS_COMMIT_SHA",
+        "treeSha": "HPC_ACTIONS_TREE_SHA"
+    },
+    "repository": "dockerhub-org/repo",
+  },
+  "ci": [],
+  "mergebackLabels": ["mergeback"]
+}
+```
+
+*(for full details of what you can put in your configuration file,
+please see the [`config.ts` module](https://github.com/UN-OCHA/hpc-actions/blob/develop/action/src/config.ts))*
+
+Then create a GitHub actions `.yml` workflow in `.github/workflows` that looks like this:
+
+```yml
+name: CI
+
+on: [push]
+
+jobs:
+  workflow:
+    name: Run Workflow
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - uses: UN-OCHA/hpc-actions@develop
+      env:
+        # this should point to the location of the file described above
+        # relative to the root of your repo
+        CONFIG_FILE: workflow.json
+        # Add credentials as repository secrets for the docker registry you use
+        # (it doesn't need to be DockerHub, but can be)
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### Docker Images
+
+For the docker image functionality to work properly,
+you need to embed the tree sha and commit sha in your image
+as environment variables.
+
+If you use the same names as in the example config above,
+you need to also add the following lines to your `Dockerfile`:
+
+```Dockerfile
+ARG COMMIT_SHA
+ARG TREE_SHA
+ENV HPC_ACTIONS_COMMIT_SHA $COMMIT_SHA
+ENV HPC_ACTIONS_TREE_SHA $TREE_SHA
+```
 
 ## License
 

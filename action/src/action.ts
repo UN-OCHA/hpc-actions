@@ -377,6 +377,94 @@ export const runAction = async (
             throw err;
           }
         });
+    
+    const checkTagNotUsed = async (tag: string, pullRequest: PullRequest) => {
+      info(`Checking if there is an existing tag for ${tag}`);
+      const existing = await fetchTag(tag);
+      if (existing) {
+        const file = versionFilePath(config.repoType);
+        await failWithPRComment({
+          error: `Tag already exists for version ${tag}, aborting.`,
+          pullRequest,
+          comment: (
+            `There is already a tag for version ${tag},` +
+            `so we can't create another release with the same version.\n\n` +
+            `Please update the version in \`${file}\`\n\n to something ` +
+            `that has not yet had peen deployed to \`env/prod\` ` +
+            `or \`${config.stagingEnvironmentBranch}\`.`
+          )
+        });
+      }
+    }
+
+    const checkDescendant = async (params: {
+      baseBranch: string;
+      base: { sha: string; };
+      pullRequest: PullRequest;
+      errorMessage: string;
+    }) => {
+      const { base, baseBranch, pullRequest, errorMessage } = params;
+
+      // Before checking descendant, fetch the most recent 1000 commits of the
+      // hotfix branch (as actions/checkout will have fetched with a depth of 1)
+      await exec(`git fetch --depth 1000 ${remote.remote} ${branch}`, { cwd: dir });
+      if (!await git.isDescendent({
+        fs,
+        dir,
+        ancestor: base.sha,
+        oid: head.oid
+      })) {
+        await failWithPRComment({
+          error: `${branch} is not a descendant of target (base) branch ${baseBranch}`,
+          pullRequest,
+          comment: errorMessage
+        });
+      }
+    }
+
+    const buildAndPushDockerImageForReleaseOrHotfix = (params: {
+      env: { DOCKER_USERNAME: string, DOCKER_PASSWORD: string },
+      tag: string;
+      pullRequest: PullRequest;
+    }) => {
+      const { env, tag, pullRequest } = params;
+      return buildAndPushDockerImage({
+        env,
+        checkBehaviour: 'overwrite',
+        tag,
+        checkTag: {
+          mode: 'non-existant',
+          onError: () => failWithPRComment({
+            error: `Tag ${tag} has been created, aborting`,
+            pullRequest,
+            comment: (
+              `During the build of the docker image, the tag ${tag} was ` +
+              `created, and so the workflow has been aborted, ` +
+              `and the docker image has not been pushed.\n\n` +
+              `Please chose a new version and update the pull request.`
+            )
+          })
+        },
+      });
+    }
+
+    const commentOnPullRequestWithDockerInfo = (params: {
+      pullRequest: PullRequest;
+      tag: string;
+    }) => {
+      const { pullRequest, tag } = params;
+      // Post about successful
+      return github.reviewPullRequest({
+        pullRequestNumber: pullRequest.number,
+        body: (
+          `Docker image has been successfully built and pushed as: ` +
+          `\`${config.docker.repository}:${tag}\`\n\n` +
+          `Please deploy this image to a development environment, and test ` +
+          `it is working as expected before merging this pull request.`
+        ),
+        state: 'approve',
+      });
+    }
 
     // Handle the push as appropriate for the given branch
 
@@ -464,7 +552,7 @@ export const runAction = async (
       const baseBranch = pullRequest.base.ref;
       if (baseBranch !== 'env/prod' && baseBranch !== config.stagingEnvironmentBranch) {
         await failWithPRComment({
-          error: `Pull request from hotfix/ branch made against ${pullRequest.base.ref}`,
+          error: `Pull request from hotfix/ branch made against ${baseBranch}`,
           pullRequest,
           comment: (
             `Pull requests from \`hotfix/<name>\` branches can only target ` +
@@ -495,84 +583,145 @@ export const runAction = async (
       // Check that there is no existing tag for the current version in package.json
       // (this will be created automatically when merged).
       const tag = `v${version}`;
-      info(`Checking if there is an existing tag for ${tag}`);
-      const existing = await fetchTag(tag);
-      if (existing) {
-        const file = versionFilePath(config.repoType);
-        await failWithPRComment({
-          error: `Tag already exists for version ${tag}, aborting.`,
-          pullRequest,
-          comment: (
-            `There is already a tag for version ${tag},` +
-            `so we can't create another release with the same version.\n\n` +
-            `Please update the version in \`${file}\`\n\n to something ` +
-            `that has not yet had peen deployed to \`env/prod\` ` +
-            `or \`${config.stagingEnvironmentBranch}\`.`
-          )
-        });
-      }
+      await checkTagNotUsed(tag, pullRequest);
 
       // Check that the current HEAD of the base branch is an ancestor of the
       // HEAD of the hotfix branch (i.e., that the hotfix is a fast-forward,
       // and includes any other changes that may have been made to the target
       // environment).
 
-      // Before checking descendant, fetch the most recent 1000 commits of the
-      // hotfix branch (as actions/checkout will have fetched with a depth of 1)
-      await exec(`git fetch --depth 1000 ${remote.remote} ${branch}`, { cwd: dir });
-      if (!await git.isDescendent({
-        fs,
-        dir,
-        ancestor: base.sha,
-        oid: head.oid
-      })) {
-        await failWithPRComment({
-          error: `Hotfix is not a descendant of target (base) branch`,
-          pullRequest,
-          comment: (
-            `\`${branch}\` (${head.oid}) is not a descendant of ` +
-            `\`${baseBranch}\` (${base.sha}), which means there are new ` +
-            `commits in \`${baseBranch}\` that aren't included in \`${branch}\`.\n\n` +
-            `Please rebase \`${branch}\` on-top of \`${baseBranch}\` ` +
-            `(or merge \`${baseBranch}\` into \`${branch}\`).`
-          )
-        });
-      }
+      await checkDescendant({
+        base,
+        baseBranch,
+        pullRequest,
+        errorMessage: (
+          `\`${branch}\` (${head.oid}) is not a descendant of ` +
+          `\`${baseBranch}\` (${base.sha}), which means there are new ` +
+          `commits in \`${baseBranch}\` that aren't included in \`${branch}\`.\n\n` +
+          `Please rebase \`${branch}\` on-top of \`${baseBranch}\` ` +
+          `(or merge \`${baseBranch}\` into \`${branch}\`).`
+        )
+      });
 
-      // Run CI Checks
       await runCICommands();
 
-      await buildAndPushDockerImage({
+      await buildAndPushDockerImageForReleaseOrHotfix({
         // TODO: improve the type guarding to remove the need to do this
         env: {
           DOCKER_PASSWORD: env.DOCKER_PASSWORD,
           DOCKER_USERNAME: env.DOCKER_PASSWORD,
         },
-        checkBehaviour: 'overwrite',
         tag,
-        checkTag: {
-          mode: 'non-existant',
-          onError: () => failWithPRComment({
-            error: `Tag ${tag} has been created, aborting`,
-            pullRequest,
-            comment: (
-              `During the build of the docker image, the tag ${tag} was ` +
-              `created, and so the workflow has been aborted, ` +
-              `and the docker image has not been pushed.\n\n` +
-              `Please chose a new version and update the pull request.`
-            )
-          })
-        },
+        pullRequest
       });
 
-      // Post about successful
-      github.reviewPullRequest({
+      await commentOnPullRequestWithDockerInfo({ pullRequest, tag });
+
+    } else if (mode === 'release') {
+      const pullRequest = await getUniquePullRequest();
+
+      // Check that the base branch is env/<stage|staging>
+
+      const baseBranch = pullRequest.base.ref;
+      if (baseBranch !== config.stagingEnvironmentBranch) {
+        await failWithPRComment({
+          error: `Pull request from release/ branch made against ${baseBranch}`,
+          pullRequest,
+          comment: (
+            `Pull requests from \`release/<name>\` branches can only target ` +
+            `\`${config.stagingEnvironmentBranch}\`:\n\n` +
+            `* If this is supposed to be a release, please re-target this pull request.\n` +
+            `* If this is not supposed to be a release, ` +
+            `please use a branch name that does not begin with \`release/\``
+          )
+        });
+      }
+
+      // Check that the version in package.json has been updated between the
+      // base branch and HEAD, and that it matches the name of the branch.
+
+      await exec(`git fetch ${remote.remote} ${baseBranch}`, { cwd: dir });
+      const base = await readRefShaAndVersion(`refs/remotes/${remote.remote}/${baseBranch}`);
+      if (base.version === version) {
+        const file = versionFilePath(config.repoType);
+        await failWithPRComment({
+          error: `Release has same version as base (target) branch`,
+          pullRequest,
+          comment: (
+            `This release pull request does not update the version in \`${file}\`\n\n` +
+            `You must update this branch with a version bump before you can merge.`
+          )
+        });
+      }
+
+      // Check that there is no existing tag for the current version in package.json.
+      const tag = `v${version}`;
+      await checkTagNotUsed(tag, pullRequest);
+
+      // Check that the current HEAD of the base branch is an ancestor of the
+      // HEAD of the release branch 
+      await checkDescendant({
+        base,
+        baseBranch,
+        pullRequest,
+        errorMessage: (
+          `\`${branch}\` (${head.oid}) is not a descendant of ` +
+          `\`${baseBranch}\` (${base.sha}), which means there are new ` +
+          `commits in \`${baseBranch}\` that aren't included in \`${branch}\`.\n\n` +
+          `Please merge \`${baseBranch}\` into \`${branch}\`.`
+        )
+      });
+
+      await runCICommands();
+
+      await buildAndPushDockerImageForReleaseOrHotfix({
+        // TODO: improve the type guarding to remove the need to do this
+        env: {
+          DOCKER_PASSWORD: env.DOCKER_PASSWORD,
+          DOCKER_USERNAME: env.DOCKER_PASSWORD,
+        },
+        tag,
+        pullRequest
+      });
+
+      await commentOnPullRequestWithDockerInfo({ pullRequest, tag });
+
+    } else if (mode === 'other') {
+      const pullRequest = await getUniquePullRequest();
+
+      // check that the base branch is NOT env/<stage|staging> or env/prod
+
+      const baseBranch = pullRequest.base.ref;
+      if (baseBranch === config.stagingEnvironmentBranch) {
+        await failWithPRComment({
+          error: `Pull request from ${branch} made against ${baseBranch}`,
+          pullRequest,
+          comment: (
+            `Pull requests that modify \`${config.stagingEnvironmentBranch}\` must be either:\n\n` +
+            `* a release, merging \`release/<version>\` into \`${config.stagingEnvironmentBranch}\`, or\n` +
+            `* a hotfix, merging \`hotfix/<name>\` into \`${config.stagingEnvironmentBranch}\`\n\n` +
+            `For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)`
+          )
+        });
+      } else if (baseBranch === 'env/prod') {
+        await failWithPRComment({
+          error: `Pull request from ${branch} made against ${baseBranch}`,
+          pullRequest,
+          comment: (
+            `Pull requests that modify \`env/prod\` must be either:\n\n` +
+            `* an update, merging \`${config.stagingEnvironmentBranch}\` into \`env/prod\`, or\n` +
+            `* a hotfix, merging \`hotfix/<name>\` into \`env/prod\`\n\n` +
+            `For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)`
+          )
+        });
+      }
+
+      await runCICommands();
+
+      return github.reviewPullRequest({
         pullRequestNumber: pullRequest.number,
         body: (
-          `Docker image has been successfully built and pushed as: ` +
-          `\`${config.docker.repository}:${tag}\`\n\n` +
-          `Please deploy this image to a development environment, and test ` +
-          `it is working as expected before merging this pull request.`
+          `Checks have passed and this pull request is ready for manual review`
         ),
         state: 'approve',
       });

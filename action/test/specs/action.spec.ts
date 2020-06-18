@@ -1120,7 +1120,7 @@ describe('action', () => {
         }).then(() => Promise.reject(new Error('Expected error to be thrown')))
           .catch(err => {
             expect(err.message).toEqual(
-              `Hotfix is not a descendant of target (base) branch`
+              `hotfix/foo is not a descendant of target (base) branch env/prod`
             );
           });
         expect(logger.log.mock.calls).toMatchSnapshot();
@@ -1306,6 +1306,191 @@ describe('action', () => {
 
     });
 
+    describe('push to release/<name> branch', () => {
+
+      it('Pull request opened against invalid branch', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `release/foo` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch release/foo ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: [{
+            number: 321,
+            base: { ref: 'develop' }
+          }]
+        });
+        const reviewPullRequest = jest.fn().mockResolvedValue(null);
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/release/foo`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: testCompleteDockerInit,
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests,
+            reviewPullRequest
+          }),
+        }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+          .catch(err => {
+            expect(err.message).toEqual(
+              `Pull request from release/ branch made against develop`
+            );
+          });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+        expect(reviewPullRequest.mock.calls).toMatchSnapshot();
+      });
+
+      it('Version not bumped', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `release/foo` });
+        await git.branch({ fs, dir: upstream, ref: `env/staging` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch release/foo ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: [{
+            number: 321,
+            base: { ref: 'env/staging' }
+          }]
+        });
+        const reviewPullRequest = jest.fn().mockResolvedValue(null);
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/release/foo`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: testCompleteDockerInit,
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests,
+            reviewPullRequest
+          }),
+        }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+          .catch(err => {
+            expect(err.message).toEqual(
+              `Release has same version as base (target) branch`
+            );
+          });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+        expect(reviewPullRequest.mock.calls).toMatchSnapshot();
+      });
+
+      it('Successful release', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `env/staging` });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.1"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
+        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
+        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `release/foo` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch release/foo ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: [{
+            number: 321,
+            base: { ref: 'env/staging' }
+          }]
+        });
+        const reviewPullRequest = jest.fn().mockResolvedValue(null);
+        // Prepare docker mock
+        const pullImage = jest.fn().mockResolvedValue(null);
+        const getMetadata = jest.fn().mockResolvedValue(null);
+        const runBuild = jest.fn().mockResolvedValue(null);
+        const pushImage = jest.fn().mockResolvedValue(null);
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/release/foo`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: () => ({
+            login: () => Promise.resolve(),
+            pullImage,
+            getMetadata,
+            runBuild,
+            pushImage,
+          }),
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests,
+            reviewPullRequest
+          }),
+        });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+        expect(reviewPullRequest.mock.calls).toMatchSnapshot();
+        expect({
+          pullImage: pullImage.mock.calls.map(call => [call[0]]),
+          getMetadata: getMetadata.mock.calls,
+          pushImage: pushImage.mock.calls,
+        }).toMatchSnapshot();
+        const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
+        const head = await git.readCommit({ fs, dir, oid: sha });
+        const meta: DockerImageMetadata = {
+          commitSha: head.oid,
+          treeSha: head.commit.tree,
+        };
+        expect(runBuild.mock.calls).toEqual([[{
+          cwd: dir,
+          logger,
+          tag: "v1.2.1",
+          meta
+        }]]);
+      });
+
+    });
+
     it('push to develop branch', async () => {
       const upstream = await util.createTmpDir();
       const dir = await util.createTmpDir();
@@ -1332,6 +1517,153 @@ describe('action', () => {
         logger,
       });
       expect(logger.log.mock.calls).toMatchSnapshot();
+    });
+
+    describe('push to other branch', () => {
+
+      it('Invalid PR against staging', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `some-feature-branch` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch some-feature-branch ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: [{
+            number: 321,
+            base: { ref: 'env/staging' }
+          }]
+        });
+        const reviewPullRequest = jest.fn().mockResolvedValue(null);
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/some-feature-branch`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: testCompleteDockerInit,
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests,
+            reviewPullRequest
+          }),
+        }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+          .catch(err => {
+            expect(err.message).toEqual(
+              `Pull request from some-feature-branch made against env/staging`
+            );
+          });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+        expect(reviewPullRequest.mock.calls).toMatchSnapshot();
+      });
+
+      it('Invalid PR against prod', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `some-feature-branch` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch some-feature-branch ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: [{
+            number: 321,
+            base: { ref: 'env/prod' }
+          }]
+        });
+        const reviewPullRequest = jest.fn().mockResolvedValue(null);
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/some-feature-branch`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: testCompleteDockerInit,
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests,
+            reviewPullRequest
+          }),
+        }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+          .catch(err => {
+            expect(err.message).toEqual(
+              `Pull request from some-feature-branch made against env/prod`
+            );
+          });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+        expect(reviewPullRequest.mock.calls).toMatchSnapshot();
+      });
+
+      it('Valid PR', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `some-feature-branch` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch some-feature-branch ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: [{
+            number: 321,
+            base: { ref: 'develop' }
+          }]
+        });
+        const reviewPullRequest = jest.fn().mockResolvedValue(null);
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/some-feature-branch`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: testCompleteDockerInit,
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests,
+            reviewPullRequest
+          }),
+        });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+        expect(reviewPullRequest.mock.calls).toMatchSnapshot();
+      });
+
+
     });
   });
 });
