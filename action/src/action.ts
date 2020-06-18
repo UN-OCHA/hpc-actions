@@ -306,6 +306,7 @@ export const runAction = async (
         base,
         head: mergebackBranch,
         title: `Update ${base} with changes from ${branch}`,
+        labels: config.mergebackLabels || []
       });
 
       info(`Pull Request Opened, workflow complete`);

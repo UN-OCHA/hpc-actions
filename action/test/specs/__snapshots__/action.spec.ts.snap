@@ -421,6 +421,7 @@ Array [
     Object {
       "base": "env/staging",
       "head": "mergeback/prod/1.2.0",
+      "labels": Array [],
       "title": "Update env/staging with changes from env/prod",
     },
   ],
@@ -928,6 +929,7 @@ Array [
     Object {
       "base": "develop",
       "head": "mergeback/staging/1.2.0",
+      "labels": Array [],
       "title": "Update develop with changes from env/staging",
     },
   ],

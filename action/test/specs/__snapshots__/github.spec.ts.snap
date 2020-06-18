@@ -14,6 +14,18 @@ Object {
 
 exports[`github Open a pull request 1`] = `
 Object {
+  "issues.update": Array [
+    Array [
+      Object {
+        "issue_number": 123,
+        "labels": Array [
+          "mergeback",
+        ],
+        "owner": "oooo",
+        "repo": "rrrr",
+      },
+    ],
+  ],
   "octokit": Array [
     Array [
       Object {

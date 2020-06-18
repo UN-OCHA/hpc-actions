@@ -36,25 +36,34 @@ describe('github', () => {
 
     const api = {
       pulls: {
-        create: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({
+          data: {
+            number: 123,
+          },
+        }),
       },
+      issues: {
+        update: jest.fn().mockResolvedValue(null),
+      }
     };
 
     mock.mockClear();
     mock.mockReturnValue(api);
 
-    github.REAL_GITHUB({
+    await github.REAL_GITHUB({
       githubRepo: 'oooo/rrrr',
       token: 'asdf'
     }).openPullRequest({
       base: 'some-base',
       head: 'some-head',
-      title: 'some-title'
+      title: 'some-title',
+      labels: ['mergeback']
     });
 
     expect({
       octokit: mock.mock.calls,
       'pulls.create': api.pulls.create.mock.calls,
+      'issues.update': api.issues.update.mock.calls,
     }).toMatchSnapshot();
 
   });

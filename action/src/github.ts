@@ -14,6 +14,7 @@ interface PullRequestParameters {
   base: string;
   head: string;
   title: string;
+  labels: string[];
 }
 
 export interface GitHubController {
@@ -32,12 +33,22 @@ export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
   const [owner, repo] = repoSplit;
 
   return {
-    openPullRequest: ({ base, head, title }) => octokit.pulls.create({
-      owner,
-      repo,
-      title,
-      head,
-      base,
-    }).then(() => {}),
+    openPullRequest: async ({ base, head, title, labels }) => {
+      const pull = await octokit.pulls.create({
+        owner,
+        repo,
+        title,
+        head,
+        base,
+      });
+      if (labels.length > 0) {
+        await octokit.issues.update({
+          owner,
+          repo,
+          issue_number: pull.data.number,
+          labels
+        });
+      }
+    },
   };
 }

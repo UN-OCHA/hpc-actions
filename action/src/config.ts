@@ -97,38 +97,48 @@ const DOCKER_CONFIG = t.intersection([
   })
 ]);
 
-const CONFIG = t.type({
-  /**
-   * What is the branch for the staging environment.
-   */
-  stagingEnvironmentBranch: t.keyof({
-    'env/stage': null,
-    'env/staging': null,
-  }),
-  /**
-   * What are the branches used to track development environments.
-   */
-  developmentEnvironmentBranches: t.array(t.string),
-  /**
-   * What type of repository is this?
-   * 
-   * This is used to work out how to calculate the current version
-   */
-  repoType: t.keyof({
+const CONFIG = t.intersection([
+  // Required Config
+  t.type({
     /**
-     * Calculate the current version by reading the version from package.json
+     * What is the branch for the staging environment.
      */
-    'node': null,
+    stagingEnvironmentBranch: t.keyof({
+      'env/stage': null,
+      'env/staging': null,
+    }),
+    /**
+     * What are the branches used to track development environments.
+     */
+    developmentEnvironmentBranches: t.array(t.string),
+    /**
+     * What type of repository is this?
+     * 
+     * This is used to work out how to calculate the current version
+     */
+    repoType: t.keyof({
+      /**
+       * Calculate the current version by reading the version from package.json
+       */
+      'node': null,
+    }),
+    /**
+     * Configuration for the docker image build and publication
+     */
+    docker: DOCKER_CONFIG,
+    /**
+     * List of shell commands to run as part of CI
+     */
+    ci: t.array(t.string),
   }),
-  /**
-   * Configuration for the docker image build and publication
-   */
-  docker: DOCKER_CONFIG,
-  /**
-   * List of shell commands to run as part of CI
-   */
-  ci: t.array(t.string)
-});
+  // Optional config
+  t.partial({
+    /**
+     * If provided, add these labels to mergeback pull requests
+     */
+    mergebackLabels: t.array(t.string),
+  })
+]);
 
 /**
  * The type of a valid configuration file
