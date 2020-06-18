@@ -31,6 +31,8 @@ The outlined workflow and actions are designed to:
   - [Releases + Deployment](#releases--deployment)
   - [Hotfixes](#hotfixes)
 - [Automation / Roadmap](#automation--roadmap)
+- [Usage](#usage)
+  - [Docker Images](#docker-images)
 - [License](#license)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
