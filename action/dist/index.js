@@ -6235,7 +6235,7 @@ exports.REAL_DOCKER = config => ({
             cwd: __dirname,
             // Drop all console output (it's mostly warning about storing credentials)
             logger: console,
-            data: pass + '\n'
+            data: pass
         });
     },
     pullImage: (tag, logger) => child_process_1.execAndPipeOutput({

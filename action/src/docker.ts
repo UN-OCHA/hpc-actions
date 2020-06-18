@@ -61,7 +61,7 @@ export const REAL_DOCKER: DockerInit = config => ({
       cwd: __dirname,
       // Drop all console output (it's mostly warning about storing credentials)
       logger: console,
-      data: pass + '\n'
+      data: pass
     });
   },
 
