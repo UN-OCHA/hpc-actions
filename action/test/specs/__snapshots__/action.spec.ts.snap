@@ -51,6 +51,42 @@ Array [
 ]
 `;
 
+exports[`action runAction push to hotfix/<name> branch Multiple pull request opened 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch hotfix/foo",
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Multiple pull request opened 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "hotfix/foo",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch No pull request opened 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch hotfix/foo",
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch No pull request opened 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "hotfix/foo",
+    },
+  ],
+]
+`;
+
 exports[`action runAction push to production or staging env/prod ci Check directory 1`] = `
 Array [
   Array [

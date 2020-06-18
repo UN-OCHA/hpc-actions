@@ -76,6 +76,7 @@ describe('action', () => {
 
     const testCompleteGitHub: GitHubController = {
       openPullRequest: () => Promise.reject(testCompleteError),
+      getOpenPullRequests: () => Promise.reject(testCompleteError),
     }
 
     const testCompleteDockerInit: DockerInit = () => testCompleteDockerController;
@@ -701,6 +702,7 @@ describe('action', () => {
                 pushImage: jest.fn().mockResolvedValue(null),
               }),
               gitHubInit: () => ({
+                ...testCompleteGitHub,
                 openPullRequest
               }),
             });
@@ -807,6 +809,98 @@ describe('action', () => {
           tag: "env/dev",
           meta
         }]]);
+      });
+
+
+    });
+
+    describe('push to hotfix/<name> branch', () => {
+
+      it('No pull request opened', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: []
+        });
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/hotfix/foo`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: testCompleteDockerInit,
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests
+          }),
+        }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+          .catch(err => {
+            expect(err.message).toEqual(
+              `The branch hotfix/foo has no pull requests open yet, so it is not possible to run this workflow.`
+            );
+            expect(err).toBeInstanceOf(action.NoPullRequestError);
+          });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
+      });
+
+      it('Multiple pull request opened', async () => {
+        const upstream = await util.createTmpDir();
+        const dir = await util.createTmpDir();
+        // Prepare upstream repository
+        await git.init({ fs, dir: upstream });
+        await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+          version: "1.2.0"
+        }));
+        await git.add({ fs, dir: upstream, filepath: 'package.json' });
+        await setAuthor(upstream);
+        await exec(`git commit -m package`, { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        // Clone into repo we'll run in, and create appropriate branch
+        await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
+        // Prepare github mock
+        const getOpenPullRequests = jest.fn().mockResolvedValue({
+          data: [{}, {}]
+        });
+        // Run action
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+        await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+          ref: `refs/heads/hotfix/foo`
+        }));
+        const logger = util.newLogger();
+        await action.runAction({
+          env: DEFAULT_ENV,
+          dir,
+          logger,
+          dockerInit: testCompleteDockerInit,
+          gitHubInit: () => ({
+            ...testCompleteGitHub,
+            getOpenPullRequests
+          }),
+        }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+          .catch(err => {
+            expect(err.message).toEqual(
+              `Multiple pull requests for branch hotfix/foo are open, so it is not possible to run this workflow.`
+            );
+          });
+        expect(logger.log.mock.calls).toMatchSnapshot();
+        expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
       });
 
 

@@ -79,6 +79,8 @@ const determineMode = (config: Config, branch: string): Mode => {
   }
 }
 
+export class NoPullRequestError extends Error {}
+
 export const runAction = async (
   {
     env,
@@ -290,6 +292,23 @@ export const runAction = async (
       info(`CI Checks Complete`);
     }
 
+    const getUniquePullRequest = async () => {
+      const prs = await github.getOpenPullRequests({ branch });
+      if (prs.data.length === 0) {
+        throw new NoPullRequestError(
+          `The branch ${branch} has no pull requests open yet, ` +
+          `so it is not possible to run this workflow.`
+        );
+      } else if (prs.data.length > 1) {
+        throw new Error(
+          `Multiple pull requests for branch ${branch} are open, ` +
+          `so it is not possible to run this workflow.`
+        );
+      } else {
+        return prs.data[0];
+      }
+    }
+
     // Handle the push as appropriate for the given branch
 
     if (mode === 'env-production' || mode === 'env-staging') {
@@ -377,6 +396,8 @@ export const runAction = async (
       });
     } else if (mode === 'develop') {
       await runCICommands();
+    } else if (mode === 'hotfix') {
+      const pr = await getUniquePullRequest();
     }
 
   }
