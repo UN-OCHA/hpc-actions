@@ -165,7 +165,7 @@ To create and deploy a hotfix:
 This section describes what automation this repository aims to provide,
 and acts as a roadmap.
 
-* TODO: Pushes to `env/prod` and `env/<stage|staging>`:
+* DONE: Pushes to `env/prod` and `env/<stage|staging>`:
   * Check if there is an existing tag for the current version in `package.json`
     * TODO: *(we'll need to allow for specifying the version in other ways for the
       non-node repos).*
