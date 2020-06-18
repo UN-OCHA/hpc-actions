@@ -173,7 +173,7 @@ Array [
 
 Please deploy this image to a development environment, and test it is working as expected before merging this pull request.",
       "pullRequestNumber": 321,
-      "state": "comment-only",
+      "state": "approve",
     },
   ],
 ]

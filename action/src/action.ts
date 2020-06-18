@@ -574,7 +574,7 @@ export const runAction = async (
           `Please deploy this image to a development environment, and test ` +
           `it is working as expected before merging this pull request.`
         ),
-        state: 'comment-only',
+        state: 'approve',
       });
 
     }
