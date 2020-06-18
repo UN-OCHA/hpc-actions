@@ -99,12 +99,18 @@ export const runAction = async (
     throw new Error('Expected GITHUB_EVENT_NAME');
   if (!env.GITHUB_EVENT_PATH)
     throw new Error('Expected GITHUB_EVENT_PATH');
+  if (!env.GITHUB_REPOSITORY)
+    throw new Error('Expected GITHUB_REPOSITORY');
 
   // Get docker credentials
   if (!env.DOCKER_USERNAME)
     throw new Error('Expected DOCKER_USERNAME');
   if (!env.DOCKER_PASSWORD)
     throw new Error('Expected DOCKER_PASSWORD');
+
+  // Get GitHub credentials
+  if (!env.GITHUB_TOKEN)
+    throw new Error('Expected GITHUB_TOKEN');
 
   let event: GitHubEvent;
   
@@ -121,7 +127,10 @@ export const runAction = async (
     throw new Error(`Unsupported GITHUB_EVENT_NAME: ${env.GITHUB_EVENT_NAME}`);
   }
 
-  const github = gitHubInit();
+  const github = gitHubInit({
+    githubRepo: env.GITHUB_REPOSITORY,
+    token: env.GITHUB_TOKEN,
+  });
 
   if (event.name === 'push') {
 

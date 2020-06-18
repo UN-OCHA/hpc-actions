@@ -29,6 +29,10 @@ export interface Env {
    * The password to login to the docker registry with
    */
   DOCKER_PASSWORD?: string;
+  /**
+   * Token to use when interacting with the GitHub API
+   */
+  GITHUB_TOKEN?: string;
 
   // Implicit environment variables passed by GitHub
   GITHUB_REPOSITORY?: string;

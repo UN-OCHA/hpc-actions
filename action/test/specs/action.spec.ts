@@ -41,6 +41,8 @@ const DEFAULT_ENV: Env = {
   GITHUB_EVENT_PATH: EVENT_FILE,
   DOCKER_PASSWORD: 'pass',
   DOCKER_USERNAME: 'user',
+  GITHUB_TOKEN: 'asdfg',
+  GITHUB_REPOSITORY: 'fooo/barr',
 };
 
 const DEFAULT_PUSH_ENV = {};
