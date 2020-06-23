@@ -25290,11 +25290,11 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
             info(`Pull Request Opened, workflow complete`);
         }
         else if (mode === 'env-development') {
-            await runCICommands();
             await buildAndPushDockerImage({
                 checkBehaviour: 'overwrite',
                 tag: branch
             });
+            await runCICommands();
         }
         else if (mode === 'develop') {
             await runCICommands();

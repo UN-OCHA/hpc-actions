@@ -28,12 +28,6 @@ Array [
     "##[info] Handling push to branch env/dev",
   ],
   Array [
-    "##[info] Running CI Checks",
-  ],
-  Array [
-    "##[info] CI Checks Complete",
-  ],
-  Array [
     "##[info] Logging in to docker",
   ],
   Array [
@@ -47,6 +41,12 @@ Array [
   ],
   Array [
     "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
   ],
 ]
 `;

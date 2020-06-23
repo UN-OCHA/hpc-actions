@@ -198,9 +198,9 @@ and acts as a roadmap.
     * Or merge the new branch into `develop`
       (if the current branch is `env/<stage|staging>`).
 * Pushes to `env/<name>` (non-staging/production branches):
-  * Run CI Tasks (unit-tests etc…)
   * Run the docker build
   * Push the image to DockerHub, using the name of the environment as a tag.
+  * Run CI Tasks (unit-tests etc…)
 * Pushes to `hotfix/<name>`:
   * Check if there is an open pull request for this branch:
     * If there is not: fail
