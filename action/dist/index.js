@@ -25292,7 +25292,7 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
         else if (mode === 'env-development') {
             await buildAndPushDockerImage({
                 checkBehaviour: 'overwrite',
-                tag: branch
+                tag: branch.replace(/\//g, '-')
             });
             await runCICommands();
         }

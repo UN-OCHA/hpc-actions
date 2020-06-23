@@ -31,7 +31,7 @@ Array [
     "##[info] Logging in to docker",
   ],
   Array [
-    "##[info] Skipping check for existing image with tag env/dev, building new image",
+    "##[info] Skipping check for existing image with tag env-dev, building new image",
   ],
   Array [
     "##[info] Image built",

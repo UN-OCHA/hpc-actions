@@ -534,7 +534,7 @@ export const runAction = async (
     } else if (mode === 'env-development') {
       await buildAndPushDockerImage({
         checkBehaviour: 'overwrite',
-        tag: branch
+        tag: branch.replace(/\//g, '-')
       });
       await runCICommands();
     } else if (mode === 'develop') {

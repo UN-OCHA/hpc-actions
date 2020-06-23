@@ -806,7 +806,7 @@ describe('action', () => {
         expect(pullImage.mock.calls).toEqual([]);
         expect(getMetadata.mock.calls).toEqual([]);
         expect(pushImage.mock.calls).toEqual([[
-          'env/dev',
+          'env-dev',
         ]]);
         const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
         const head = await git.readCommit({ fs, dir, oid: sha });
@@ -817,7 +817,7 @@ describe('action', () => {
         expect(runBuild.mock.calls).toEqual([[{
           cwd: dir,
           logger,
-          tag: "env/dev",
+          tag: "env-dev",
           meta
         }]]);
       });
