@@ -129,12 +129,6 @@ Array [
     "##[info] Checking if there is an existing tag for v1.2.1",
   ],
   Array [
-    "##[info] Running CI Checks",
-  ],
-  Array [
-    "##[info] CI Checks Complete",
-  ],
-  Array [
     "##[info] Logging in to docker",
   ],
   Array [
@@ -151,6 +145,12 @@ Array [
   ],
   Array [
     "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
   ],
 ]
 `;
@@ -235,12 +235,6 @@ Array [
   ],
   Array [
     "##[info] Checking if there is an existing tag for v1.2.1",
-  ],
-  Array [
-    "##[info] Running CI Checks",
-  ],
-  Array [
-    "##[info] CI Checks Complete",
   ],
   Array [
     "##[info] Logging in to docker",
@@ -1507,12 +1501,6 @@ Array [
     "##[info] Checking if there is an existing tag for v1.2.1",
   ],
   Array [
-    "##[info] Running CI Checks",
-  ],
-  Array [
-    "##[info] CI Checks Complete",
-  ],
-  Array [
     "##[info] Logging in to docker",
   ],
   Array [
@@ -1529,6 +1517,12 @@ Array [
   ],
   Array [
     "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
   ],
 ]
 `;

@@ -598,12 +598,12 @@ export const runAction = async (
         )
       });
 
-      await runCICommands();
-
       await buildAndPushDockerImageForReleaseOrHotfix({
         tag,
         pullRequest
       });
+
+      await runCICommands();
 
       await commentOnPullRequestWithDockerInfo({ pullRequest, tag });
 
@@ -662,12 +662,12 @@ export const runAction = async (
         )
       });
 
-      await runCICommands();
-
       await buildAndPushDockerImageForReleaseOrHotfix({
         tag,
         pullRequest
       });
+
+      await runCICommands();
 
       await commentOnPullRequestWithDockerInfo({ pullRequest, tag });
 

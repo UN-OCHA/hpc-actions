@@ -25345,11 +25345,11 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                     `Please rebase \`${branch}\` on-top of \`${baseBranch}\` ` +
                     `(or merge \`${baseBranch}\` into \`${branch}\`).`)
             });
-            await runCICommands();
             await buildAndPushDockerImageForReleaseOrHotfix({
                 tag,
                 pullRequest
             });
+            await runCICommands();
             await commentOnPullRequestWithDockerInfo({ pullRequest, tag });
         }
         else if (mode === 'release') {
@@ -25394,11 +25394,11 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                     `commits in \`${baseBranch}\` that aren't included in \`${branch}\`.\n\n` +
                     `Please merge \`${baseBranch}\` into \`${branch}\`.`)
             });
-            await runCICommands();
             await buildAndPushDockerImageForReleaseOrHotfix({
                 tag,
                 pullRequest
             });
+            await runCICommands();
             await commentOnPullRequestWithDockerInfo({ pullRequest, tag });
         }
         else if (mode === 'other') {
