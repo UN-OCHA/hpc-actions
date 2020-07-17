@@ -5,12 +5,6 @@ Array [
   Array [
     "##[info] Handling push to branch develop",
   ],
-  Array [
-    "##[info] Running CI Checks",
-  ],
-  Array [
-    "##[info] CI Checks Complete",
-  ],
 ]
 `;
 
@@ -41,12 +35,6 @@ Array [
   ],
   Array [
     "##[info] Image Pushed",
-  ],
-  Array [
-    "##[info] Running CI Checks",
-  ],
-  Array [
-    "##[info] CI Checks Complete",
   ],
 ]
 `;
@@ -439,47 +427,11 @@ Array [
 ]
 `;
 
-exports[`action runAction push to production or staging env/prod ci Check directory 1`] = `
+exports[`action runAction push to other branch ci Check directory 1`] = `
 Array [
   Array [
     "[stdout]",
-    "##[info] Handling push to branch env/prod",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Checking if there is an existing tag for v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Creating and pushing new tag v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Logging in to docker",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Checking for existing docker image with tag v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image with tag v1.2.0 does not yet exist, building image",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image built, checking tag v1.2.0 is unchanged",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Tag is unchanged, okay to continue",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Pushing image to docker repository",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image Pushed",
+    "##[info] Handling push to branch some-feature-branch",
   ],
   Array [
     "[stdout]",
@@ -497,58 +449,36 @@ Array [
     "[stdout]",
     "##[info] CI Checks Complete",
   ],
+]
+`;
+
+exports[`action runAction push to other branch ci Check directory 2`] = `
+Array [
   Array [
-    "[stdout]",
-    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Opening Mergeback Pull Request",
+    Object {
+      "branch": "some-feature-branch",
+    },
   ],
 ]
 `;
 
-exports[`action runAction push to production or staging env/prod ci Command with interleaved stderr and stdout 1`] = `
+exports[`action runAction push to other branch ci Check directory 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "Checks have passed and this pull request is ready for manual review",
+      "pullRequestNumber": 321,
+      "state": "approve",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to other branch ci Command with interleaved stderr and stdout 1`] = `
 Array [
   Array [
     "[stdout]",
-    "##[info] Handling push to branch env/prod",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Checking if there is an existing tag for v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Creating and pushing new tag v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Logging in to docker",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Checking for existing docker image with tag v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image with tag v1.2.0 does not yet exist, building image",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image built, checking tag v1.2.0 is unchanged",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Tag is unchanged, okay to continue",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Pushing image to docker repository",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image Pushed",
+    "##[info] Handling push to branch some-feature-branch",
   ],
   Array [
     "[stdout]",
@@ -578,58 +508,36 @@ Array [
     "[stdout]",
     "##[info] CI Checks Complete",
   ],
+]
+`;
+
+exports[`action runAction push to other branch ci Command with interleaved stderr and stdout 2`] = `
+Array [
   Array [
-    "[stdout]",
-    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Opening Mergeback Pull Request",
+    Object {
+      "branch": "some-feature-branch",
+    },
   ],
 ]
 `;
 
-exports[`action runAction push to production or staging env/prod ci Command with nonzero exit code 1`] = `
+exports[`action runAction push to other branch ci Command with interleaved stderr and stdout 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "Checks have passed and this pull request is ready for manual review",
+      "pullRequestNumber": 321,
+      "state": "approve",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to other branch ci Command with nonzero exit code 1`] = `
 Array [
   Array [
     "[stdout]",
-    "##[info] Handling push to branch env/prod",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Checking if there is an existing tag for v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Creating and pushing new tag v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Logging in to docker",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Checking for existing docker image with tag v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image with tag v1.2.0 does not yet exist, building image",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image built, checking tag v1.2.0 is unchanged",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Tag is unchanged, okay to continue",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Pushing image to docker repository",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image Pushed",
+    "##[info] Handling push to branch some-feature-branch",
   ],
   Array [
     "[stdout]",
@@ -641,6 +549,18 @@ Array [
   ],
 ]
 `;
+
+exports[`action runAction push to other branch ci Command with nonzero exit code 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "some-feature-branch",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to other branch ci Command with nonzero exit code 3`] = `Array []`;
 
 exports[`action runAction push to production or staging env/prod docker Existing Image (different sha) 1`] = `
 Array [
@@ -774,12 +694,6 @@ Array [
     "##[info] Image Pushed",
   ],
   Array [
-    "##[info] Running CI Checks",
-  ],
-  Array [
-    "##[info] CI Checks Complete",
-  ],
-  Array [
     "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
   ],
   Array [
@@ -835,12 +749,6 @@ Array [
   ],
   Array [
     "##[info] Image Pushed",
-  ],
-  Array [
-    "##[info] Running CI Checks",
-  ],
-  Array [
-    "##[info] CI Checks Complete",
   ],
   Array [
     "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
@@ -945,209 +853,6 @@ Array [
   ],
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
-  ],
-]
-`;
-
-exports[`action runAction push to production or staging env/staging ci Check directory 1`] = `
-Array [
-  Array [
-    "[stdout]",
-    "##[info] Handling push to branch env/staging",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Checking if there is an existing tag for v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Creating and pushing new tag v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Logging in to docker",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Checking for existing docker image with tag v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image with tag v1.2.0 does not yet exist, building image",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image built, checking tag v1.2.0 is unchanged",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Tag is unchanged, okay to continue",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Pushing image to docker repository",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image Pushed",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Running CI Checks",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Running: cat package.json",
-  ],
-  Array [
-    "[stdout]",
-    "{\\"version\\":\\"1.2.0\\"}",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] CI Checks Complete",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Opening Mergeback Pull Request",
-  ],
-]
-`;
-
-exports[`action runAction push to production or staging env/staging ci Command with interleaved stderr and stdout 1`] = `
-Array [
-  Array [
-    "[stdout]",
-    "##[info] Handling push to branch env/staging",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Checking if there is an existing tag for v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Creating and pushing new tag v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Logging in to docker",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Checking for existing docker image with tag v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image with tag v1.2.0 does not yet exist, building image",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image built, checking tag v1.2.0 is unchanged",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Tag is unchanged, okay to continue",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Pushing image to docker repository",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image Pushed",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Running CI Checks",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Running: echo && echo foo && sleep 0.1s && echo bar 1>&2 && sleep 0.1s && echo baz",
-  ],
-  Array [
-    "[stdout]",
-    "",
-  ],
-  Array [
-    "[stdout]",
-    "foo",
-  ],
-  Array [
-    "[stderr]",
-    "bar",
-  ],
-  Array [
-    "[stdout]",
-    "baz",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] CI Checks Complete",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Opening Mergeback Pull Request",
-  ],
-]
-`;
-
-exports[`action runAction push to production or staging env/staging ci Command with nonzero exit code 1`] = `
-Array [
-  Array [
-    "[stdout]",
-    "##[info] Handling push to branch env/staging",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Checking if there is an existing tag for v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Creating and pushing new tag v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Logging in to docker",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Checking for existing docker image with tag v1.2.0",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image with tag v1.2.0 does not yet exist, building image",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image built, checking tag v1.2.0 is unchanged",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Tag is unchanged, okay to continue",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Pushing image to docker repository",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Image Pushed",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Running CI Checks",
-  ],
-  Array [
-    "[stdout]",
-    "##[info] Running: exit 123",
   ],
 ]
 `;
@@ -1284,12 +989,6 @@ Array [
     "##[info] Image Pushed",
   ],
   Array [
-    "##[info] Running CI Checks",
-  ],
-  Array [
-    "##[info] CI Checks Complete",
-  ],
-  Array [
     "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
   ],
   Array [
@@ -1345,12 +1044,6 @@ Array [
   ],
   Array [
     "##[info] Image Pushed",
-  ],
-  Array [
-    "##[info] Running CI Checks",
-  ],
-  Array [
-    "##[info] CI Checks Complete",
   ],
   Array [
     "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",

@@ -512,9 +512,6 @@ export const runAction = async (
         checkTag: { mode: 'match', sha: tagSha }
       });
 
-      // Run CI Checks
-      await runCICommands();
-
       const mergebackBranch = `mergeback/${branch.substr(4)}/${version}`;
       info(`Creating and pushing mergeback Branch: ${mergebackBranch}`);
       await git.branch({ fs, dir, ref: mergebackBranch });
@@ -536,9 +533,6 @@ export const runAction = async (
         checkBehaviour: 'overwrite',
         tag: branch.replace(/\//g, '-')
       });
-      await runCICommands();
-    } else if (mode === 'develop') {
-      await runCICommands();
     } else if (mode === 'hotfix') {
       const pullRequest = await getUniquePullRequest();
 
