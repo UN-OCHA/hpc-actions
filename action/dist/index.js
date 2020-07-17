@@ -25273,8 +25273,6 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 tag,
                 checkTag: { mode: 'match', sha: tagSha }
             });
-            // Run CI Checks
-            await runCICommands();
             const mergebackBranch = `mergeback/${branch.substr(4)}/${version}`;
             info(`Creating and pushing mergeback Branch: ${mergebackBranch}`);
             await isomorphic_git_1.default.branch({ fs: fs_1.default, dir, ref: mergebackBranch });
@@ -25294,10 +25292,6 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 checkBehaviour: 'overwrite',
                 tag: branch.replace(/\//g, '-')
             });
-            await runCICommands();
-        }
-        else if (mode === 'develop') {
-            await runCICommands();
         }
         else if (mode === 'hotfix') {
             const pullRequest = await getUniquePullRequest();
