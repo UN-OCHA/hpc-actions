@@ -188,7 +188,6 @@ and acts as a roadmap.
       * get the git tree sha that was used to build the image from the docker metadata
       * check that the git tree-sha of image matches the current tree-sha
         (throw an error if not)
-  * Run CI Tasks
   * Create and push a branch called `mergeback/<env>/<version>`
     based on the current HEAD.
     * (creating a new branch rather than merging the current branch itself allows us to resolve any conflicts if necessary)
@@ -200,7 +199,6 @@ and acts as a roadmap.
 * Pushes to `env/<name>` (non-staging/production branches):
   * Run the docker build
   * Push the image to DockerHub, using the name of the environment as a tag.
-  * Run CI Tasks (unit-tests etc…)
 * Pushes to `hotfix/<name>`:
   * Check if there is an open pull request for this branch:
     * If there is not: fail
@@ -259,7 +257,7 @@ and acts as a roadmap.
         * It also allows for updating the release with changes if it needs to
           be corrected.
 * Pushes to `develop`:
-  * Run CI Tasks (unit-tests etc…)
+  * Do nothing
 * Pushes to all other branches
   * Check if there is an open pull request for this branch:
     * If there is not: fail
