@@ -8876,6 +8876,20 @@ const CONFIG = t.intersection([
          * If provided, add these labels to mergeback pull requests
          */
         mergebackLabels: t.array(t.string),
+        /**
+         * If provided, automatically create GitHub deployments
+         */
+        deployments: t.type({
+            environments: t.array(t.type({
+                branch: t.string,
+                /**
+                 * String to pass to the GitHub API as the `environment` parameter
+                 *
+                 * @see https://docs.github.com/en/rest/reference/repos#create-a-deployment
+                 */
+                environment: t.string,
+            }))
+        })
     })
 ]);
 exports.getConfig = async (env) => {
@@ -25258,6 +25272,27 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 });
             }
         };
+        const createDeploymentIfRequired = async (params) => {
+            if (config.deployments) {
+                for (const environment of config.deployments.environments) {
+                    if (environment.branch === branch) {
+                        info(`Creating ${environment.environment} deployment`);
+                        await github.createDeployment({
+                            auto_merge: false,
+                            required_contexts: [],
+                            environment: environment.environment,
+                            payload: {
+                                docker_tag: params.dockerTag
+                            },
+                            production_environment: mode === 'env-production',
+                            transient_environment: false,
+                            ref: params.ref,
+                            task: 'deploy',
+                        });
+                    }
+                }
+            }
+        };
         // Handle the push as appropriate for the given branch
         if (mode === 'env-production' || mode === 'env-staging') {
             const tag = `v${version}`;
@@ -25298,6 +25333,10 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 tag,
                 checkTag: { mode: 'match', sha: tagSha }
             });
+            await createDeploymentIfRequired({
+                dockerTag: tag,
+                ref: tagSha,
+            });
             const mergebackBranch = `mergeback/${branch.substr(4)}/${version}`;
             info(`Creating and pushing mergeback Branch: ${mergebackBranch}`);
             await isomorphic_git_1.default.branch({ fs: fs_1.default, dir, ref: mergebackBranch });
@@ -25313,9 +25352,14 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
             info(`Pull Request Opened, workflow complete`);
         }
         else if (mode === 'env-development') {
+            const tag = branch.replace(/\//g, '-');
             await buildAndPushDockerImage({
                 checkBehaviour: 'overwrite',
-                tag: branch.replace(/\//g, '-')
+                tag
+            });
+            await createDeploymentIfRequired({
+                dockerTag: tag,
+                ref: head.oid,
             });
         }
         else if (mode === 'hotfix') {
@@ -33476,6 +33520,11 @@ exports.REAL_GITHUB = ({ token, githubRepo }) => {
             repo,
             issue_number: pullRequestNumber,
             body,
+        }).then(() => { }),
+        createDeployment: async (params) => octokit.repos.createDeployment({
+            owner,
+            repo,
+            ...params,
         }).then(() => { }),
     };
 };
