@@ -701,6 +701,127 @@ Array [
 
 exports[`action runAction push to other branch ci Command with nonzero exit code 3`] = `Array []`;
 
+exports[`action runAction push to production or staging env/prod deployments + mergeback match 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
+  ],
+  Array [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Creating prod deployment",
+  ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
+  ],
+  Array [
+    "##[info] Pull Request Opened, workflow complete",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod deployments + mergeback match 2`] = `
+Array [
+  Array [
+    Object {
+      "base": "env/staging",
+      "head": "mergeback/prod/1.2.0",
+      "labels": Array [
+        "some-label",
+      ],
+      "title": "Update env/staging with changes from env/prod",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod deployments + mergeback no-match 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
+  ],
+  Array [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
+  ],
+  Array [
+    "##[info] Pull Request Opened, workflow complete",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod deployments + mergeback no-match 2`] = `
+Array [
+  Array [
+    Object {
+      "base": "env/staging",
+      "head": "mergeback/prod/1.2.0",
+      "labels": Array [
+        "some-label",
+      ],
+      "title": "Update env/staging with changes from env/prod",
+    },
+  ],
+]
+`;
+
 exports[`action runAction push to production or staging env/prod docker Existing Image (different sha) 1`] = `
 Array [
   Array [
@@ -992,6 +1113,127 @@ Array [
   ],
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging deployments + mergeback match 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
+  ],
+  Array [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Creating staging deployment",
+  ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
+  ],
+  Array [
+    "##[info] Pull Request Opened, workflow complete",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging deployments + mergeback match 2`] = `
+Array [
+  Array [
+    Object {
+      "base": "develop",
+      "head": "mergeback/staging/1.2.0",
+      "labels": Array [
+        "some-label",
+      ],
+      "title": "Update develop with changes from env/staging",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging deployments + mergeback no-match 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
+  ],
+  Array [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
+  ],
+  Array [
+    "##[info] Pull Request Opened, workflow complete",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging deployments + mergeback no-match 2`] = `
+Array [
+  Array [
+    Object {
+      "base": "develop",
+      "head": "mergeback/staging/1.2.0",
+      "labels": Array [
+        "some-label",
+      ],
+      "title": "Update develop with changes from env/staging",
+    },
   ],
 ]
 `;

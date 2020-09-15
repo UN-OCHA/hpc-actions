@@ -142,6 +142,20 @@ const CONFIG = t.intersection([
      * If provided, add these labels to mergeback pull requests
      */
     mergebackLabels: t.array(t.string),
+    /**
+     * If provided, automatically create GitHub deployments
+     */
+    deployments: t.type({
+      environments: t.array(t.type({
+        branch: t.string,
+        /**
+         * String to pass to the GitHub API as the `environment` parameter
+         * 
+         * @see https://docs.github.com/en/rest/reference/repos#create-a-deployment
+         */
+        environment: t.string,
+      }))
+    })
   })
 ]);
 

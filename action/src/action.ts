@@ -493,6 +493,31 @@ export const runAction = async (
       }
     }
 
+    const createDeploymentIfRequired = async (params: {
+      dockerTag: string,
+      ref: string,
+    }) => {
+      if (config.deployments) {
+        for (const environment of config.deployments.environments) {
+          if (environment.branch === branch) {
+            info(`Creating ${environment.environment} deployment`);
+            await github.createDeployment({
+              auto_merge: false,
+              required_contexts: [],
+              environment: environment.environment,
+              payload: {
+                docker_tag: params.dockerTag
+              },
+              production_environment: mode === 'env-production',
+              transient_environment: false,
+              ref: params.ref,
+              task: 'deploy',
+            })
+          }
+        }
+      }
+    }
+
     // Handle the push as appropriate for the given branch
 
     if (mode === 'env-production' || mode === 'env-staging') {
@@ -534,6 +559,11 @@ export const runAction = async (
         checkTag: { mode: 'match', sha: tagSha }
       });
 
+      await createDeploymentIfRequired({
+        dockerTag: tag,
+        ref: tagSha,
+      });
+
       const mergebackBranch = `mergeback/${branch.substr(4)}/${version}`;
       info(`Creating and pushing mergeback Branch: ${mergebackBranch}`);
       await git.branch({ fs, dir, ref: mergebackBranch });
@@ -551,9 +581,14 @@ export const runAction = async (
       info(`Pull Request Opened, workflow complete`);
 
     } else if (mode === 'env-development') {
+      const tag = branch.replace(/\//g, '-');
       await buildAndPushDockerImage({
         checkBehaviour: 'overwrite',
-        tag: branch.replace(/\//g, '-')
+        tag
+      });
+      await createDeploymentIfRequired({
+        dockerTag: tag,
+        ref: head.oid,
       });
     } else if (mode === 'hotfix') {
       const pullRequest = await getUniquePullRequest();

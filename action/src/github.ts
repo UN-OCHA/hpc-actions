@@ -35,6 +35,16 @@ export interface GitHubController {
     pullRequestNumber: number;
     body: string;
   }) => Promise<void>;
+  createDeployment: ( params: {
+    ref: string,
+    task: string,
+    auto_merge: boolean,
+    required_contexts: [],
+    payload: any,
+    environment: string,
+    transient_environment: boolean,
+    production_environment: boolean,
+  }) => Promise<void>;
 }
 
 export type PullRequest = RestEndpointMethodTypes["pulls"]["list"]["response"]["data"][number];
@@ -87,6 +97,11 @@ export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
       repo,
       issue_number: pullRequestNumber,
       body,
+    }).then(() => { }),
+    createDeployment: async (params) => octokit.repos.createDeployment({
+      owner,
+      repo,
+      ...params,
     }).then(() => { }),
   };
 }
