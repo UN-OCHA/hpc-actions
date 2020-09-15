@@ -18,6 +18,10 @@ interface PullRequestParameters {
 }
 
 export interface GitHubController {
+  /**
+   * Return the User object for the GitHub Actions User
+   */
+  getAuthenticatedUser: () => Promise<RestEndpointMethodTypes["users"]["getAuthenticated"]["response"]>;
   openPullRequest: (params: PullRequestParameters) => Promise<void>;
   getOpenPullRequests: (params: {
     branch: string
@@ -25,6 +29,10 @@ export interface GitHubController {
   reviewPullRequest: (params: {
     pullRequestNumber: number;
     state: 'approve' | 'reject' | 'comment-only';
+    body: string;
+  }) => Promise<void>;
+  commentOnPullRequest: (params: {
+    pullRequestNumber: number;
     body: string;
   }) => Promise<void>;
 }
@@ -43,6 +51,7 @@ export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
   const [owner, repo] = repoSplit;
 
   return {
+    getAuthenticatedUser: () => octokit.users.getAuthenticated(),
     openPullRequest: async ({ base, head, title, labels }) => {
       const pull = await octokit.pulls.create({
         owner,
@@ -72,6 +81,12 @@ export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
       pull_number: pullRequestNumber,
       body,
       event: state === 'approve' ? 'APPROVE' : state === 'comment-only' ? 'COMMENT': 'REQUEST_CHANGES'
-    }).then(() => {}),
+    }).then(() => { }),
+    commentOnPullRequest: async ({ pullRequestNumber, body }) => octokit.issues.createComment({
+      owner,
+      repo,
+      issue_number: pullRequestNumber,
+      body,
+    }).then(() => { }),
   };
 }

@@ -2,7 +2,6 @@
 import * as child_process from 'child_process';
 import fs from 'fs';
 import git from 'isomorphic-git';
-import * as path from 'path';
 import { promisify } from 'util';
 import { Webhooks } from '@octokit/webhooks';
 
@@ -218,6 +217,14 @@ export const runAction = async (
     }
     const head = await git.readCommit({ fs, dir, oid: headShaAndVersion.sha});
 
+    /**
+     * Return true if this is a pull request created by the GitHub Actions user
+     */
+    const isSelfPullRequest = async (pr: PullRequest) => {
+      const self = await github.getAuthenticatedUser();
+      return pr.user?.id === self.data.id;
+    }
+
     const buildAndPushDockerImage = async (
       opts: {
         /**
@@ -356,16 +363,23 @@ export const runAction = async (
     }
 
     const failWithPRComment = async (opts: {
-      pullRequest: PullRequest,
+      pullRequest: PullRequest
       comment: string,
       error: string,
     }) => {
       const { pullRequest, comment, error} = opts;
-      github.reviewPullRequest({
-        pullRequestNumber: pullRequest.number,
-        body: comment,
-        state: 'reject',
-      });
+      if (await isSelfPullRequest(pullRequest)) {
+        await github.commentOnPullRequest({
+          pullRequestNumber: pullRequest.number,
+          body: comment,
+        });
+      } else {
+        await github.reviewPullRequest({
+          pullRequestNumber: pullRequest.number,
+          body: comment,
+          state: 'reject',
+        });
+      }
       throw new Error(error);
     }
 
@@ -453,22 +467,30 @@ export const runAction = async (
       });
     }
 
-    const commentOnPullRequestWithDockerInfo = (params: {
+    const commentOnPullRequestWithDockerInfo = async (params: {
       pullRequest: PullRequest;
       tag: string;
     }) => {
       const { pullRequest, tag } = params;
       // Post about successful
-      return github.reviewPullRequest({
-        pullRequestNumber: pullRequest.number,
-        body: (
-          `Docker image has been successfully built and pushed as: ` +
-          `\`${config.docker.repository}:${tag}\`\n\n` +
-          `Please deploy this image to a development environment, and test ` +
-          `it is working as expected before merging this pull request.`
-        ),
-        state: 'approve',
-      });
+      const body = (
+        `Docker image has been successfully built and pushed as: ` +
+        `\`${config.docker.repository}:${tag}\`\n\n` +
+        `Please deploy this image to a development environment, and test ` +
+        `it is working as expected before merging this pull request.`
+      );
+      if (await isSelfPullRequest(pullRequest)) {
+        return github.commentOnPullRequest({
+          pullRequestNumber: pullRequest.number,
+          body
+        });
+      } else {
+        return github.reviewPullRequest({
+          pullRequestNumber: pullRequest.number,
+          body,
+          state: 'approve',
+        });
+      }
     }
 
     // Handle the push as appropriate for the given branch
@@ -697,13 +719,22 @@ export const runAction = async (
 
       await runCICommands();
 
-      return github.reviewPullRequest({
-        pullRequestNumber: pullRequest.number,
-        body: (
-          `Checks have passed and this pull request is ready for manual review`
-        ),
-        state: 'approve',
-      });
+      if (await isSelfPullRequest(pullRequest)) {
+        return github.commentOnPullRequest({
+          pullRequestNumber: pullRequest.number,
+          body: (
+            `Checks have passed and this pull request is ready for manual review`
+          ),
+        });
+      } else {
+        return github.reviewPullRequest({
+          pullRequestNumber: pullRequest.number,
+          body: (
+            `Checks have passed and this pull request is ready for manual review`
+          ),
+          state: 'approve',
+        });
+      }
 
     }
 
