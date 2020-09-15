@@ -108,6 +108,76 @@ Array [
 ]
 `;
 
+exports[`action runAction push to hotfix/<name> branch Successful hotfix (self) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch hotfix/foo",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.1",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Skipping check for existing image with tag v1.2.1, building new image",
+  ],
+  Array [
+    "##[info] Image built, checking tag v1.2.1 still does not exist",
+  ],
+  Array [
+    "##[info] Tag has not been created, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Successful hotfix (self) 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "hotfix/foo",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Successful hotfix (self) 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "Docker image has been successfully built and pushed as: \`:v1.2.1\`
+
+Please deploy this image to a development environment, and test it is working as expected before merging this pull request.",
+      "pullRequestNumber": 321,
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to hotfix/<name> branch Successful hotfix (self) 4`] = `
+Object {
+  "getMetadata": Array [],
+  "pullImage": Array [],
+  "pushImage": Array [
+    Array [
+      "v1.2.1",
+    ],
+  ],
+}
+`;
+
 exports[`action runAction push to hotfix/<name> branch Successful hotfix 1`] = `
 Array [
   Array [
@@ -321,6 +391,40 @@ You must update this branch with a version bump before a docker image will be bu
 ]
 `;
 
+exports[`action runAction push to other branch Invalid PR against prod (self) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch some-feature-branch",
+  ],
+]
+`;
+
+exports[`action runAction push to other branch Invalid PR against prod (self) 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "some-feature-branch",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to other branch Invalid PR against prod (self) 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "Pull requests that modify \`env/prod\` must be either:
+
+* an update, merging \`env/staging\` into \`env/prod\`, or
+* a hotfix, merging \`hotfix/<name>\` into \`env/prod\`
+
+For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)",
+      "pullRequestNumber": 321,
+    },
+  ],
+]
+`;
+
 exports[`action runAction push to other branch Invalid PR against prod 1`] = `
 Array [
   Array [
@@ -386,6 +490,41 @@ Array [
 For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)",
       "pullRequestNumber": 321,
       "state": "reject",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to other branch Valid PR (self) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch some-feature-branch",
+  ],
+  Array [
+    "##[info] Running CI Checks",
+  ],
+  Array [
+    "##[info] CI Checks Complete",
+  ],
+]
+`;
+
+exports[`action runAction push to other branch Valid PR (self) 2`] = `
+Array [
+  Array [
+    Object {
+      "branch": "some-feature-branch",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to other branch Valid PR (self) 3`] = `
+Array [
+  Array [
+    Object {
+      "body": "Checks have passed and this pull request is ready for manual review",
+      "pullRequestNumber": 321,
     },
   ],
 ]
@@ -561,6 +700,127 @@ Array [
 `;
 
 exports[`action runAction push to other branch ci Command with nonzero exit code 3`] = `Array []`;
+
+exports[`action runAction push to production or staging env/prod deployments + mergeback match 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
+  ],
+  Array [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Creating prod deployment",
+  ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
+  ],
+  Array [
+    "##[info] Pull Request Opened, workflow complete",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod deployments + mergeback match 2`] = `
+Array [
+  Array [
+    Object {
+      "base": "env/staging",
+      "head": "mergeback/prod/1.2.0",
+      "labels": Array [
+        "some-label",
+      ],
+      "title": "Update env/staging with changes from env/prod",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod deployments + mergeback no-match 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
+  ],
+  Array [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
+  ],
+  Array [
+    "##[info] Pull Request Opened, workflow complete",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod deployments + mergeback no-match 2`] = `
+Array [
+  Array [
+    Object {
+      "base": "env/staging",
+      "head": "mergeback/prod/1.2.0",
+      "labels": Array [
+        "some-label",
+      ],
+      "title": "Update env/staging with changes from env/prod",
+    },
+  ],
+]
+`;
 
 exports[`action runAction push to production or staging env/prod docker Existing Image (different sha) 1`] = `
 Array [
@@ -853,6 +1113,127 @@ Array [
   ],
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging deployments + mergeback match 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
+  ],
+  Array [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Creating staging deployment",
+  ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
+  ],
+  Array [
+    "##[info] Pull Request Opened, workflow complete",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging deployments + mergeback match 2`] = `
+Array [
+  Array [
+    Object {
+      "base": "develop",
+      "head": "mergeback/staging/1.2.0",
+      "labels": Array [
+        "some-label",
+      ],
+      "title": "Update develop with changes from env/staging",
+    },
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging deployments + mergeback no-match 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+  ],
+  Array [
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
+  ],
+  Array [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+  Array [
+    "##[info] Image Pushed",
+  ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
+  ],
+  Array [
+    "##[info] Pull Request Opened, workflow complete",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging deployments + mergeback no-match 2`] = `
+Array [
+  Array [
+    Object {
+      "base": "develop",
+      "head": "mergeback/staging/1.2.0",
+      "labels": Array [
+        "some-label",
+      ],
+      "title": "Update develop with changes from env/staging",
+    },
   ],
 ]
 `;
