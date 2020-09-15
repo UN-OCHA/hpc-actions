@@ -84,6 +84,7 @@ describe('action', () => {
       getOpenPullRequests: () => Promise.reject(testCompleteError),
       reviewPullRequest: () => Promise.reject(testCompleteError),
       commentOnPullRequest: () => Promise.reject(testCompleteError),
+      createDeployment: () => Promise.reject(new Error('Not Implemented')),
     }
 
     const testCompleteDockerInit: DockerInit = () => testCompleteDockerController;
@@ -548,6 +549,138 @@ describe('action', () => {
                 tag: "v1.2.0",
                 meta
               }]]);
+            });
+          });
+
+          describe('deployments + mergeback', () => {
+
+            it('match', async () => {
+              const upstream = await util.createTmpDir();
+              const dir = await util.createTmpDir();
+              // Prepare upstream repository
+              await git.init({ fs, dir: upstream });
+              await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+                version: "1.2.0"
+              }));
+              await git.add({ fs, dir: upstream, filepath: 'package.json' });
+              await setAuthor(upstream);
+              await exec(`git commit -m package`, { cwd: upstream });
+              await git.branch({ fs, dir: upstream, ref: `env/${env}` });
+              // Clone into repo we'll run in, and create appropriate branch
+              await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
+              // Run action
+              const config: Config = {
+                ...DEFAULT_CONFIG,
+                deployments: {
+                  environments: [{
+                    branch: `env/${env}`,
+                    environment: env,
+                  }]
+                }
+              };
+              await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(config));
+              await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+                ref: `refs/heads/env/${env}`
+              }));
+              const logger = util.newLogger();
+              // Prepare GitHub mock
+              const openPullRequest = jest.fn().mockResolvedValue(null);
+              const createDeployment = jest.fn().mockResolvedValue(null);
+              await action.runAction({
+                env: DEFAULT_ENV,
+                dir,
+                logger,
+                dockerInit: () => ({
+                  login: () => Promise.resolve(),
+                  pullImage: jest.fn().mockResolvedValue(false),
+                  getMetadata: () => Promise.reject(new Error('unexpected')),
+                  runBuild: jest.fn().mockResolvedValue(null),
+                  pushImage: jest.fn().mockResolvedValue(null),
+                }),
+                gitHubInit: () => ({
+                  ...testCompleteGitHub,
+                  openPullRequest,
+                  createDeployment,
+                }),
+              });
+              expect(logger.log.mock.calls).toMatchSnapshot();
+              expect(openPullRequest.mock.calls).toMatchSnapshot();
+              expect(createDeployment.mock.calls).toEqual([[{
+                auto_merge: false,
+                environment: env,
+                payload: {
+                  docker_tag: 'v1.2.0'
+                },
+                production_environment: env === 'prod',
+                // TODO: test this more thoroughly
+                // (including getting from existing image)
+                ref: expect.any(String),
+                required_contexts: [],
+                task: 'deploy',
+                transient_environment: false,
+              }]]);
+              // Check expected mergeback branch has been pushed to remote
+              const shaA = await git.resolveRef({ fs, dir: upstream, ref: `refs/heads/mergeback/${env}/1.2.0` });
+              const shaB = await git.resolveRef({ fs, dir: upstream, ref: `refs/heads/env/${env}` });
+              expect(shaA).toEqual(shaB);
+            });
+
+            it('no-match', async () => {
+              const upstream = await util.createTmpDir();
+              const dir = await util.createTmpDir();
+              // Prepare upstream repository
+              await git.init({ fs, dir: upstream });
+              await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+                version: "1.2.0"
+              }));
+              await git.add({ fs, dir: upstream, filepath: 'package.json' });
+              await setAuthor(upstream);
+              await exec(`git commit -m package`, { cwd: upstream });
+              await git.branch({ fs, dir: upstream, ref: `env/${env}` });
+              // Clone into repo we'll run in, and create appropriate branch
+              await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
+              // Run action
+              const config: Config = {
+                ...DEFAULT_CONFIG,
+                deployments: {
+                  environments: [{
+                    branch: `another-branch`,
+                    environment: env,
+                  }]
+                }
+              };
+              await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(config));
+              await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+                ref: `refs/heads/env/${env}`
+              }));
+              const logger = util.newLogger();
+              // Prepare GitHub mock
+              const openPullRequest = jest.fn().mockResolvedValue(null);
+              const createDeployment = jest.fn().mockResolvedValue(null);
+              await action.runAction({
+                env: DEFAULT_ENV,
+                dir,
+                logger,
+                dockerInit: () => ({
+                  login: () => Promise.resolve(),
+                  pullImage: jest.fn().mockResolvedValue(false),
+                  getMetadata: () => Promise.reject(new Error('unexpected')),
+                  runBuild: jest.fn().mockResolvedValue(null),
+                  pushImage: jest.fn().mockResolvedValue(null),
+                }),
+                gitHubInit: () => ({
+                  ...testCompleteGitHub,
+                  openPullRequest,
+                  createDeployment,
+                }),
+              });
+              expect(logger.log.mock.calls).toMatchSnapshot();
+              expect(openPullRequest.mock.calls).toMatchSnapshot();
+              expect(createDeployment.mock.calls).toEqual([]);
+              // Check expected mergeback branch has been pushed to remote
+              const shaA = await git.resolveRef({ fs, dir: upstream, ref: `refs/heads/mergeback/${env}/1.2.0` });
+              const shaB = await git.resolveRef({ fs, dir: upstream, ref: `refs/heads/env/${env}` });
+              expect(shaA).toEqual(shaB);
             });
           });
 
