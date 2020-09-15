@@ -25047,6 +25047,14 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
             throw new Error('incorrect branch currently checked-out');
         }
         const head = await isomorphic_git_1.default.readCommit({ fs: fs_1.default, dir, oid: headShaAndVersion.sha });
+        /**
+         * Return true if this is a pull request created by the GitHub Actions user
+         */
+        const isSelfPullRequest = async (pr) => {
+            var _a;
+            const self = await github.getAuthenticatedUser();
+            return ((_a = pr.user) === null || _a === void 0 ? void 0 : _a.id) === self.data.id;
+        };
         const buildAndPushDockerImage = async (opts) => {
             var _a, _b;
             const { tag, checkBehaviour } = opts;
@@ -25148,11 +25156,19 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
         };
         const failWithPRComment = async (opts) => {
             const { pullRequest, comment, error } = opts;
-            github.reviewPullRequest({
-                pullRequestNumber: pullRequest.number,
-                body: comment,
-                state: 'reject',
-            });
+            if (await isSelfPullRequest(pullRequest)) {
+                await github.commentOnPullRequest({
+                    pullRequestNumber: pullRequest.number,
+                    body: comment,
+                });
+            }
+            else {
+                await github.reviewPullRequest({
+                    pullRequestNumber: pullRequest.number,
+                    body: comment,
+                    state: 'reject',
+                });
+            }
             throw new Error(error);
         };
         /**
@@ -25221,17 +25237,26 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 },
             });
         };
-        const commentOnPullRequestWithDockerInfo = (params) => {
+        const commentOnPullRequestWithDockerInfo = async (params) => {
             const { pullRequest, tag } = params;
             // Post about successful
-            return github.reviewPullRequest({
-                pullRequestNumber: pullRequest.number,
-                body: (`Docker image has been successfully built and pushed as: ` +
-                    `\`${config.docker.repository}:${tag}\`\n\n` +
-                    `Please deploy this image to a development environment, and test ` +
-                    `it is working as expected before merging this pull request.`),
-                state: 'approve',
-            });
+            const body = (`Docker image has been successfully built and pushed as: ` +
+                `\`${config.docker.repository}:${tag}\`\n\n` +
+                `Please deploy this image to a development environment, and test ` +
+                `it is working as expected before merging this pull request.`);
+            if (await isSelfPullRequest(pullRequest)) {
+                return github.commentOnPullRequest({
+                    pullRequestNumber: pullRequest.number,
+                    body
+                });
+            }
+            else {
+                return github.reviewPullRequest({
+                    pullRequestNumber: pullRequest.number,
+                    body,
+                    state: 'approve',
+                });
+            }
         };
         // Handle the push as appropriate for the given branch
         if (mode === 'env-production' || mode === 'env-staging') {
@@ -25420,11 +25445,19 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 });
             }
             await runCICommands();
-            return github.reviewPullRequest({
-                pullRequestNumber: pullRequest.number,
-                body: (`Checks have passed and this pull request is ready for manual review`),
-                state: 'approve',
-            });
+            if (await isSelfPullRequest(pullRequest)) {
+                return github.commentOnPullRequest({
+                    pullRequestNumber: pullRequest.number,
+                    body: (`Checks have passed and this pull request is ready for manual review`),
+                });
+            }
+            else {
+                return github.reviewPullRequest({
+                    pullRequestNumber: pullRequest.number,
+                    body: (`Checks have passed and this pull request is ready for manual review`),
+                    state: 'approve',
+                });
+            }
         }
     }
 };
@@ -33407,6 +33440,7 @@ exports.REAL_GITHUB = ({ token, githubRepo }) => {
     }
     const [owner, repo] = repoSplit;
     return {
+        getAuthenticatedUser: () => octokit.users.getAuthenticated(),
         openPullRequest: async ({ base, head, title, labels }) => {
             const pull = await octokit.pulls.create({
                 owner,
@@ -33436,6 +33470,12 @@ exports.REAL_GITHUB = ({ token, githubRepo }) => {
             pull_number: pullRequestNumber,
             body,
             event: state === 'approve' ? 'APPROVE' : state === 'comment-only' ? 'COMMENT' : 'REQUEST_CHANGES'
+        }).then(() => { }),
+        commentOnPullRequest: async ({ pullRequestNumber, body }) => octokit.issues.createComment({
+            owner,
+            repo,
+            issue_number: pullRequestNumber,
+            body,
         }).then(() => { }),
     };
 };
