@@ -24932,6 +24932,8 @@ const config_1 = __webpack_require__(291);
 const docker_1 = __webpack_require__(197);
 const github_1 = __webpack_require__(812);
 const exec = util_1.promisify(child_process.exec);
+const GITHUB_ACTIONS_USER_ID = 41898282;
+const GITHUB_ACTIONS_USER_LOGIN = 'github-actions';
 const BRANCH_EXTRACT = /^refs\/heads\/(.*)$/;
 const determineMode = (config, branch) => {
     if (branch === 'env/prod') {
@@ -25071,10 +25073,11 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
         /**
          * Return true if this is a pull request created by the GitHub Actions user
          */
-        const isSelfPullRequest = async (pr) => {
-            var _a;
-            const self = await github.getAuthenticatedUser();
-            return ((_a = pr.user) === null || _a === void 0 ? void 0 : _a.id) === self.data.id;
+        const isSelfPullRequest = (pr) => {
+            var _a, _b, _c;
+            return (((_a = pr.user) === null || _a === void 0 ? void 0 : _a.id) === GITHUB_ACTIONS_USER_ID ||
+                (((_b = pr.user) === null || _b === void 0 ? void 0 : _b.login.startsWith(GITHUB_ACTIONS_USER_LOGIN)) &&
+                    ((_c = pr.user) === null || _c === void 0 ? void 0 : _c.type.toLowerCase()) === 'bot'));
         };
         const buildAndPushDockerImage = async (opts) => {
             var _a, _b;
@@ -25177,7 +25180,7 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
         };
         const failWithPRComment = async (opts) => {
             const { pullRequest, comment, error } = opts;
-            if (await isSelfPullRequest(pullRequest)) {
+            if (isSelfPullRequest(pullRequest)) {
                 await github.commentOnPullRequest({
                     pullRequestNumber: pullRequest.number,
                     body: comment,
@@ -25265,7 +25268,7 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 `\`${config.docker.repository}:${tag}\`\n\n` +
                 `Please deploy this image to a development environment, and test ` +
                 `it is working as expected before merging this pull request.`);
-            if (await isSelfPullRequest(pullRequest)) {
+            if (isSelfPullRequest(pullRequest)) {
                 return github.commentOnPullRequest({
                     pullRequestNumber: pullRequest.number,
                     body
@@ -25496,7 +25499,7 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 });
             }
             await runCICommands();
-            if (await isSelfPullRequest(pullRequest)) {
+            if (isSelfPullRequest(pullRequest)) {
                 return github.commentOnPullRequest({
                     pullRequestNumber: pullRequest.number,
                     body: (`Checks have passed and this pull request is ready for manual review`),
@@ -33491,7 +33494,6 @@ exports.REAL_GITHUB = ({ token, githubRepo }) => {
     }
     const [owner, repo] = repoSplit;
     return {
-        getAuthenticatedUser: () => octokit.users.getAuthenticated(),
         openPullRequest: async ({ base, head, title, labels }) => {
             const pull = await octokit.pulls.create({
                 owner,
