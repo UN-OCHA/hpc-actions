@@ -75,11 +75,6 @@ describe('action', () => {
     }
 
     const testCompleteGitHub: GitHubController = {
-      getAuthenticatedUser: () => Promise.resolve({
-        data: {
-          id: 123
-        }
-      } as any),
       openPullRequest: () => Promise.reject(testCompleteError),
       getOpenPullRequests: () => Promise.reject(testCompleteError),
       reviewPullRequest: () => Promise.reject(testCompleteError),
@@ -1340,7 +1335,7 @@ describe('action', () => {
           data: [{
             number: 321,
             base: { ref: 'env/prod' },
-            user: { id: 123 },
+            user: { id: 41898282 },
           }]
         });
         const reviewPullRequest = jest.fn().mockResolvedValue(null);
@@ -1733,6 +1728,8 @@ describe('action', () => {
             base: { ref: 'env/prod' },
             user: {
               id: 123,
+              login: 'github-actions[some thing]',
+              type: 'Bot',
             },
           }]
         });
@@ -1835,7 +1832,7 @@ describe('action', () => {
             number: 321,
             base: { ref: 'develop' },
             user: {
-              id: 123
+              id: 41898282
             }
           }]
         });
