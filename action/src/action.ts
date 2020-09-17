@@ -13,6 +13,9 @@ import { GitHubInit, REAL_GITHUB, PullRequest } from './github';
 
 const exec = promisify(child_process.exec);
 
+const GITHUB_ACTIONS_USER_ID = 41898282;
+const GITHUB_ACTIONS_USER_LOGIN = 'github-actions';
+
 interface Params {
   /**
    * The environment variables received by the process
@@ -220,10 +223,13 @@ export const runAction = async (
     /**
      * Return true if this is a pull request created by the GitHub Actions user
      */
-    const isSelfPullRequest = async (pr: PullRequest) => {
-      const self = await github.getAuthenticatedUser();
-      return pr.user?.id === self.data.id;
-    }
+    const isSelfPullRequest = (pr: PullRequest) => (
+      pr.user?.id === GITHUB_ACTIONS_USER_ID ||
+      (
+        pr.user?.login.startsWith(GITHUB_ACTIONS_USER_LOGIN) &&
+        pr.user?.type.toLowerCase() === 'bot'
+      )
+    );
 
     const buildAndPushDockerImage = async (
       opts: {
@@ -368,7 +374,7 @@ export const runAction = async (
       error: string,
     }) => {
       const { pullRequest, comment, error} = opts;
-      if (await isSelfPullRequest(pullRequest)) {
+      if (isSelfPullRequest(pullRequest)) {
         await github.commentOnPullRequest({
           pullRequestNumber: pullRequest.number,
           body: comment,
@@ -479,7 +485,7 @@ export const runAction = async (
         `Please deploy this image to a development environment, and test ` +
         `it is working as expected before merging this pull request.`
       );
-      if (await isSelfPullRequest(pullRequest)) {
+      if (isSelfPullRequest(pullRequest)) {
         return github.commentOnPullRequest({
           pullRequestNumber: pullRequest.number,
           body
@@ -754,7 +760,7 @@ export const runAction = async (
 
       await runCICommands();
 
-      if (await isSelfPullRequest(pullRequest)) {
+      if (isSelfPullRequest(pullRequest)) {
         return github.commentOnPullRequest({
           pullRequestNumber: pullRequest.number,
           body: (

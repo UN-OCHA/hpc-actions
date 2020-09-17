@@ -18,10 +18,6 @@ interface PullRequestParameters {
 }
 
 export interface GitHubController {
-  /**
-   * Return the User object for the GitHub Actions User
-   */
-  getAuthenticatedUser: () => Promise<RestEndpointMethodTypes["users"]["getAuthenticated"]["response"]>;
   openPullRequest: (params: PullRequestParameters) => Promise<void>;
   getOpenPullRequests: (params: {
     branch: string
@@ -61,7 +57,6 @@ export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
   const [owner, repo] = repoSplit;
 
   return {
-    getAuthenticatedUser: () => octokit.users.getAuthenticated(),
     openPullRequest: async ({ base, head, title, labels }) => {
       const pull = await octokit.pulls.create({
         owner,
