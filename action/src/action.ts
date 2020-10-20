@@ -278,12 +278,13 @@ export const runAction = async (
           | { mode: 'match'; sha: string }
           | {
             mode: 'non-existant';
+            gitTag: string;
             /**
              * run this callback when the constraint is not met.
              *
              * This allows for a custom error message to be posted to GitHub
              */
-            onError: () => Promise<void>;
+            onError?: () => Promise<void>;
           },
       }
     ) => {
@@ -374,13 +375,18 @@ export const runAction = async (
           info(`Tag is unchanged, okay to continue`);
         }
       } else if(opts.checkTag?.mode === 'non-existant') {
+        const tag = opts.checkTag.gitTag;
         info(`Image built, checking tag ${tag} still does not exist`);
         const exists =
           await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })
           .then(() => true)
           .catch(() => false);
         if (exists) {
-          await opts.checkTag.onError();
+          if (opts.checkTag.onError) {
+            await opts.checkTag.onError();
+          } else {
+            throw new Error(`Tag ${tag} now exists, aborting`);
+          }
         } else {
           info(`Tag has not been created, okay to continue`);
         }
@@ -501,18 +507,26 @@ export const runAction = async (
     }
 
     const buildAndPushDockerImageForReleaseOrHotfix = (params: {
+      /**
+       * The docker tag to use
+       */
       tag: string;
+      /**
+       * The git tag to ensure doesn't exist before pushing the image
+       */
+      gitTag: string;
       pullRequest: PullRequest;
     }) => {
-      const { tag, pullRequest } = params;
+      const { tag, gitTag, pullRequest } = params;
 
       return buildAndPushDockerImage({
         checkBehaviour: null,
         tag,
         checkTag: {
           mode: 'non-existant',
+          gitTag,
           onError: () => failWithPRComment({
-            error: `Tag ${tag} has been created, aborting`,
+            error: `Tag ${gitTag} has been created, aborting`,
             pullRequest,
             comment: (
               `During the build of the docker image, the tag ${tag} was ` +
@@ -633,7 +647,11 @@ export const runAction = async (
             checkStrict: false,
             alsoCheck: [tag],
           },
-          tag: preTag
+          tag: preTag,
+          checkTag: {
+            mode: 'non-existant',
+            gitTag: tag
+          }
         });
         deploymentSha = head.oid;
       }
@@ -732,6 +750,7 @@ export const runAction = async (
 
       await buildAndPushDockerImageForReleaseOrHotfix({
         tag: dockerTag,
+        gitTag: tag,
         pullRequest
       });
 
@@ -798,6 +817,7 @@ export const runAction = async (
 
       await buildAndPushDockerImageForReleaseOrHotfix({
         tag: dockerTag,
+        gitTag: tag,
         pullRequest
       });
 
