@@ -120,7 +120,7 @@ Array [
     "##[info] Logging in to docker",
   ],
   Array [
-    "##[info] Skipping check for existing image with tag v1.2.1, building new image",
+    "##[info] Skipping check for existing image with tag v1.2.1-pre, building new image",
   ],
   Array [
     "##[info] Image built, checking tag v1.2.1 still does not exist",
@@ -157,7 +157,7 @@ exports[`action runAction push to hotfix/<name> branch Successful hotfix (self) 
 Array [
   Array [
     Object {
-      "body": "Docker image has been successfully built and pushed as: \`:v1.2.1\`
+      "body": "Docker image has been successfully built and pushed as: \`:v1.2.1-pre\`
 
 Please deploy this image to a development environment, and test it is working as expected before merging this pull request.",
       "pullRequestNumber": 321,
@@ -172,9 +172,10 @@ Object {
   "pullImage": Array [],
   "pushImage": Array [
     Array [
-      "v1.2.1",
+      "v1.2.1-pre",
     ],
   ],
+  "retagImage": Array [],
 }
 `;
 
@@ -190,7 +191,7 @@ Array [
     "##[info] Logging in to docker",
   ],
   Array [
-    "##[info] Skipping check for existing image with tag v1.2.1, building new image",
+    "##[info] Skipping check for existing image with tag v1.2.1-pre, building new image",
   ],
   Array [
     "##[info] Image built, checking tag v1.2.1 still does not exist",
@@ -227,7 +228,7 @@ exports[`action runAction push to hotfix/<name> branch Successful hotfix 3`] = `
 Array [
   Array [
     Object {
-      "body": "Docker image has been successfully built and pushed as: \`:v1.2.1\`
+      "body": "Docker image has been successfully built and pushed as: \`:v1.2.1-pre\`
 
 Please deploy this image to a development environment, and test it is working as expected before merging this pull request.",
       "pullRequestNumber": 321,
@@ -243,9 +244,10 @@ Object {
   "pullImage": Array [],
   "pushImage": Array [
     Array [
-      "v1.2.1",
+      "v1.2.1-pre",
     ],
   ],
+  "retagImage": Array [],
 }
 `;
 
@@ -298,7 +300,7 @@ Array [
     "##[info] Logging in to docker",
   ],
   Array [
-    "##[info] Skipping check for existing image with tag v1.2.1, building new image",
+    "##[info] Skipping check for existing image with tag v1.2.1-pre, building new image",
   ],
   Array [
     "##[info] Image built, checking tag v1.2.1 still does not exist",
@@ -320,7 +322,7 @@ exports[`action runAction push to hotfix/<name> branch Tag created during build 
 Array [
   Array [
     Object {
-      "body": "During the build of the docker image, the tag v1.2.1 was created, and so the workflow has been aborted, and the docker image has not been pushed.
+      "body": "During the build of the docker image, the tag v1.2.1-pre was created, and so the workflow has been aborted, and the docker image has not been pushed.
 
 Please chose a new version and update the pull request.",
       "pullRequestNumber": 321,
@@ -335,6 +337,7 @@ Object {
   "getMetadata": Array [],
   "pullImage": Array [],
   "pushImage": Array [],
+  "retagImage": Array [],
 }
 `;
 
@@ -719,7 +722,16 @@ Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
   Array [
-    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+    "##[info] Image with tag v1.2.0 does not yet exist",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0-pre",
+  ],
+  Array [
+    "##[info] No image exists with this tag",
+  ],
+  Array [
+    "##[info] Building new image",
   ],
   Array [
     "##[info] Image built, checking tag v1.2.0 is unchanged",
@@ -781,7 +793,16 @@ Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
   Array [
-    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+    "##[info] Image with tag v1.2.0 does not yet exist",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0-pre",
+  ],
+  Array [
+    "##[info] No image exists with this tag",
+  ],
+  Array [
+    "##[info] Building new image",
   ],
   Array [
     "##[info] Image built, checking tag v1.2.0 is unchanged",
@@ -901,7 +922,16 @@ Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
   Array [
-    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+    "##[info] Image with tag v1.2.0 does not yet exist",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0-pre",
+  ],
+  Array [
+    "##[info] No image exists with this tag",
+  ],
+  Array [
+    "##[info] Building new image",
   ],
   Array [
     "##[info] Image built, checking tag v1.2.0 is unchanged",
@@ -916,8 +946,12 @@ Object {
     Array [
       "v1.2.0",
     ],
+    Array [
+      "v1.2.0-pre",
+    ],
   ],
   "pushImage": Array [],
+  "retagImage": Array [],
 }
 `;
 
@@ -939,7 +973,16 @@ Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
   Array [
-    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+    "##[info] Image with tag v1.2.0 does not yet exist",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0-pre",
+  ],
+  Array [
+    "##[info] No image exists with this tag",
+  ],
+  Array [
+    "##[info] Building new image",
   ],
   Array [
     "##[info] Image built, checking tag v1.2.0 is unchanged",
@@ -969,12 +1012,16 @@ Object {
     Array [
       "v1.2.0",
     ],
+    Array [
+      "v1.2.0-pre",
+    ],
   ],
   "pushImage": Array [
     Array [
       "v1.2.0",
     ],
   ],
+  "retagImage": Array [],
 }
 `;
 
@@ -996,7 +1043,16 @@ Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
   Array [
-    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+    "##[info] Image with tag v1.2.0 does not yet exist",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0-pre",
+  ],
+  Array [
+    "##[info] No image exists with this tag",
+  ],
+  Array [
+    "##[info] Building new image",
   ],
   Array [
     "##[info] Image built, checking tag v1.2.0 is unchanged",
@@ -1126,22 +1182,22 @@ Array [
     "##[info] Checking if there is an existing tag for v1.2.0",
   ],
   Array [
-    "##[info] Creating and pushing new tag v1.2.0",
-  ],
-  Array [
     "##[info] Logging in to docker",
   ],
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
   Array [
-    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+    "##[info] No image exists with this tag",
   ],
   Array [
-    "##[info] Image built, checking tag v1.2.0 is unchanged",
+    "##[info] Building new image",
   ],
   Array [
-    "##[info] Tag is unchanged, okay to continue",
+    "##[info] Image built, checking tag v1.2.0 still does not exist",
+  ],
+  Array [
+    "##[info] Tag has not been created, okay to continue",
   ],
   Array [
     "##[info] Pushing image to docker repository",
@@ -1188,22 +1244,22 @@ Array [
     "##[info] Checking if there is an existing tag for v1.2.0",
   ],
   Array [
-    "##[info] Creating and pushing new tag v1.2.0",
-  ],
-  Array [
     "##[info] Logging in to docker",
   ],
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
   Array [
-    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+    "##[info] No image exists with this tag",
   ],
   Array [
-    "##[info] Image built, checking tag v1.2.0 is unchanged",
+    "##[info] Building new image",
   ],
   Array [
-    "##[info] Tag is unchanged, okay to continue",
+    "##[info] Image built, checking tag v1.2.0 still does not exist",
+  ],
+  Array [
+    "##[info] Tag has not been created, okay to continue",
   ],
   Array [
     "##[info] Pushing image to docker repository",
@@ -1238,45 +1294,6 @@ Array [
 ]
 `;
 
-exports[`action runAction push to production or staging env/staging docker Existing Image (different sha) 1`] = `
-Array [
-  Array [
-    "##[info] Handling push to branch env/staging",
-  ],
-  Array [
-    "##[info] Checking if there is an existing tag for v1.2.0",
-  ],
-  Array [
-    "##[info] Creating and pushing new tag v1.2.0",
-  ],
-  Array [
-    "##[info] Logging in to docker",
-  ],
-  Array [
-    "##[info] Checking for existing docker image with tag v1.2.0",
-  ],
-  Array [
-    "##[info] Image already exists, checking it was built with same git tree",
-  ],
-]
-`;
-
-exports[`action runAction push to production or staging env/staging docker Existing Image (different sha) 2`] = `
-Array [
-  Array [
-    "v1.2.0",
-  ],
-]
-`;
-
-exports[`action runAction push to production or staging env/staging docker Existing Image (different sha) 3`] = `
-Array [
-  Array [
-    "v1.2.0",
-  ],
-]
-`;
-
 exports[`action runAction push to production or staging env/staging docker Existing Image (matching sha) 1`] = `
 Array [
   Array [
@@ -1284,9 +1301,6 @@ Array [
   ],
   Array [
     "##[info] Checking if there is an existing tag for v1.2.0",
-  ],
-  Array [
-    "##[info] Creating and pushing new tag v1.2.0",
   ],
   Array [
     "##[info] Logging in to docker",
@@ -1308,19 +1322,19 @@ Array [
     "##[info] Checking if there is an existing tag for v1.2.0",
   ],
   Array [
-    "##[info] Creating and pushing new tag v1.2.0",
-  ],
-  Array [
     "##[info] Logging in to docker",
   ],
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
   Array [
-    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+    "##[info] No image exists with this tag",
   ],
   Array [
-    "##[info] Image built, checking tag v1.2.0 is unchanged",
+    "##[info] Building new image",
+  ],
+  Array [
+    "##[info] Image built, checking tag v1.2.0 still does not exist",
   ],
 ]
 `;
@@ -1334,6 +1348,7 @@ Object {
     ],
   ],
   "pushImage": Array [],
+  "retagImage": Array [],
 }
 `;
 
@@ -1346,22 +1361,22 @@ Array [
     "##[info] Checking if there is an existing tag for v1.2.0",
   ],
   Array [
-    "##[info] Creating and pushing new tag v1.2.0",
-  ],
-  Array [
     "##[info] Logging in to docker",
   ],
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
   Array [
-    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+    "##[info] No image exists with this tag",
   ],
   Array [
-    "##[info] Image built, checking tag v1.2.0 is unchanged",
+    "##[info] Building new image",
   ],
   Array [
-    "##[info] Tag is unchanged, okay to continue",
+    "##[info] Image built, checking tag v1.2.0 still does not exist",
+  ],
+  Array [
+    "##[info] Tag has not been created, okay to continue",
   ],
   Array [
     "##[info] Pushing image to docker repository",
@@ -1388,9 +1403,10 @@ Object {
   ],
   "pushImage": Array [
     Array [
-      "v1.2.0",
+      "v1.2.0-pre",
     ],
   ],
+  "retagImage": Array [],
 }
 `;
 
@@ -1403,22 +1419,22 @@ Array [
     "##[info] Checking if there is an existing tag for v1.2.0",
   ],
   Array [
-    "##[info] Creating and pushing new tag v1.2.0",
-  ],
-  Array [
     "##[info] Logging in to docker",
   ],
   Array [
     "##[info] Checking for existing docker image with tag v1.2.0",
   ],
   Array [
-    "##[info] Image with tag v1.2.0 does not yet exist, building image",
+    "##[info] No image exists with this tag",
   ],
   Array [
-    "##[info] Image built, checking tag v1.2.0 is unchanged",
+    "##[info] Building new image",
   ],
   Array [
-    "##[info] Tag is unchanged, okay to continue",
+    "##[info] Image built, checking tag v1.2.0 still does not exist",
+  ],
+  Array [
+    "##[info] Tag has not been created, okay to continue",
   ],
   Array [
     "##[info] Pushing image to docker repository",
@@ -1522,9 +1538,6 @@ Array [
     "##[info] Checking if there is an existing tag for v1.2.0",
   ],
   Array [
-    "##[info] Creating and pushing new tag v1.2.0",
-  ],
-  Array [
     "##[info] Logging in to docker",
   ],
   Array [
@@ -1578,7 +1591,7 @@ Array [
     "##[info] Logging in to docker",
   ],
   Array [
-    "##[info] Skipping check for existing image with tag v1.2.1, building new image",
+    "##[info] Skipping check for existing image with tag v1.2.1-pre, building new image",
   ],
   Array [
     "##[info] Image built, checking tag v1.2.1 still does not exist",
@@ -1615,7 +1628,7 @@ exports[`action runAction push to release/<name> branch Successful release 3`] =
 Array [
   Array [
     Object {
-      "body": "Docker image has been successfully built and pushed as: \`:v1.2.1\`
+      "body": "Docker image has been successfully built and pushed as: \`:v1.2.1-pre\`
 
 Please deploy this image to a development environment, and test it is working as expected before merging this pull request.",
       "pullRequestNumber": 321,
@@ -1631,9 +1644,10 @@ Object {
   "pullImage": Array [],
   "pushImage": Array [
     Array [
-      "v1.2.1",
+      "v1.2.1-pre",
     ],
   ],
+  "retagImage": Array [],
 }
 `;
 
