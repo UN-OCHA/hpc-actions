@@ -124,12 +124,17 @@ must be followed:
   * Push this branch to GitHub.
   * Open a pull request that merges `release/<version>` into the staging branch
     (either `env/stage` or `env/staging` as neccesary).
-  * Once checks pass, merge the pull request, this will automatically:
+  * Restart the workflow if neccesary, this will:
+    * Build the image with the new tag, and push it to DockerHub
+    * Run the CI / Unit Tests
+    * Post a comment on the pull request when the workflow has finished successfully
+  * Deploy the image to stage using the appropriate method
+  * Test the deployment,
+    once everything has been confirmed as working as expected, merge the
+    pull request, this will automatically:
     * Create the tag / release on GitHub
-    * Trigger a build of the docker image in GitHub Actions
     * Open a "mergeback" Pull Request, to merge the changes back into `develop`.
-  * After docker image build is complete,
-    deploy to the environment using the appropriate method.
+      * Please approve and merge this pull request ASAP
 
 * **Production Environment:**
 
@@ -144,10 +149,12 @@ must be followed:
       `env/<stage|staging>`, at which point the conflicts should be solved.
   * Once checks pass, merge the pull request, this will:
     * Create the tag / release on GitHub (if neccesary).
-    * Trigger a build of the docker image in GitHub Actions (if neccesary).
+    * Trigger a build of the docker image in GitHub Actions
+      (if neccesary, usually not as it should reuse the image on stage).
     * Open a "mergeback" Pull Request, to merge the changes back into develop.
-  * After docker image build is complete,
-    deploy to the environment using the appropriate method.
+  * After the checks are complete:
+    * deploy to the environment using the appropriate method.
+    * Approve and merge the mergeback PR
 
 ### Hotfixes
 
