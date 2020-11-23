@@ -102,8 +102,8 @@ must be followed:
     git merge --no-ff origin/HPC-123 origin/HPC-321 # Create a merge commit with all the pull requests
     ```
 
-    (remember to make the appropriate changes so that you're using the right
-    environment, and including the required pull requests)
+    (remember to make the appropriate changes to the above commands so that
+    you're using the right environment, and including the required pull requests)
   * Force push this commit to the development environment:
 
     * ```bash
