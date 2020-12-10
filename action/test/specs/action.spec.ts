@@ -356,20 +356,26 @@ describe('action', () => {
                 commitSha: head.oid,
                 treeSha: head.commit.tree,
               };
-              const checkExistingImage = jest.fn().mockResolvedValue(meta);
+              const pullImage = jest.fn().mockResolvedValue(true);
+              const getMetadata = jest.fn().mockResolvedValue(meta);
+              const retagImage = jest.fn().mockResolvedValue(true);
               await action.runAction({
                 env: DEFAULT_ENV,
                 dir,
                 logger,
                 dockerInit: () => ({
                   ...testCompleteDockerController,
-                  checkExistingImage
+                  pullImage,
+                  getMetadata,
+                  retagImage,
                 }),
                 gitHubInit: testCompleteGitHubInit,
               }).then(() => Promise.reject(new Error('Expected error to be thrown')))
                 .catch(err => expect(err).toBe(testCompleteError));
               expect(logger.log.mock.calls).toMatchSnapshot();
-              expect(checkExistingImage.mock.calls).toMatchSnapshot();
+              expect(pullImage.mock.calls.map(call => [call[0]])).toMatchSnapshot();
+              expect(getMetadata.mock.calls).toMatchSnapshot();
+              expect(retagImage.mock.calls).toMatchSnapshot();
             });
 
             if (env === 'prod') {
@@ -395,8 +401,6 @@ describe('action', () => {
                 }));
                 const logger = util.newLogger();
                 // Prepare docker mock
-                const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
-                const head = await git.readCommit({ fs, dir, oid: sha });
                 const meta: DockerImageMetadata = {
                   commitSha: 'foo',
                   treeSha: 'bar',
@@ -423,6 +427,100 @@ describe('action', () => {
                 expect(getMetadata.mock.calls).toMatchSnapshot();
               });
             }
+
+            it('Existing Pre-Release Image (matching sha)', async () => {
+              const upstream = await util.createTmpDir();
+              const dir = await util.createTmpDir();
+              // Prepare upstream repository
+              await git.init({ fs, dir: upstream });
+              await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+                version: "1.2.0"
+              }));
+              await git.add({ fs, dir: upstream, filepath: 'package.json' });
+              await setAuthor(upstream);
+              await exec(`git commit -m package`, { cwd: upstream });
+              await git.branch({ fs, dir: upstream, ref: `env/${env}` });
+              // Clone into repo we'll run in, and create appropriate branch
+              await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
+              // Run action
+              await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+              await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+                ref: `refs/heads/env/${env}`
+              }));
+              const logger = util.newLogger();
+              // Prepare docker mock
+              const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
+              const head = await git.readCommit({ fs, dir, oid: sha });
+              const meta: DockerImageMetadata = {
+                commitSha: head.oid,
+                treeSha: head.commit.tree,
+              };
+              const pullImage = jest.fn().mockResolvedValue(true);
+              const getMetadata = jest.fn().mockImplementation(async (tag: string) => 
+                tag === 'v1.2.0-pre' ? meta : null
+              );
+              await action.runAction({
+                env: DEFAULT_ENV,
+                dir,
+                logger,
+                dockerInit: () => ({
+                  ...testCompleteDockerController,
+                  pullImage,
+                  getMetadata
+                }),
+                gitHubInit: testCompleteGitHubInit,
+              }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+                .catch(err => expect(err).toBe(testCompleteError));
+              expect(logger.log.mock.calls).toMatchSnapshot();
+              expect(pullImage.mock.calls.map(call => [call[0]])).toMatchSnapshot();
+              expect(getMetadata.mock.calls).toMatchSnapshot();
+            });
+
+            it('Existing Pre-Release Image (different sha)', async () => {
+              const upstream = await util.createTmpDir();
+              const dir = await util.createTmpDir();
+              // Prepare upstream repository
+              await git.init({ fs, dir: upstream });
+              await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+                version: "1.2.0"
+              }));
+              await git.add({ fs, dir: upstream, filepath: 'package.json' });
+              await setAuthor(upstream);
+              await exec(`git commit -m package`, { cwd: upstream });
+              await git.branch({ fs, dir: upstream, ref: `env/${env}` });
+              // Clone into repo we'll run in, and create appropriate branch
+              await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
+              // Run action
+              await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+              await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+                ref: `refs/heads/env/${env}`
+              }));
+              const logger = util.newLogger();
+              // Prepare docker mock
+              const meta: DockerImageMetadata = {
+                commitSha: 'foo',
+                treeSha: 'bar',
+              };
+              const pullImage = jest.fn().mockResolvedValue(true);
+              const getMetadata = jest.fn().mockImplementation(async (tag: string) =>
+                tag === 'v1.2.0-pre' ? meta : null
+              );
+              await action.runAction({
+                env: DEFAULT_ENV,
+                dir,
+                logger,
+                dockerInit: () => ({
+                  ...testCompleteDockerController,
+                  pullImage,
+                  getMetadata
+                }),
+                gitHubInit: testCompleteGitHubInit,
+              }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+                .catch(err => expect(err).toBe(testCompleteError));
+              expect(logger.log.mock.calls).toMatchSnapshot();
+              expect(pullImage.mock.calls.map(call => [call[0]])).toMatchSnapshot();
+              expect(getMetadata.mock.calls).toMatchSnapshot();
+            });
 
             it('Non-Existant Image', async () => {
               const upstream = await util.createTmpDir();
