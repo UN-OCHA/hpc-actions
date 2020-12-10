@@ -251,7 +251,8 @@ export const runAction = async (
              * check whether an image with the same tag already exists,
              * and if it does,
              * check to see that it was built with the same git tree sha.
-             * If it was not, throw an error.
+             * If it was not, throw an error, otherwise continue to checking
+             * any other tags, or building the image.
              */
             checkStrict: boolean;
             /**
@@ -307,23 +308,25 @@ export const runAction = async (
        */
       let existingMatchingImage: string | null = null;
       if (checkBehaviour) {
-        if (checkBehaviour.checkStrict) {
-          info(`Checking for existing docker image with tag ${tag}`);
-          const imagePulled = await docker.pullImage(tag, logger);
-          const image = imagePulled && await docker.getMetadata(tag);
+        info(`Checking for existing docker image with tag ${tag}`);
+        const imagePulled = await docker.pullImage(tag, logger);
+        const image = imagePulled && await docker.getMetadata(tag);
 
-          if (image) {
-            // An image already exists, make sure it was built using the same files
-            info(`Image already exists, checking it was built with same git tree`);
-            if (image.treeSha !== head.commit.tree) {
+        if (image) {
+          // An image already exists, make sure it was built using the same files
+          info(`Image already exists, checking it was built with same git tree`);
+          if (image.treeSha !== head.commit.tree) {
+            if (checkBehaviour.checkStrict) {
               throw new Error(`Image was built with different tree, aborting`);
             } else {
-              info(`Image was built with same tree, no need to run build again`);
-              return;
+              info(`This image was built with a different tree, we can't use it`);
             }
           } else {
-            info(`Image with tag ${tag} does not yet exist`);
+            info(`Image was built with same tree, no need to run build again`);
+            return;
           }
+        } else {
+          info(`Image with tag ${tag} does not yet exist`);
         }
         for (const tag of checkBehaviour.alsoCheck) {
           info(`Checking for existing docker image with tag ${tag}`);
