@@ -751,22 +751,6 @@ export const runAction = async (
         });
       }
 
-      // Check that the version in package.json has been updated between the base branch and HEAD.
-      await exec(`git fetch ${remote.remote} ${baseBranch}`, { cwd: dir });
-      const base = await readRefShaAndVersion(`refs/remotes/${remote.remote}/${baseBranch}`);
-      if (base.version === version) {
-        const file = versionFilePath(config.repoType);
-        await failWithPRComment({
-          error: `Hotfix has same version as base (target) branch`,
-          pullRequest,
-          comment: (
-            `This hotfix pull request does not update the version in \`${file}\`\n\n` +
-            `You must update this branch with a version bump before a docker ` +
-            `image will be built for you.`
-          )
-        });
-      }
-
       // Check that there is no existing tag for the current version in package.json
       // (this will be created automatically when merged).
       const tag = `v${version}`;
@@ -777,6 +761,8 @@ export const runAction = async (
       // and includes any other changes that may have been made to the target
       // environment).
 
+      await exec(`git fetch ${remote.remote} ${baseBranch}`, { cwd: dir });
+      const base = await readRefShaAndVersion(`refs/remotes/${remote.remote}/${baseBranch}`);
       await checkDescendant({
         base,
         baseBranch,
@@ -822,22 +808,6 @@ export const runAction = async (
         });
       }
 
-      // Check that the version in package.json has been updated between the
-      // base branch and HEAD, and that it matches the name of the branch.
-
-      await exec(`git fetch ${remote.remote} ${baseBranch}`, { cwd: dir });
-      const base = await readRefShaAndVersion(`refs/remotes/${remote.remote}/${baseBranch}`);
-      if (base.version === version) {
-        const file = versionFilePath(config.repoType);
-        await failWithPRComment({
-          error: `Release has same version as base (target) branch`,
-          pullRequest,
-          comment: (
-            `This release pull request does not update the version in \`${file}\`\n\n` +
-            `You must update this branch with a version bump before you can merge.`
-          )
-        });
-      }
 
       // Check that there is no existing tag for the current version in package.json.
       const tag = `v${version}`;
@@ -845,6 +815,8 @@ export const runAction = async (
 
       // Check that the current HEAD of the base branch is an ancestor of the
       // HEAD of the release branch 
+      await exec(`git fetch ${remote.remote} ${baseBranch}`, { cwd: dir });
+      const base = await readRefShaAndVersion(`refs/remotes/${remote.remote}/${baseBranch}`);
       await checkDescendant({
         base,
         baseBranch,
