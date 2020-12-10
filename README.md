@@ -125,16 +125,15 @@ must be followed:
   * Open a pull request that merges `release/<version>` into the staging branch
     (either `env/stage` or `env/staging` as neccesary).
   * Restart the workflow if neccesary, this will:
-    * Build the image with the new tag, and push it to DockerHub
+    * Build the image with the new tag (with `-pre` appended),
+      and push it to DockerHub
     * Run the CI / Unit Tests
     * Post a comment on the pull request when the workflow has finished successfully
-  * Deploy the image to stage using the appropriate method
-  * Test the deployment,
-    once everything has been confirmed as working as expected, merge the
-    pull request, this will automatically:
-    * Create the tag / release on GitHub
+  * Once the workflow is complete, merge the pull request, this will automatically:
+    * Trigger an automated deployment to the stage environment (if configured)
     * Open a "mergeback" Pull Request, to merge the changes back into `develop`.
       * Please approve and merge this pull request ASAP
+    * (note that tags are not created when deploying to staging envs, only prod)
 
 * **Production Environment:**
 
@@ -148,9 +147,9 @@ must be followed:
       and ensure that changes from `env/prod` are merged back into
       `env/<stage|staging>`, at which point the conflicts should be solved.
   * Once checks pass, merge the pull request, this will:
-    * Create the tag / release on GitHub (if neccesary).
+    * Create the tag / release on GitHub.
     * Trigger a build of the docker image in GitHub Actions
-      (if neccesary, usually not as it should reuse the image on stage).
+      (if neccesary, usually not as it should reuse and retag the image on stage).
     * Open a "mergeback" Pull Request, to merge the changes back into develop.
   * After the checks are complete:
     * deploy to the environment using the appropriate method.
@@ -190,6 +189,7 @@ To create and deploy a hotfix:
 * If possible, wait for CI checks on `env/<stage|staging>` or `env/prod` to
   complete once more.
 * Deploy to the appropriate environment using the appropriate method.
+  * (this may be automated, depending on configuration)
 * Test that the fix is working in this environment.
 
 ## Automation / Roadmap
