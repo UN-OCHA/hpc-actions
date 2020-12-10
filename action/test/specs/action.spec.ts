@@ -380,6 +380,65 @@ describe('action', () => {
               expect(retagImage.mock.calls).toMatchSnapshot();
             });
 
+            /**
+             * This can happen when a hotfix is made against prod that bumps the
+             * version, and a mergeback pull-request is made against env/stage
+             * and merged. there will be an image + tag, but no pre-image,
+             * so it will need to be retagged and pushed.
+             */
+            it('Existing Image (matching sha) (existing matching tag)', async () => {
+              
+              const upstream = await util.createTmpDir();
+              const dir = await util.createTmpDir();
+              // Prepare upstream repository
+              await git.init({ fs, dir: upstream });
+              await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+                version: "1.2.0"
+              }));
+              await git.add({ fs, dir: upstream, filepath: 'package.json' });
+              await setAuthor(upstream);
+              await exec(`git commit -m package`, { cwd: upstream });
+              await git.tag({ fs, dir: upstream, ref: `v1.2.0` });
+              await git.branch({ fs, dir: upstream, ref: `env/${env}` });
+              // Clone into repo we'll run in, and create appropriate branch
+              await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
+              // Run action
+              await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+              await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+                ref: `refs/heads/env/${env}`
+              }));
+              const logger = util.newLogger();
+              // Prepare docker mock
+              const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
+              const head = await git.readCommit({ fs, dir, oid: sha });
+              const meta: DockerImageMetadata = {
+                commitSha: head.oid,
+                treeSha: head.commit.tree,
+              };
+              const pullImage = jest.fn().mockResolvedValue(true);
+              const getMetadata = jest.fn().mockImplementation(async (tag: string) =>
+                tag === 'v1.2.0' ? meta : null
+              );
+              const retagImage = jest.fn().mockResolvedValue(true);
+              await action.runAction({
+                env: DEFAULT_ENV,
+                dir,
+                logger,
+                dockerInit: () => ({
+                  ...testCompleteDockerController,
+                  pullImage,
+                  getMetadata,
+                  retagImage,
+                }),
+                gitHubInit: testCompleteGitHubInit,
+              }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+                .catch(err => expect(err).toBe(testCompleteError));
+              expect(logger.log.mock.calls).toMatchSnapshot();
+              expect(pullImage.mock.calls.map(call => [call[0]])).toMatchSnapshot();
+              expect(getMetadata.mock.calls).toMatchSnapshot();
+              expect(retagImage.mock.calls).toMatchSnapshot();
+            });
+
             it('Existing Image (different sha)', async () => {
               const upstream = await util.createTmpDir();
               const dir = await util.createTmpDir();

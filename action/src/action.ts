@@ -231,6 +231,23 @@ export const runAction = async (
       )
     );
 
+    type BuildAndPushDockerImageCheckTagCondition =
+      | {
+        mode: 'match';
+        gitTag: string;
+        sha: string;
+      }
+      | {
+        mode: 'non-existant';
+        gitTag: string;
+        /**
+         * run this callback when the constraint is not met.
+         *
+         * This allows for a custom error message to be posted to GitHub
+         */
+        onError?: () => Promise<void>;
+      };
+
     const buildAndPushDockerImage = async (
       opts: {
         /**
@@ -276,17 +293,19 @@ export const runAction = async (
          * This is a safeguard against pushing different images with the same tag
          */
         checkTag?:
-          | { mode: 'match'; sha: string }
+          | BuildAndPushDockerImageCheckTagCondition
           | {
-            mode: 'non-existant';
-            gitTag: string;
+            mode: 'conditional';
             /**
-             * run this callback when the constraint is not met.
-             *
-             * This allows for a custom error message to be posted to GitHub
+             * What condition needs to be met before pushing a retagged image
              */
-            onError?: () => Promise<void>;
+            retagged: BuildAndPushDockerImageCheckTagCondition;
+            /**
+             * What condition needs to be met before pushing a build image
+             */
+            built: BuildAndPushDockerImageCheckTagCondition;
           },
+
       }
     ) => {
       const { tag, checkBehaviour } = opts;
@@ -367,26 +386,30 @@ export const runAction = async (
           logger
         });
       }
-      if (opts.checkTag?.mode === 'match') {
+      const checkTag = opts.checkTag?.mode === 'conditional' ? (
+        existingMatchingImage ? opts.checkTag.retagged : opts.checkTag.built
+      ) : opts.checkTag;
+      if (checkTag?.mode === 'match') {
+        const tag = checkTag.gitTag;
         info(`Image built, checking tag ${tag} is unchanged`);
         await git.deleteRef({ fs, dir, ref: `refs/tags/${tag}` });
         await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir });
         const newTagSha = await git.resolveRef({ fs, dir, ref: `refs/tags/${tag}` });
-        if (newTagSha !== opts.checkTag.sha) {
+        if (newTagSha !== checkTag.sha) {
           throw new Error('Tag has changed, aborting');
         } else {
           info(`Tag is unchanged, okay to continue`);
         }
-      } else if(opts.checkTag?.mode === 'non-existant') {
-        const tag = opts.checkTag.gitTag;
+      } else if(checkTag?.mode === 'non-existant') {
+        const tag = checkTag.gitTag;
         info(`Image built, checking tag ${tag} still does not exist`);
         const exists =
           await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })
           .then(() => true)
           .catch(() => false);
         if (exists) {
-          if (opts.checkTag.onError) {
-            await opts.checkTag.onError();
+          if (checkTag.onError) {
+            await checkTag.onError();
           } else {
             throw new Error(`Tag ${tag} now exists, aborting`);
           }
@@ -642,7 +665,11 @@ export const runAction = async (
             alsoCheck: [preTag],
           },
           tag,
-          checkTag: { mode: 'match', sha: tagSha }
+          checkTag: {
+            mode: 'match',
+            gitTag: tag,
+            sha: tagSha
+          }
         });
       } else {
         await buildAndPushDockerImage({
@@ -652,8 +679,22 @@ export const runAction = async (
           },
           tag: preTag,
           checkTag: {
-            mode: 'non-existant',
-            gitTag: tag
+            mode: 'conditional',
+            built: {
+              mode: 'non-existant',
+              gitTag: tag
+            },
+            // if an image is retagged, and we know about an existing git tag
+            // then ensure that the git tag is still the same,
+            // otherwise require that it doesn't exist
+            retagged: tagSha ? {
+              mode: 'match',
+              gitTag: tag,
+              sha: tagSha
+            } : {
+              mode: 'non-existant',
+              gitTag: tag
+            }
           }
         });
         deploymentSha = head.oid;
