@@ -510,18 +510,18 @@ export const runAction = async (
       /**
        * The docker tag to use
        */
-      tag: string;
+      dockerTag: string;
       /**
        * The git tag to ensure doesn't exist before pushing the image
        */
       gitTag: string;
       pullRequest: PullRequest;
     }) => {
-      const { tag, gitTag, pullRequest } = params;
+      const { dockerTag, gitTag, pullRequest } = params;
 
       return buildAndPushDockerImage({
         checkBehaviour: null,
-        tag,
+        tag: dockerTag,
         checkTag: {
           mode: 'non-existant',
           gitTag,
@@ -529,8 +529,8 @@ export const runAction = async (
             error: `Tag ${gitTag} has been created, aborting`,
             pullRequest,
             comment: (
-              `During the build of the docker image, the tag ${tag} was ` +
-              `created, and so the workflow has been aborted, ` +
+              `During the build of the docker image, the tag ${dockerTag} ` +
+              `was created, and so the workflow has been aborted, ` +
               `and the docker image has not been pushed.\n\n` +
               `Please chose a new version and update the pull request.`
             )
@@ -749,7 +749,7 @@ export const runAction = async (
       const dockerTag = `${tag}-pre`;
 
       await buildAndPushDockerImageForReleaseOrHotfix({
-        tag: dockerTag,
+        dockerTag,
         gitTag: tag,
         pullRequest
       });
@@ -816,7 +816,7 @@ export const runAction = async (
       const dockerTag = `${tag}-pre`;
 
       await buildAndPushDockerImageForReleaseOrHotfix({
-        tag: dockerTag,
+        dockerTag,
         gitTag: tag,
         pullRequest
       });
