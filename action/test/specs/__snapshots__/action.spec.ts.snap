@@ -882,6 +882,59 @@ Array [
 ]
 `;
 
+exports[`action runAction push to production or staging env/prod docker Existing Image (matching sha) (existing matching tag) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/prod",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] The tag v1.2.0 already exists, checking that tree hasn't changed",
+  ],
+  Array [
+    "##[info] The tag is for the current commit, okay to continue",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image already exists, checking it was built with same git tree",
+  ],
+  Array [
+    "##[info] Image was built with same tree, no need to run build again",
+  ],
+  Array [
+    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
+  ],
+  Array [
+    "##[info] Opening Mergeback Pull Request",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Existing Image (matching sha) (existing matching tag) 2`] = `
+Array [
+  Array [
+    "v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Existing Image (matching sha) (existing matching tag) 3`] = `
+Array [
+  Array [
+    "v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Existing Image (matching sha) (existing matching tag) 4`] = `Array []`;
+
 exports[`action runAction push to production or staging env/prod docker Existing Image (matching sha) 1`] = `
 Array [
   Array [
@@ -1498,6 +1551,84 @@ Array [
   ],
   Array [
     "v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Existing Image (matching sha) (existing matching tag) 1`] = `
+Array [
+  Array [
+    "##[info] Handling push to branch env/staging",
+  ],
+  Array [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  Array [
+    "##[info] The tag v1.2.0 already exists, checking that tree hasn't changed",
+  ],
+  Array [
+    "##[info] The tag is for the current commit, okay to continue",
+  ],
+  Array [
+    "##[info] Logging in to docker",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0-pre",
+  ],
+  Array [
+    "##[info] Image with tag v1.2.0-pre does not yet exist",
+  ],
+  Array [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  Array [
+    "##[info] Image already exists, checking it was built with same git tree",
+  ],
+  Array [
+    "##[info] Image was built with same tree, no need to run build again",
+  ],
+  Array [
+    "##[info] Retagging v1.2.0 as v1.2.0-pre",
+  ],
+  Array [
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
+  ],
+  Array [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  Array [
+    "##[info] Pushing image to docker repository",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Existing Image (matching sha) (existing matching tag) 2`] = `
+Array [
+  Array [
+    "v1.2.0-pre",
+  ],
+  Array [
+    "v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Existing Image (matching sha) (existing matching tag) 3`] = `
+Array [
+  Array [
+    "v1.2.0-pre",
+  ],
+  Array [
+    "v1.2.0",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Existing Image (matching sha) (existing matching tag) 4`] = `
+Array [
+  Array [
+    "v1.2.0",
+    "v1.2.0-pre",
   ],
 ]
 `;
