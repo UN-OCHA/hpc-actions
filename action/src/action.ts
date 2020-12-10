@@ -243,7 +243,27 @@ export const runAction = async (
          * * `overwrite`: Don't check the registry, just build and push a new
          *   image.
          */
-        checkBehaviour: 'check-tree' | 'overwrite',
+        checkBehaviour:
+          | null
+          | {
+            /**
+             * If checkStrict is true,
+             * check whether an image with the same tag already exists,
+             * and if it does,
+             * check to see that it was built with the same git tree sha.
+             * If it was not, throw an error, otherwise continue to checking
+             * any other tags, or building the image.
+             */
+            checkStrict: boolean;
+            /**
+             * For each tag in this list,
+             * attempt to pull down the docker image, and check the tree hash
+             * that it was built with.
+             * If it was built using the same tree hash,
+             * then simply push this existing image using the new tag.
+             */
+            alsoCheck: string[];
+          },
         /**
          * Tag to use when building and pushing the docker image
          */
@@ -259,12 +279,13 @@ export const runAction = async (
           | { mode: 'match'; sha: string }
           | {
             mode: 'non-existant';
+            gitTag: string;
             /**
              * run this callback when the constraint is not met.
              *
              * This allows for a custom error message to be posted to GitHub
              */
-            onError: () => Promise<void>;
+            onError?: () => Promise<void>;
           },
       }
     ) => {
@@ -281,7 +302,12 @@ export const runAction = async (
         });
       }
 
-      if (checkBehaviour === 'check-tree') {
+      /**
+       * Set this to the image tag for any image we find that
+       * that was built with the same git tree.
+       */
+      let existingMatchingImage: string | null = null;
+      if (checkBehaviour) {
         info(`Checking for existing docker image with tag ${tag}`);
         const imagePulled = await docker.pullImage(tag, logger);
         const image = imagePulled && await docker.getMetadata(tag);
@@ -290,27 +316,57 @@ export const runAction = async (
           // An image already exists, make sure it was built using the same files
           info(`Image already exists, checking it was built with same git tree`);
           if (image.treeSha !== head.commit.tree) {
-            throw new Error(`Image was built with different tree, aborting`);
+            if (checkBehaviour.checkStrict) {
+              throw new Error(`Image was built with different tree, aborting`);
+            } else {
+              info(`This image was built with a different tree, we can't use it`);
+            }
           } else {
             info(`Image was built with same tree, no need to run build again`);
             return;
           }
+        } else {
+          info(`Image with tag ${tag} does not yet exist`);
         }
-      }
-      if (checkBehaviour === 'check-tree') {
-        info(`Image with tag ${tag} does not yet exist, building image`);
-      } else if (checkBehaviour === 'overwrite') {
+        for (const tag of checkBehaviour.alsoCheck) {
+          info(`Checking for existing docker image with tag ${tag}`);
+          const imagePulled = await docker.pullImage(tag, logger);
+          const image = imagePulled && await docker.getMetadata(tag);
+          if (image) {
+            info(`Image already exists, checking it was built with same git tree`);
+            if (image.treeSha !== head.commit.tree) {
+              info(`This image was built with a different tree, we can't use it`);
+            } else {
+              info(`Image was built with same tree, no need to run build again`);
+              existingMatchingImage = tag;
+              continue;
+            }
+          } else {
+            info(`No image exists with this tag`);
+          }
+        }
+        if (!existingMatchingImage) {
+          info(`Building new image`);
+        }
+      } else if (!checkBehaviour) {
         info(`Skipping check for existing image with tag ${tag}, building new image`);
       }
-      await docker.runBuild({
-        tag,
-        meta: {
-          commitSha: head.oid,
-          treeSha: head.commit.tree,
-        },
-        cwd: dir,
-        logger
-      });
+
+      if (existingMatchingImage) {
+        // Retag this existing image with the new tag we want
+        info(`Retagging ${existingMatchingImage} as ${tag}`);
+        await docker.retagImage(existingMatchingImage, tag);
+      } else {
+        await docker.runBuild({
+          tag,
+          meta: {
+            commitSha: head.oid,
+            treeSha: head.commit.tree,
+          },
+          cwd: dir,
+          logger
+        });
+      }
       if (opts.checkTag?.mode === 'match') {
         info(`Image built, checking tag ${tag} is unchanged`);
         await git.deleteRef({ fs, dir, ref: `refs/tags/${tag}` });
@@ -322,13 +378,18 @@ export const runAction = async (
           info(`Tag is unchanged, okay to continue`);
         }
       } else if(opts.checkTag?.mode === 'non-existant') {
+        const tag = opts.checkTag.gitTag;
         info(`Image built, checking tag ${tag} still does not exist`);
         const exists =
           await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })
           .then(() => true)
           .catch(() => false);
         if (exists) {
-          await opts.checkTag.onError();
+          if (opts.checkTag.onError) {
+            await opts.checkTag.onError();
+          } else {
+            throw new Error(`Tag ${tag} now exists, aborting`);
+          }
         } else {
           info(`Tag has not been created, okay to continue`);
         }
@@ -449,22 +510,30 @@ export const runAction = async (
     }
 
     const buildAndPushDockerImageForReleaseOrHotfix = (params: {
-      tag: string;
+      /**
+       * The docker tag to use
+       */
+      dockerTag: string;
+      /**
+       * The git tag to ensure doesn't exist before pushing the image
+       */
+      gitTag: string;
       pullRequest: PullRequest;
     }) => {
-      const { tag, pullRequest } = params;
+      const { dockerTag, gitTag, pullRequest } = params;
 
       return buildAndPushDockerImage({
-        checkBehaviour: 'overwrite',
-        tag,
+        checkBehaviour: null,
+        tag: dockerTag,
         checkTag: {
           mode: 'non-existant',
+          gitTag,
           onError: () => failWithPRComment({
-            error: `Tag ${tag} has been created, aborting`,
+            error: `Tag ${gitTag} has been created, aborting`,
             pullRequest,
             comment: (
-              `During the build of the docker image, the tag ${tag} was ` +
-              `created, and so the workflow has been aborted, ` +
+              `During the build of the docker image, the tag ${dockerTag} ` +
+              `was created, and so the workflow has been aborted, ` +
               `and the docker image has not been pushed.\n\n` +
               `Please chose a new version and update the pull request.`
             )
@@ -528,13 +597,14 @@ export const runAction = async (
 
     if (mode === 'env-production' || mode === 'env-staging') {
       const tag = `v${version}`;
+      const preTag = `${tag}-pre`;
       info(`Checking if there is an existing tag for ${tag}`);
       const existing = await fetchTag(tag);
 
       /**
        * The commit sha for the tag after it's been created or checked
        */
-      let tagSha: string;
+      let tagSha: string | null = null;
       if (existing) {
         // Check that the tree hash of the existing tag matches
         // (i.e. the content hasn't changed without changing the version)
@@ -550,8 +620,8 @@ export const runAction = async (
             info(`The current tree matches the existing tag, okay to continue`);
           }
         }
-      } else {
-        // Create and push the tag
+      } else if (mode === 'env-production') {
+        // Create and push the tag if production
         info(`Creating and pushing new tag ${tag}`);
         await git.tag({ fs, dir, ref: tag });
         tagSha = await git.resolveRef({ fs, dir, ref: `refs/tags/${tag}` });
@@ -559,15 +629,39 @@ export const runAction = async (
       }
 
       // Check whether there is an existing docker image, and build if needed
-      await buildAndPushDockerImage({
-        checkBehaviour: 'check-tree',
-        tag,
-        checkTag: { mode: 'match', sha: tagSha }
-      });
+
+      let deploymentSha: string;
+      if (mode === 'env-production') {
+        if (!tagSha) {
+          throw new Error('Missing Tag Sha');
+        }
+        deploymentSha = tagSha;
+        await buildAndPushDockerImage({
+          checkBehaviour: {
+            checkStrict: true,
+            alsoCheck: [preTag],
+          },
+          tag,
+          checkTag: { mode: 'match', sha: tagSha }
+        });
+      } else {
+        await buildAndPushDockerImage({
+          checkBehaviour: {
+            checkStrict: false,
+            alsoCheck: [tag],
+          },
+          tag: preTag,
+          checkTag: {
+            mode: 'non-existant',
+            gitTag: tag
+          }
+        });
+        deploymentSha = head.oid;
+      }
 
       await createDeploymentIfRequired({
         dockerTag: tag,
-        ref: tagSha,
+        ref: deploymentSha,
       });
 
       const mergebackBranch = `mergeback/${branch.substr(4)}/${version}`;
@@ -589,7 +683,7 @@ export const runAction = async (
     } else if (mode === 'env-development') {
       const tag = branch.replace(/\//g, '-');
       await buildAndPushDockerImage({
-        checkBehaviour: 'overwrite',
+        checkBehaviour: null,
         tag
       });
       await createDeploymentIfRequired({
@@ -655,14 +749,17 @@ export const runAction = async (
         )
       });
 
+      const dockerTag = `${tag}-pre`;
+
       await buildAndPushDockerImageForReleaseOrHotfix({
-        tag,
+        dockerTag,
+        gitTag: tag,
         pullRequest
       });
 
       await runCICommands();
 
-      await commentOnPullRequestWithDockerInfo({ pullRequest, tag });
+      await commentOnPullRequestWithDockerInfo({ pullRequest, tag: dockerTag });
 
     } else if (mode === 'release') {
       const pullRequest = await getUniquePullRequest();
@@ -719,14 +816,17 @@ export const runAction = async (
         )
       });
 
+      const dockerTag = `${tag}-pre`;
+
       await buildAndPushDockerImageForReleaseOrHotfix({
-        tag,
+        dockerTag,
+        gitTag: tag,
         pullRequest
       });
 
       await runCICommands();
 
-      await commentOnPullRequestWithDockerInfo({ pullRequest, tag });
+      await commentOnPullRequestWithDockerInfo({ pullRequest, tag: dockerTag });
 
     } else if (mode === 'other') {
       const pullRequest = await getUniquePullRequest();

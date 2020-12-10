@@ -71,6 +71,7 @@ describe('action', () => {
       pullImage: () => Promise.reject(testCompleteError),
       getMetadata: () => Promise.reject(testCompleteError),
       runBuild: () => Promise.reject(testCompleteError),
+      retagImage: () => Promise.reject(testCompleteError),
       pushImage: () => Promise.reject(testCompleteError),
     }
 
@@ -355,20 +356,28 @@ describe('action', () => {
                 commitSha: head.oid,
                 treeSha: head.commit.tree,
               };
-              const checkExistingImage = jest.fn().mockResolvedValue(meta);
+              const pullImage = jest.fn().mockResolvedValue(true);
+              const getMetadata = jest.fn().mockImplementation(async (tag: string) =>
+                tag === 'v1.2.0' ? meta : null
+              );
+              const retagImage = jest.fn().mockResolvedValue(true);
               await action.runAction({
                 env: DEFAULT_ENV,
                 dir,
                 logger,
                 dockerInit: () => ({
                   ...testCompleteDockerController,
-                  checkExistingImage
+                  pullImage,
+                  getMetadata,
+                  retagImage,
                 }),
                 gitHubInit: testCompleteGitHubInit,
               }).then(() => Promise.reject(new Error('Expected error to be thrown')))
                 .catch(err => expect(err).toBe(testCompleteError));
               expect(logger.log.mock.calls).toMatchSnapshot();
-              expect(checkExistingImage.mock.calls).toMatchSnapshot();
+              expect(pullImage.mock.calls.map(call => [call[0]])).toMatchSnapshot();
+              expect(getMetadata.mock.calls).toMatchSnapshot();
+              expect(retagImage.mock.calls).toMatchSnapshot();
             });
 
             it('Existing Image (different sha)', async () => {
@@ -392,14 +401,14 @@ describe('action', () => {
               }));
               const logger = util.newLogger();
               // Prepare docker mock
-              const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
-              const head = await git.readCommit({ fs, dir, oid: sha });
               const meta: DockerImageMetadata = {
                 commitSha: 'foo',
                 treeSha: 'bar',
               };
               const pullImage = jest.fn().mockResolvedValue(true);
-              const getMetadata = jest.fn().mockResolvedValue(meta);
+              const getMetadata = jest.fn().mockImplementation(async (tag: string) =>
+                tag === 'v1.2.0' ? meta : null
+              );
               await action.runAction({
                 env: DEFAULT_ENV,
                 dir,
@@ -411,10 +420,108 @@ describe('action', () => {
                 })
               }).then(() => Promise.reject(new Error('Expected error to be thrown')))
                 .catch((err: Error) => {
-                  expect(err.message).toEqual(
-                    'Image was built with different tree, aborting'
-                  );
+                  if (env === 'prod') {
+                    expect(err.message).toEqual(
+                      'Image was built with different tree, aborting'
+                    );
+                  } else {
+                    expect(err).toBe(testCompleteError)
+                  }
                 });
+              expect(logger.log.mock.calls).toMatchSnapshot();
+              expect(pullImage.mock.calls.map(call => [call[0]])).toMatchSnapshot();
+              expect(getMetadata.mock.calls).toMatchSnapshot();
+            });
+
+            it('Existing Pre-Release Image (matching sha)', async () => {
+              const upstream = await util.createTmpDir();
+              const dir = await util.createTmpDir();
+              // Prepare upstream repository
+              await git.init({ fs, dir: upstream });
+              await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+                version: "1.2.0"
+              }));
+              await git.add({ fs, dir: upstream, filepath: 'package.json' });
+              await setAuthor(upstream);
+              await exec(`git commit -m package`, { cwd: upstream });
+              await git.branch({ fs, dir: upstream, ref: `env/${env}` });
+              // Clone into repo we'll run in, and create appropriate branch
+              await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
+              // Run action
+              await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+              await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+                ref: `refs/heads/env/${env}`
+              }));
+              const logger = util.newLogger();
+              // Prepare docker mock
+              const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
+              const head = await git.readCommit({ fs, dir, oid: sha });
+              const meta: DockerImageMetadata = {
+                commitSha: head.oid,
+                treeSha: head.commit.tree,
+              };
+              const pullImage = jest.fn().mockResolvedValue(true);
+              const getMetadata = jest.fn().mockImplementation(async (tag: string) => 
+                tag === 'v1.2.0-pre' ? meta : null
+              );
+              await action.runAction({
+                env: DEFAULT_ENV,
+                dir,
+                logger,
+                dockerInit: () => ({
+                  ...testCompleteDockerController,
+                  pullImage,
+                  getMetadata
+                }),
+                gitHubInit: testCompleteGitHubInit,
+              }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+                .catch(err => expect(err).toBe(testCompleteError));
+              expect(logger.log.mock.calls).toMatchSnapshot();
+              expect(pullImage.mock.calls.map(call => [call[0]])).toMatchSnapshot();
+              expect(getMetadata.mock.calls).toMatchSnapshot();
+            });
+
+            it('Existing Pre-Release Image (different sha)', async () => {
+              const upstream = await util.createTmpDir();
+              const dir = await util.createTmpDir();
+              // Prepare upstream repository
+              await git.init({ fs, dir: upstream });
+              await fs.promises.writeFile(path.join(upstream, 'package.json'), JSON.stringify({
+                version: "1.2.0"
+              }));
+              await git.add({ fs, dir: upstream, filepath: 'package.json' });
+              await setAuthor(upstream);
+              await exec(`git commit -m package`, { cwd: upstream });
+              await git.branch({ fs, dir: upstream, ref: `env/${env}` });
+              // Clone into repo we'll run in, and create appropriate branch
+              await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
+              // Run action
+              await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
+              await fs.promises.writeFile(EVENT_FILE, JSON.stringify({
+                ref: `refs/heads/env/${env}`
+              }));
+              const logger = util.newLogger();
+              // Prepare docker mock
+              const meta: DockerImageMetadata = {
+                commitSha: 'foo',
+                treeSha: 'bar',
+              };
+              const pullImage = jest.fn().mockResolvedValue(true);
+              const getMetadata = jest.fn().mockImplementation(async (tag: string) =>
+                tag === 'v1.2.0-pre' ? meta : null
+              );
+              await action.runAction({
+                env: DEFAULT_ENV,
+                dir,
+                logger,
+                dockerInit: () => ({
+                  ...testCompleteDockerController,
+                  pullImage,
+                  getMetadata
+                }),
+                gitHubInit: testCompleteGitHubInit,
+              }).then(() => Promise.reject(new Error('Expected error to be thrown')))
+                .catch(err => expect(err).toBe(testCompleteError));
               expect(logger.log.mock.calls).toMatchSnapshot();
               expect(pullImage.mock.calls.map(call => [call[0]])).toMatchSnapshot();
               expect(getMetadata.mock.calls).toMatchSnapshot();
@@ -444,6 +551,7 @@ describe('action', () => {
               const pullImage = jest.fn().mockResolvedValue(null);
               const getMetadata = jest.fn().mockResolvedValue(null);
               const runBuild = jest.fn().mockResolvedValue(null);
+              const retagImage = jest.fn().mockResolvedValue(null);
               const pushImage = jest.fn().mockResolvedValue(null);
               await action.runAction({
                 env: DEFAULT_ENV,
@@ -454,6 +562,7 @@ describe('action', () => {
                   pullImage,
                   getMetadata,
                   runBuild,
+                  retagImage,
                   pushImage,
                 }),
                 gitHubInit: testCompleteGitHubInit,
@@ -463,6 +572,7 @@ describe('action', () => {
               expect({
                 pullImage: pullImage.mock.calls.map(call => [call[0]]),
                 getMetadata: getMetadata.mock.calls,
+                retagImage: retagImage.mock.calls,
                 pushImage: pushImage.mock.calls,
               }).toMatchSnapshot();
               const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
@@ -474,7 +584,7 @@ describe('action', () => {
               expect(runBuild.mock.calls).toEqual([[{
                 cwd: dir,
                 logger,
-                tag: "v1.2.0",
+                tag: env === 'prod' ? 'v1.2.0' : 'v1.2.0-pre',
                 meta
               }]]);
             });
@@ -510,6 +620,7 @@ describe('action', () => {
                 await exec(`git commit -m followup`, { cwd: upstream });
                 await git.tag({ fs, dir: upstream, ref: `v1.2.0`, force: true });
               });
+              const retagImage = jest.fn().mockResolvedValue(null);
               const pushImage = jest.fn().mockResolvedValue(null);
               await action.runAction({
                 env: DEFAULT_ENV,
@@ -520,16 +631,22 @@ describe('action', () => {
                   pullImage,
                   getMetadata,
                   runBuild,
+                  retagImage,
                   pushImage,
                 })
               }).then(() => Promise.reject(new Error('Expected error to be thrown')))
                 .catch((err: Error) => {
-                  expect(err.message).toEqual('Tag has changed, aborting');
+                  expect(err.message).toEqual(
+                    env === 'prod' ?
+                    'Tag has changed, aborting' :
+                    'Tag v1.2.0 now exists, aborting'
+                  );
                 });
               expect(logger.log.mock.calls).toMatchSnapshot();
               expect({
                 pullImage: pullImage.mock.calls.map(call => [call[0]]),
                 getMetadata: getMetadata.mock.calls,
+                retagImage: retagImage.mock.calls,
                 pushImage: pushImage.mock.calls,
               }).toMatchSnapshot();
               const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
@@ -541,7 +658,7 @@ describe('action', () => {
               expect(runBuild.mock.calls).toEqual([[{
                 cwd: dir,
                 logger,
-                tag: "v1.2.0",
+                tag: env === 'prod' ? 'v1.2.0' : 'v1.2.0-pre',
                 meta
               }]]);
             });
@@ -590,6 +707,7 @@ describe('action', () => {
                   pullImage: jest.fn().mockResolvedValue(false),
                   getMetadata: () => Promise.reject(new Error('unexpected')),
                   runBuild: jest.fn().mockResolvedValue(null),
+                  retagImage: jest.fn().mockResolvedValue(null),
                   pushImage: jest.fn().mockResolvedValue(null),
                 }),
                 gitHubInit: () => ({
@@ -661,6 +779,7 @@ describe('action', () => {
                   pullImage: jest.fn().mockResolvedValue(false),
                   getMetadata: () => Promise.reject(new Error('unexpected')),
                   runBuild: jest.fn().mockResolvedValue(null),
+                  retagImage: jest.fn().mockResolvedValue(null),
                   pushImage: jest.fn().mockResolvedValue(null),
                 }),
                 gitHubInit: () => ({
@@ -710,6 +829,7 @@ describe('action', () => {
                 pullImage: jest.fn().mockResolvedValue(false),
                 getMetadata: () => Promise.reject(new Error('unexpected')),
                 runBuild: jest.fn().mockResolvedValue(null),
+                retagImage: jest.fn().mockResolvedValue(null),
                 pushImage: jest.fn().mockResolvedValue(null),
               }),
               gitHubInit: () => ({
@@ -788,6 +908,7 @@ describe('action', () => {
         const pullImage = jest.fn().mockResolvedValue(null);
         const getMetadata = jest.fn().mockResolvedValue(null);
         const runBuild = jest.fn().mockResolvedValue(null);
+        const retagImage = jest.fn().mockResolvedValue(null);
         const pushImage = jest.fn().mockResolvedValue(null);
         await action.runAction({
           env: DEFAULT_ENV,
@@ -798,6 +919,7 @@ describe('action', () => {
             pullImage,
             getMetadata,
             runBuild,
+            retagImage,
             pushImage,
           }),
           gitHubInit: testCompleteGitHubInit,
@@ -805,6 +927,7 @@ describe('action', () => {
         expect(logger.log.mock.calls).toMatchSnapshot();
         expect(pullImage.mock.calls).toEqual([]);
         expect(getMetadata.mock.calls).toEqual([]);
+        expect(retagImage.mock.calls).toEqual([]);
         expect(pushImage.mock.calls).toEqual([[
           'env-dev',
         ]]);
@@ -1171,6 +1294,7 @@ describe('action', () => {
           // in upstream branch when the build is run
           await git.tag({ fs, dir: upstream, ref: `v1.2.1`, force: true });
         });
+        const retagImage = jest.fn().mockResolvedValue(null);
         const pushImage = jest.fn().mockResolvedValue(null);
         // Run action
         await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
@@ -1187,6 +1311,7 @@ describe('action', () => {
             pullImage,
             getMetadata,
             runBuild,
+            retagImage,
             pushImage,
           }),
           gitHubInit: () => ({
@@ -1206,6 +1331,7 @@ describe('action', () => {
         expect({
           pullImage: pullImage.mock.calls.map(call => [call[0]]),
           getMetadata: getMetadata.mock.calls,
+          retagImage: retagImage.mock.calls,
           pushImage: pushImage.mock.calls,
         }).toMatchSnapshot();
         const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
@@ -1217,7 +1343,7 @@ describe('action', () => {
         expect(runBuild.mock.calls).toEqual([[{
           cwd: dir,
           logger,
-          tag: "v1.2.1",
+          tag: "v1.2.1-pre",
           meta
         }]]);
       });
@@ -1258,6 +1384,7 @@ describe('action', () => {
         const pullImage = jest.fn().mockResolvedValue(null);
         const getMetadata = jest.fn().mockResolvedValue(null);
         const runBuild = jest.fn().mockResolvedValue(null);
+        const retagImage = jest.fn().mockResolvedValue(null);
         const pushImage = jest.fn().mockResolvedValue(null);
         // Run action
         await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
@@ -1274,6 +1401,7 @@ describe('action', () => {
             pullImage,
             getMetadata,
             runBuild,
+            retagImage,
             pushImage,
           }),
           gitHubInit: () => ({
@@ -1288,6 +1416,7 @@ describe('action', () => {
         expect({
           pullImage: pullImage.mock.calls.map(call => [call[0]]),
           getMetadata: getMetadata.mock.calls,
+          retagImage: retagImage.mock.calls,
           pushImage: pushImage.mock.calls,
         }).toMatchSnapshot();
         const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
@@ -1299,7 +1428,7 @@ describe('action', () => {
         expect(runBuild.mock.calls).toEqual([[{
           cwd: dir,
           logger,
-          tag: "v1.2.1",
+          tag: "v1.2.1-pre",
           meta
         }]]);
       });
@@ -1344,6 +1473,7 @@ describe('action', () => {
         const pullImage = jest.fn().mockResolvedValue(null);
         const getMetadata = jest.fn().mockResolvedValue(null);
         const runBuild = jest.fn().mockResolvedValue(null);
+        const retagImage = jest.fn().mockResolvedValue(null);
         const pushImage = jest.fn().mockResolvedValue(null);
         // Run action
         await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
@@ -1360,6 +1490,7 @@ describe('action', () => {
             pullImage,
             getMetadata,
             runBuild,
+            retagImage,
             pushImage,
           }),
           gitHubInit: () => ({
@@ -1376,6 +1507,7 @@ describe('action', () => {
         expect({
           pullImage: pullImage.mock.calls.map(call => [call[0]]),
           getMetadata: getMetadata.mock.calls,
+          retagImage: retagImage.mock.calls,
           pushImage: pushImage.mock.calls,
         }).toMatchSnapshot();
         const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
@@ -1387,7 +1519,7 @@ describe('action', () => {
         expect(runBuild.mock.calls).toEqual([[{
           cwd: dir,
           logger,
-          tag: "v1.2.1",
+          tag: "v1.2.1-pre",
           meta
         }]]);
       });
@@ -1531,6 +1663,7 @@ describe('action', () => {
         const pullImage = jest.fn().mockResolvedValue(null);
         const getMetadata = jest.fn().mockResolvedValue(null);
         const runBuild = jest.fn().mockResolvedValue(null);
+        const retagImage = jest.fn().mockResolvedValue(null);
         const pushImage = jest.fn().mockResolvedValue(null);
         // Run action
         await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
@@ -1547,6 +1680,7 @@ describe('action', () => {
             pullImage,
             getMetadata,
             runBuild,
+            retagImage,
             pushImage,
           }),
           gitHubInit: () => ({
@@ -1561,6 +1695,7 @@ describe('action', () => {
         expect({
           pullImage: pullImage.mock.calls.map(call => [call[0]]),
           getMetadata: getMetadata.mock.calls,
+          retagImage: retagImage.mock.calls,
           pushImage: pushImage.mock.calls,
         }).toMatchSnapshot();
         const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
@@ -1572,7 +1707,7 @@ describe('action', () => {
         expect(runBuild.mock.calls).toEqual([[{
           cwd: dir,
           logger,
-          tag: "v1.2.1",
+          tag: "v1.2.1-pre",
           meta
         }]]);
       });

@@ -40,6 +40,10 @@ export interface DockerController {
   /**
    * Push the image with the given tag to the configured destination
    */
+  retagImage: (originalTag: string, newTag: string) => Promise<void>;
+  /**
+   * Push the image with the given tag to the configured destination
+   */
   pushImage: (tag: string) => Promise<void>;
 }
 
@@ -121,6 +125,9 @@ export const REAL_DOCKER: DockerInit = config => ({
       cwd
     })
   },
+
+  retagImage: (originalTag, newTag) =>
+    exec(`docker tag ${config.repository}:${originalTag} ${config.repository}:${newTag}`).then(() => { }),
 
   pushImage: tag =>
     exec(`docker push ${config.repository}:${tag}`).then(() => {}),
