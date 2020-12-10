@@ -86,11 +86,32 @@ must be followed:
 * **Development Environments:**
 
   * Tags / versions are not necessary for deploying to these environments
-  * Choose an environment to test on that isn't being used by anyone else
-  * Force push the commit you want to test to respective `env/<name>` branch.
-    * This will GitHub Actions to build and push the docker image
-  * Once the image is built, deploy to the environment using the appropriate
-    method.
+  * Open a pull request with the work you want to deploy / test (it can be a
+    draft pull request if it is not ready yet)
+  * Choose an environment to test on, and add the appropriate label to the
+    pull request (e.g. `deploy to blue.dev`)
+  * Create a merge commit of all the pull requests that should be deployed to
+    the development environment (these are all the pull requests with the same
+    label as the one you added), for example:
+
+    ```bash
+    git checkout -b env/blue.dev # create a new branch called env/blue.dev
+    git fetch origin develop:develop # Fetch the latest develop branch
+    git reset --hard origin/develop # Make this branch equal to the state of the develop branch
+    git fetch origin HPC-123 HPC-321 ... # Fetch all required pull requests
+    git merge --no-ff origin/HPC-123 origin/HPC-321 # Create a merge commit with all the pull requests
+    ```
+
+    (remember to make the appropriate changes to the above commands so that
+    you're using the right environment, and including the required pull requests)
+  * Force push this commit to the development environment:
+
+    * ```bash
+      git push -f origin env/blue.dev
+      ```
+
+    * This will GitHub Actions to build and push the docker image,
+      and trigger the deployment automatically
 
 * **Staging Environment:**
 
@@ -103,12 +124,17 @@ must be followed:
   * Push this branch to GitHub.
   * Open a pull request that merges `release/<version>` into the staging branch
     (either `env/stage` or `env/staging` as neccesary).
-  * Once checks pass, merge the pull request, this will automatically:
+  * Restart the workflow if neccesary, this will:
+    * Build the image with the new tag, and push it to DockerHub
+    * Run the CI / Unit Tests
+    * Post a comment on the pull request when the workflow has finished successfully
+  * Deploy the image to stage using the appropriate method
+  * Test the deployment,
+    once everything has been confirmed as working as expected, merge the
+    pull request, this will automatically:
     * Create the tag / release on GitHub
-    * Trigger a build of the docker image in GitHub Actions
     * Open a "mergeback" Pull Request, to merge the changes back into `develop`.
-  * After docker image build is complete,
-    deploy to the environment using the appropriate method.
+      * Please approve and merge this pull request ASAP
 
 * **Production Environment:**
 
@@ -123,10 +149,12 @@ must be followed:
       `env/<stage|staging>`, at which point the conflicts should be solved.
   * Once checks pass, merge the pull request, this will:
     * Create the tag / release on GitHub (if neccesary).
-    * Trigger a build of the docker image in GitHub Actions (if neccesary).
+    * Trigger a build of the docker image in GitHub Actions
+      (if neccesary, usually not as it should reuse the image on stage).
     * Open a "mergeback" Pull Request, to merge the changes back into develop.
-  * After docker image build is complete,
-    deploy to the environment using the appropriate method.
+  * After the checks are complete:
+    * deploy to the environment using the appropriate method.
+    * Approve and merge the mergeback PR
 
 ### Hotfixes
 
