@@ -25389,11 +25389,13 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
             }
             // Check whether there is an existing docker image, and build if needed
             let deploymentSha;
+            let deploymentDockerTag;
             if (mode === 'env-production') {
                 if (!tagSha) {
                     throw new Error('Missing Tag Sha');
                 }
                 deploymentSha = tagSha;
+                deploymentDockerTag = tag;
                 await buildAndPushDockerImage({
                     checkBehaviour: {
                         checkStrict: true,
@@ -25434,9 +25436,10 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                     }
                 });
                 deploymentSha = head.oid;
+                deploymentDockerTag = preTag;
             }
             await createDeploymentIfRequired({
-                dockerTag: tag,
+                dockerTag: deploymentDockerTag,
                 ref: deploymentSha,
             });
             const mergebackBranch = `mergeback/${branch.substr(4)}/${version}`;
