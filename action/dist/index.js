@@ -8866,13 +8866,13 @@ const CONFIG = t.intersection([
          * Configuration for the docker image build and publication
          */
         docker: DOCKER_CONFIG,
+    }),
+    // Optional config
+    t.partial({
         /**
          * List of shell commands to run as part of CI
          */
         ci: t.array(t.string),
-    }),
-    // Optional config
-    t.partial({
         /**
          * If provided, add these labels to mergeback pull requests
          */
@@ -25205,7 +25205,7 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
         };
         const runCICommands = async () => {
             info(`Running CI Checks`);
-            for (const command of config.ci) {
+            for (const command of config.ci || []) {
                 info(`Running: ${command}`);
                 await child_process_1.execAndPipeOutput({ command, cwd: dir, logger });
             }
