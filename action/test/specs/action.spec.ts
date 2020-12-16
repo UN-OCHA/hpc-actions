@@ -781,7 +781,7 @@ describe('action', () => {
                 auto_merge: false,
                 environment: env,
                 payload: {
-                  docker_tag: 'v1.2.0'
+                  docker_tag: env === 'prod' ? 'v1.2.0' : 'v1.2.0-pre'
                 },
                 production_environment: env === 'prod',
                 // TODO: test this more thoroughly
