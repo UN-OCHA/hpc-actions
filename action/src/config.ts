@@ -131,13 +131,13 @@ const CONFIG = t.intersection([
      * Configuration for the docker image build and publication
      */
     docker: DOCKER_CONFIG,
+  }),
+  // Optional config
+  t.partial({
     /**
      * List of shell commands to run as part of CI
      */
     ci: t.array(t.string),
-  }),
-  // Optional config
-  t.partial({
     /**
      * If provided, add these labels to mergeback pull requests
      */
