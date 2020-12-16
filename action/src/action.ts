@@ -427,7 +427,7 @@ export const runAction = async (
     const runCICommands = async () => {
       info(`Running CI Checks`);
 
-      for (const command of config.ci) {
+      for (const command of config.ci || []) {
         info(`Running: ${command}`);
         await execAndPipeOutput({ command, cwd: dir, logger });
       };
