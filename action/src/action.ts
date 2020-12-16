@@ -654,11 +654,13 @@ export const runAction = async (
       // Check whether there is an existing docker image, and build if needed
 
       let deploymentSha: string;
+      let deploymentDockerTag: string;
       if (mode === 'env-production') {
         if (!tagSha) {
           throw new Error('Missing Tag Sha');
         }
         deploymentSha = tagSha;
+        deploymentDockerTag = tag;
         await buildAndPushDockerImage({
           checkBehaviour: {
             checkStrict: true,
@@ -698,10 +700,11 @@ export const runAction = async (
           }
         });
         deploymentSha = head.oid;
+        deploymentDockerTag = preTag;
       }
 
       await createDeploymentIfRequired({
-        dockerTag: tag,
+        dockerTag: deploymentDockerTag,
         ref: deploymentSha,
       });
 
