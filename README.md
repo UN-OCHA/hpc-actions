@@ -19,7 +19,7 @@ The outlined workflow and actions are designed to:
 * Automate many processes that have required manual work,
   and are prone to human-error, including:
   * Creating branches and pull requests to bring upstream branches up-to-date
-    with production / staging hotfices.
+    with production / staging hotfixes.
   * Running unit-tests and other CI checks against the correct commits
   * Creating and pushing release tags
 
