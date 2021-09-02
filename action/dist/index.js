@@ -25078,14 +25078,14 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
          * or dependabot, and so attempting to review the PR with the GitHub Actions
          * token will fail, and commenting is required instead.
          */
-        const commentInsteadOfReview = (pr) => {
+        const commentMode = (pr) => {
             var _a, _b, _c, _d, _e, _f;
             return (((_a = pr.user) === null || _a === void 0 ? void 0 : _a.id) === GITHUB_ACTIONS_USER_ID ||
                 (((_b = pr.user) === null || _b === void 0 ? void 0 : _b.login.startsWith(GITHUB_ACTIONS_USER_LOGIN)) &&
-                    ((_c = pr.user) === null || _c === void 0 ? void 0 : _c.type.toLowerCase()) === 'bot') ||
+                    ((_c = pr.user) === null || _c === void 0 ? void 0 : _c.type.toLowerCase()) === 'bot') ? 'comment' :
                 ((_d = pr.user) === null || _d === void 0 ? void 0 : _d.id) === DEPENDABOT_USER_ID ||
-                (((_e = pr.user) === null || _e === void 0 ? void 0 : _e.login.startsWith(DEPENDABOT_USER_LOGIN)) &&
-                    ((_f = pr.user) === null || _f === void 0 ? void 0 : _f.type.toLowerCase()) === 'bot'));
+                    (((_e = pr.user) === null || _e === void 0 ? void 0 : _e.login.startsWith(DEPENDABOT_USER_LOGIN)) &&
+                        ((_f = pr.user) === null || _f === void 0 ? void 0 : _f.type.toLowerCase()) === 'bot') ? 'none' : 'review');
         };
         const buildAndPushDockerImage = async (opts) => {
             var _a;
@@ -25235,13 +25235,14 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
         };
         const failWithPRComment = async (opts) => {
             const { pullRequest, comment, error } = opts;
-            if (commentInsteadOfReview(pullRequest)) {
+            const cMode = commentMode(pullRequest);
+            if (cMode === 'comment') {
                 await github.commentOnPullRequest({
                     pullRequestNumber: pullRequest.number,
                     body: comment,
                 });
             }
-            else {
+            else if (cMode === 'review') {
                 await github.reviewPullRequest({
                     pullRequestNumber: pullRequest.number,
                     body: comment,
@@ -25324,13 +25325,14 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 `\`${config.docker.repository}:${tag}\`\n\n` +
                 `Please deploy this image to a development environment, and test ` +
                 `it is working as expected before merging this pull request.`);
-            if (commentInsteadOfReview(pullRequest)) {
+            const cMode = commentMode(pullRequest);
+            if (cMode === 'comment') {
                 return github.commentOnPullRequest({
                     pullRequestNumber: pullRequest.number,
                     body
                 });
             }
-            else {
+            else if (cMode === 'review') {
                 return github.reviewPullRequest({
                     pullRequestNumber: pullRequest.number,
                     body,
@@ -25583,13 +25585,14 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 });
             }
             await runCICommands();
-            if (commentInsteadOfReview(pullRequest)) {
+            const cMode = commentMode(pullRequest);
+            if (cMode === 'comment') {
                 return github.commentOnPullRequest({
                     pullRequestNumber: pullRequest.number,
                     body: (`Checks have passed and this pull request is ready for manual review`),
                 });
             }
-            else {
+            else if (cMode === 'review') {
                 return github.reviewPullRequest({
                     pullRequestNumber: pullRequest.number,
                     body: (`Checks have passed and this pull request is ready for manual review`),
