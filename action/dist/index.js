@@ -24935,6 +24935,8 @@ const github_1 = __webpack_require__(812);
 const exec = util_1.promisify(child_process.exec);
 const GITHUB_ACTIONS_USER_ID = 41898282;
 const GITHUB_ACTIONS_USER_LOGIN = 'github-actions';
+const DEPENDABOT_USER_ID = 49699333;
+const DEPENDABOT_USER_LOGIN = 'dependabot';
 const BRANCH_EXTRACT = /^refs\/heads\/(.*)$/;
 const determineMode = (config, branch) => {
     if (branch === 'env/prod') {
@@ -25072,13 +25074,18 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
         }
         const head = await isomorphic_git_1.default.readCommit({ fs: fs_1.default, dir, oid: headShaAndVersion.sha });
         /**
-         * Return true if this is a pull request created by the GitHub Actions user
+         * Return true if this is a pull request created by the GitHub Actions user,
+         * or dependabot, and so attempting to review the PR with the GitHub Actions
+         * token will fail, and commenting is required instead.
          */
-        const isSelfPullRequest = (pr) => {
-            var _a, _b, _c;
+        const commentInsteadOfReview = (pr) => {
+            var _a, _b, _c, _d, _e, _f;
             return (((_a = pr.user) === null || _a === void 0 ? void 0 : _a.id) === GITHUB_ACTIONS_USER_ID ||
                 (((_b = pr.user) === null || _b === void 0 ? void 0 : _b.login.startsWith(GITHUB_ACTIONS_USER_LOGIN)) &&
-                    ((_c = pr.user) === null || _c === void 0 ? void 0 : _c.type.toLowerCase()) === 'bot'));
+                    ((_c = pr.user) === null || _c === void 0 ? void 0 : _c.type.toLowerCase()) === 'bot') ||
+                ((_d = pr.user) === null || _d === void 0 ? void 0 : _d.id) === DEPENDABOT_USER_ID ||
+                (((_e = pr.user) === null || _e === void 0 ? void 0 : _e.login.startsWith(DEPENDABOT_USER_LOGIN)) &&
+                    ((_f = pr.user) === null || _f === void 0 ? void 0 : _f.type.toLowerCase()) === 'bot'));
         };
         const buildAndPushDockerImage = async (opts) => {
             var _a;
@@ -25228,7 +25235,7 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
         };
         const failWithPRComment = async (opts) => {
             const { pullRequest, comment, error } = opts;
-            if (isSelfPullRequest(pullRequest)) {
+            if (commentInsteadOfReview(pullRequest)) {
                 await github.commentOnPullRequest({
                     pullRequestNumber: pullRequest.number,
                     body: comment,
@@ -25317,7 +25324,7 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 `\`${config.docker.repository}:${tag}\`\n\n` +
                 `Please deploy this image to a development environment, and test ` +
                 `it is working as expected before merging this pull request.`);
-            if (isSelfPullRequest(pullRequest)) {
+            if (commentInsteadOfReview(pullRequest)) {
                 return github.commentOnPullRequest({
                     pullRequestNumber: pullRequest.number,
                     body
@@ -25576,7 +25583,7 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                 });
             }
             await runCICommands();
-            if (isSelfPullRequest(pullRequest)) {
+            if (commentInsteadOfReview(pullRequest)) {
                 return github.commentOnPullRequest({
                     pullRequestNumber: pullRequest.number,
                     body: (`Checks have passed and this pull request is ready for manual review`),
