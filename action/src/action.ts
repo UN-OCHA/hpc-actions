@@ -227,17 +227,17 @@ export const runAction = async (
      * or dependabot, and so attempting to review the PR with the GitHub Actions
      * token will fail, and commenting is required instead.
      */
-    const commentInsteadOfReview = (pr: PullRequest) => (
+    const commentMode = (pr: PullRequest): 'review' | 'comment' | 'none' => (
       pr.user?.id === GITHUB_ACTIONS_USER_ID ||
       (
         pr.user?.login.startsWith(GITHUB_ACTIONS_USER_LOGIN) &&
         pr.user?.type.toLowerCase() === 'bot'
-      ) ||
+      ) ? 'comment' :
       pr.user?.id === DEPENDABOT_USER_ID ||
       (
         pr.user?.login.startsWith(DEPENDABOT_USER_LOGIN) &&
         pr.user?.type.toLowerCase() === 'bot'
-      )
+      ) ? 'none' : 'review'
     );
 
     type BuildAndPushDockerImageCheckTagCondition =
@@ -467,12 +467,13 @@ export const runAction = async (
       error: string,
     }) => {
       const { pullRequest, comment, error} = opts;
-      if (commentInsteadOfReview(pullRequest)) {
+      const cMode = commentMode(pullRequest);
+      if (cMode === 'comment') {
         await github.commentOnPullRequest({
           pullRequestNumber: pullRequest.number,
           body: comment,
         });
-      } else {
+      } else if (cMode === 'review') {
         await github.reviewPullRequest({
           pullRequestNumber: pullRequest.number,
           body: comment,
@@ -586,12 +587,13 @@ export const runAction = async (
         `Please deploy this image to a development environment, and test ` +
         `it is working as expected before merging this pull request.`
       );
-      if (commentInsteadOfReview(pullRequest)) {
+      const cMode = commentMode(pullRequest);
+      if (cMode === 'comment') {
         return github.commentOnPullRequest({
           pullRequestNumber: pullRequest.number,
           body
         });
-      } else {
+      } else if (cMode === 'review') {
         return github.reviewPullRequest({
           pullRequestNumber: pullRequest.number,
           body,
@@ -885,14 +887,15 @@ export const runAction = async (
 
       await runCICommands();
 
-      if (commentInsteadOfReview(pullRequest)) {
+      const cMode = commentMode(pullRequest);
+      if (cMode === 'comment') {
         return github.commentOnPullRequest({
           pullRequestNumber: pullRequest.number,
           body: (
             `Checks have passed and this pull request is ready for manual review`
           ),
         });
-      } else {
+      } else if (cMode === 'review') {
         return github.reviewPullRequest({
           pullRequestNumber: pullRequest.number,
           body: (
