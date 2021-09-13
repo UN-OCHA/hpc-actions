@@ -863,14 +863,15 @@ export const runAction = async (
       // check that the base branch is NOT env/<stage|staging> or env/prod
 
       const baseBranch = pullRequest.base.ref;
-      if (baseBranch === config.stagingEnvironmentBranch) {
+      if (baseBranch === config.stagingEnvironmentBranch && !branch.startsWith('mergeback/')) {
         await failWithPRComment({
           error: `Pull request from ${branch} made against ${baseBranch}`,
           pullRequest,
           comment: (
             `Pull requests that modify \`${config.stagingEnvironmentBranch}\` must be either:\n\n` +
             `* a release, merging \`release/<version>\` into \`${config.stagingEnvironmentBranch}\`, or\n` +
-            `* a hotfix, merging \`hotfix/<name>\` into \`${config.stagingEnvironmentBranch}\`\n\n` +
+            `* a hotfix, merging \`hotfix/<name>\` into \`${config.stagingEnvironmentBranch}\`\n` +
+            `* an automated mergeback pull request, merging \`mergeback/<name>\` into \`${config.stagingEnvironmentBranch}\`\n\n` +
             `For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)`
           )
         });
