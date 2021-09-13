@@ -17,6 +17,7 @@ const GITHUB_ACTIONS_USER_ID = 41898282;
 const GITHUB_ACTIONS_USER_LOGIN = 'github-actions';
 const DEPENDABOT_USER_ID = 49699333;
 const DEPENDABOT_USER_LOGIN = 'dependabot';
+const UNOCHA_HPC_USER_ID = 90184116;
 
 interface Params {
   /**
@@ -228,6 +229,7 @@ export const runAction = async (
      * token will fail, and commenting is required instead.
      */
     const commentMode = (pr: PullRequest): 'review' | 'comment' | 'none' => (
+      pr.user?.id === UNOCHA_HPC_USER_ID ||
       pr.user?.id === GITHUB_ACTIONS_USER_ID ||
       (
         pr.user?.login.startsWith(GITHUB_ACTIONS_USER_LOGIN) &&
