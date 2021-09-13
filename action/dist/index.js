@@ -24937,6 +24937,7 @@ const GITHUB_ACTIONS_USER_ID = 41898282;
 const GITHUB_ACTIONS_USER_LOGIN = 'github-actions';
 const DEPENDABOT_USER_ID = 49699333;
 const DEPENDABOT_USER_LOGIN = 'dependabot';
+const UNOCHA_HPC_USER_ID = 90184116;
 const BRANCH_EXTRACT = /^refs\/heads\/(.*)$/;
 const determineMode = (config, branch) => {
     if (branch === 'env/prod') {
@@ -25079,13 +25080,14 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
          * token will fail, and commenting is required instead.
          */
         const commentMode = (pr) => {
-            var _a, _b, _c, _d, _e, _f;
-            return (((_a = pr.user) === null || _a === void 0 ? void 0 : _a.id) === GITHUB_ACTIONS_USER_ID ||
-                (((_b = pr.user) === null || _b === void 0 ? void 0 : _b.login.startsWith(GITHUB_ACTIONS_USER_LOGIN)) &&
-                    ((_c = pr.user) === null || _c === void 0 ? void 0 : _c.type.toLowerCase()) === 'bot') ? 'comment' :
-                ((_d = pr.user) === null || _d === void 0 ? void 0 : _d.id) === DEPENDABOT_USER_ID ||
-                    (((_e = pr.user) === null || _e === void 0 ? void 0 : _e.login.startsWith(DEPENDABOT_USER_LOGIN)) &&
-                        ((_f = pr.user) === null || _f === void 0 ? void 0 : _f.type.toLowerCase()) === 'bot') ? 'none' : 'review');
+            var _a, _b, _c, _d, _e, _f, _g;
+            return (((_a = pr.user) === null || _a === void 0 ? void 0 : _a.id) === UNOCHA_HPC_USER_ID ||
+                ((_b = pr.user) === null || _b === void 0 ? void 0 : _b.id) === GITHUB_ACTIONS_USER_ID ||
+                (((_c = pr.user) === null || _c === void 0 ? void 0 : _c.login.startsWith(GITHUB_ACTIONS_USER_LOGIN)) &&
+                    ((_d = pr.user) === null || _d === void 0 ? void 0 : _d.type.toLowerCase()) === 'bot') ? 'comment' :
+                ((_e = pr.user) === null || _e === void 0 ? void 0 : _e.id) === DEPENDABOT_USER_ID ||
+                    (((_f = pr.user) === null || _f === void 0 ? void 0 : _f.login.startsWith(DEPENDABOT_USER_LOGIN)) &&
+                        ((_g = pr.user) === null || _g === void 0 ? void 0 : _g.type.toLowerCase()) === 'bot') ? 'none' : 'review');
         };
         const buildAndPushDockerImage = async (opts) => {
             var _a;
