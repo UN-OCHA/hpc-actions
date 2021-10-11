@@ -170,8 +170,8 @@ To create and deploy a hotfix:
   that needs to be addressed).
 * If possible, create unit-tests that detect the problem and fail.
 * Write a fix for the issue, which should cause the unit-tests to pass.
-* Update the version in package.json
-  (e.g. with a -hotfix-<name> suffix or minor version bump).
+* Update the version in `package.json` and `package-lock.json`
+  (e.g. add a `-hotfix<-number>` suffix to the latest version).
 * Push the changes to GitHub
 * Open a **DRAFT** Pull Request to merge `hotfix/<name>` into either
   `env/<stage|staging>` or `env/prod` (as appropriate).
