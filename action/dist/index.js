@@ -41,16 +41,15 @@ module.exports =
 /******/ 	return startup();
 /******/ })
 /************************************************************************/
-/******/ ([
-/* 0 */,
-/* 1 */,
-/* 2 */
+/******/ ({
+
+/***/ 2:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
 
 const os = __webpack_require__(87);
-const macosRelease = __webpack_require__(964);
+const macosRelease = __webpack_require__(118);
 const winRelease = __webpack_require__(49);
 
 const osName = (platform, release) => {
@@ -97,13 +96,8 @@ module.exports = osName;
 
 
 /***/ }),
-/* 3 */,
-/* 4 */,
-/* 5 */,
-/* 6 */,
-/* 7 */,
-/* 8 */,
-/* 9 */
+
+/***/ 9:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 var once = __webpack_require__(271);
@@ -203,8 +197,8 @@ module.exports = eos;
 
 
 /***/ }),
-/* 10 */,
-/* 11 */
+
+/***/ 11:
 /***/ (function(module) {
 
 // Returns a wrapper function that returns a wrapped callback
@@ -243,21 +237,16 @@ function wrappy (fn, cb) {
 
 
 /***/ }),
-/* 12 */,
-/* 13 */,
-/* 14 */,
-/* 15 */,
-/* 16 */,
-/* 17 */,
-/* 18 */
+
+/***/ 18:
 /***/ (function() {
 
 eval("require")("encoding");
 
 
 /***/ }),
-/* 19 */,
-/* 20 */
+
+/***/ 20:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -303,13 +292,8 @@ module.exports._enoent = enoent;
 
 
 /***/ }),
-/* 21 */,
-/* 22 */,
-/* 23 */,
-/* 24 */,
-/* 25 */,
-/* 26 */,
-/* 27 */
+
+/***/ 27:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -441,14 +425,8 @@ module.exports = parse;
 
 
 /***/ }),
-/* 28 */,
-/* 29 */,
-/* 30 */,
-/* 31 */,
-/* 32 */,
-/* 33 */,
-/* 34 */,
-/* 35 */
+
+/***/ 35:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -486,10 +464,8 @@ exports.info = info;
 
 
 /***/ }),
-/* 36 */,
-/* 37 */,
-/* 38 */,
-/* 39 */
+
+/***/ 39:
 /***/ (function(module) {
 
 "use strict";
@@ -509,7 +485,8 @@ module.exports = opts => {
 
 
 /***/ }),
-/* 40 */
+
+/***/ 40:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -672,9 +649,8 @@ exports.execState = function (ma, s) { return ma(s)[1]; };
 
 
 /***/ }),
-/* 41 */,
-/* 42 */,
-/* 43 */
+
+/***/ 43:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -1903,8 +1879,8 @@ exports._tr_align = _tr_align;
 
 
 /***/ }),
-/* 44 */,
-/* 45 */
+
+/***/ 45:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -2401,20 +2377,45 @@ exports.execState = function (fsa, s) {
 
 
 /***/ }),
-/* 46 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-var Buffer = __webpack_require__(293).Buffer
+/***/ 46:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
-module.exports = function(source, encoding) {
-  return new Buffer(source, encoding)
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getEitherM = void 0;
+var Apply_1 = __webpack_require__(370);
+var E = __webpack_require__(311);
+var function_1 = __webpack_require__(231);
+function getEitherM(M) {
+    var ap = Apply_1.apComposition(M, E.applyEither);
+    var of = function_1.flow(E.right, M.of);
+    return {
+        map: function (fa, f) { return M.map(fa, E.map(f)); },
+        ap: function (fab, fa) { return function_1.pipe(fab, ap(fa)); },
+        of: of,
+        chain: function (ma, f) { return M.chain(ma, function (e) { return (E.isLeft(e) ? M.of(E.left(e.left)) : f(e.right)); }); },
+        alt: function (fx, f) { return M.chain(fx, function (e) { return (E.isLeft(e) ? f() : of(e.right)); }); },
+        bimap: function (ma, f, g) { return M.map(ma, function (e) { return function_1.pipe(e, E.bimap(f, g)); }); },
+        mapLeft: function (ma, f) { return M.map(ma, function (e) { return function_1.pipe(e, E.mapLeft(f)); }); },
+        fold: function (ma, onLeft, onRight) { return M.chain(ma, E.fold(onLeft, onRight)); },
+        getOrElse: function (ma, onLeft) { return M.chain(ma, E.fold(onLeft, M.of)); },
+        orElse: function (ma, f) {
+            return M.chain(ma, E.fold(f, function (a) { return of(a); }));
+        },
+        swap: function (ma) { return M.map(ma, E.swap); },
+        rightM: function (ma) { return M.map(ma, E.right); },
+        leftM: function (ml) { return M.map(ml, E.left); },
+        left: function (e) { return M.of(E.left(e)); }
+    };
 }
+exports.getEitherM = getEitherM;
 
 
 /***/ }),
-/* 47 */,
-/* 48 */,
-/* 49 */
+
+/***/ 49:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -2473,20 +2474,15 @@ module.exports = windowsRelease;
 
 
 /***/ }),
-/* 50 */,
-/* 51 */,
-/* 52 */,
-/* 53 */,
-/* 54 */,
-/* 55 */,
-/* 56 */
+
+/***/ 56:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ord = exports.contramap = exports.ordDate = exports.getDualOrd = exports.getTupleOrd = exports.getMonoid = exports.getSemigroup = exports.fromCompare = exports.between = exports.clamp = exports.max = exports.min = exports.geq = exports.leq = exports.gt = exports.lt = exports.ordBoolean = exports.ordNumber = exports.ordString = exports.URI = void 0;
-var Ordering_1 = __webpack_require__(779);
+var Ordering_1 = __webpack_require__(410);
 /**
  * @category model
  * @since 2.0.0
@@ -2769,8 +2765,8 @@ exports.ord = {
 
 
 /***/ }),
-/* 57 */,
-/* 58 */
+
+/***/ 58:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -2804,7 +2800,7 @@ var boundedJoinSemilattice = __webpack_require__(94);
 exports.boundedJoinSemilattice = boundedJoinSemilattice;
 var boundedLattice = __webpack_require__(431);
 exports.boundedLattice = boundedLattice;
-var boundedMeetSemilattice = __webpack_require__(308);
+var boundedMeetSemilattice = __webpack_require__(68);
 exports.boundedMeetSemilattice = boundedMeetSemilattice;
 var category = __webpack_require__(263);
 exports.category = category;
@@ -2830,7 +2826,7 @@ var distributiveLattice = __webpack_require__(121);
 exports.distributiveLattice = distributiveLattice;
 var either = __webpack_require__(311);
 exports.either = either;
-var eitherT = __webpack_require__(92);
+var eitherT = __webpack_require__(46);
 exports.eitherT = eitherT;
 var eq = __webpack_require__(614);
 exports.eq = eq;
@@ -2852,7 +2848,7 @@ var functor = __webpack_require__(943);
 exports.functor = functor;
 var functorWithIndex = __webpack_require__(740);
 exports.functorWithIndex = functorWithIndex;
-var group = __webpack_require__(519);
+var group = __webpack_require__(977);
 exports.group = group;
 var heytingAlgebra = __webpack_require__(913);
 exports.heytingAlgebra = heytingAlgebra;
@@ -2874,7 +2870,7 @@ var lattice = __webpack_require__(326);
 exports.lattice = lattice;
 var magma = __webpack_require__(342);
 exports.magma = magma;
-var map = __webpack_require__(707);
+var map = __webpack_require__(618);
 exports.map = map;
 var meetSemilattice = __webpack_require__(920);
 exports.meetSemilattice = meetSemilattice;
@@ -2896,7 +2892,7 @@ var optionT = __webpack_require__(647);
 exports.optionT = optionT;
 var ord = __webpack_require__(56);
 exports.ord = ord;
-var ordering = __webpack_require__(779);
+var ordering = __webpack_require__(410);
 exports.ordering = ordering;
 var pipeable = __webpack_require__(194);
 exports.pipeable = pipeable;
@@ -2983,14 +2979,15 @@ exports.writerT = writerT;
 
 
 /***/ }),
-/* 59 */
+
+/***/ 59:
 /***/ (function(module) {
 
 module.exports = require("assert");
 
 /***/ }),
-/* 60 */,
-/* 61 */
+
+/***/ 61:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 var Buffer = __webpack_require__(149).Buffer
@@ -3077,9 +3074,8 @@ module.exports = Hash
 
 
 /***/ }),
-/* 62 */,
-/* 63 */,
-/* 64 */
+
+/***/ 64:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -3109,9 +3105,8 @@ exports.getValidationM = getValidationM;
 
 
 /***/ }),
-/* 65 */,
-/* 66 */,
-/* 67 */
+
+/***/ 67:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -3120,34 +3115,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 68 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-var proto = {}
-module.exports = proto
-
-proto.from = __webpack_require__(46)
-proto.to = __webpack_require__(953)
-proto.is = __webpack_require__(410)
-proto.subarray = __webpack_require__(977)
-proto.join = __webpack_require__(118)
-proto.copy = __webpack_require__(618)
-proto.create = __webpack_require__(732)
-
-mix(__webpack_require__(390), proto)
-mix(__webpack_require__(566), proto)
-
-function mix(from, into) {
-  for(var key in from) {
-    into[key] = from[key]
-  }
-}
-
-
-/***/ }),
-/* 69 */,
-/* 70 */,
-/* 71 */
+/***/ 68:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -3156,31 +3125,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 72 */,
-/* 73 */,
-/* 74 */,
-/* 75 */,
-/* 76 */,
-/* 77 */,
-/* 78 */,
-/* 79 */,
-/* 80 */,
-/* 81 */,
-/* 82 */,
-/* 83 */,
-/* 84 */,
-/* 85 */,
-/* 86 */,
-/* 87 */
+
+/***/ 71:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+
+
+/***/ }),
+
+/***/ 87:
 /***/ (function(module) {
 
 module.exports = require("os");
 
 /***/ }),
-/* 88 */,
-/* 89 */,
-/* 90 */,
-/* 91 */
+
+/***/ 91:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -3218,44 +3181,8 @@ exports.fold = fold;
 
 
 /***/ }),
-/* 92 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.getEitherM = void 0;
-var Apply_1 = __webpack_require__(370);
-var E = __webpack_require__(311);
-var function_1 = __webpack_require__(231);
-function getEitherM(M) {
-    var ap = Apply_1.apComposition(M, E.applyEither);
-    var of = function_1.flow(E.right, M.of);
-    return {
-        map: function (fa, f) { return M.map(fa, E.map(f)); },
-        ap: function (fab, fa) { return function_1.pipe(fab, ap(fa)); },
-        of: of,
-        chain: function (ma, f) { return M.chain(ma, function (e) { return (E.isLeft(e) ? M.of(E.left(e.left)) : f(e.right)); }); },
-        alt: function (fx, f) { return M.chain(fx, function (e) { return (E.isLeft(e) ? f() : of(e.right)); }); },
-        bimap: function (ma, f, g) { return M.map(ma, function (e) { return function_1.pipe(e, E.bimap(f, g)); }); },
-        mapLeft: function (ma, f) { return M.map(ma, function (e) { return function_1.pipe(e, E.mapLeft(f)); }); },
-        fold: function (ma, onLeft, onRight) { return M.chain(ma, E.fold(onLeft, onRight)); },
-        getOrElse: function (ma, onLeft) { return M.chain(ma, E.fold(onLeft, M.of)); },
-        orElse: function (ma, f) {
-            return M.chain(ma, E.fold(f, function (a) { return of(a); }));
-        },
-        swap: function (ma) { return M.map(ma, E.swap); },
-        rightM: function (ma) { return M.map(ma, E.right); },
-        leftM: function (ml) { return M.map(ml, E.left); },
-        left: function (e) { return M.of(E.left(e)); }
-    };
-}
-exports.getEitherM = getEitherM;
-
-
-/***/ }),
-/* 93 */,
-/* 94 */
+/***/ 94:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -3264,10 +3191,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 95 */,
-/* 96 */,
-/* 97 */,
-/* 98 */
+
+/***/ 98:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -3276,7 +3201,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 99 */
+
+/***/ 99:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -3297,40 +3223,48 @@ exports.tailRec = tailRec;
 
 
 /***/ }),
-/* 100 */,
-/* 101 */,
-/* 102 */,
-/* 103 */,
-/* 104 */,
-/* 105 */,
-/* 106 */,
-/* 107 */,
-/* 108 */,
-/* 109 */,
-/* 110 */,
-/* 111 */,
-/* 112 */,
-/* 113 */,
-/* 114 */,
-/* 115 */,
-/* 116 */,
-/* 117 */,
-/* 118 */
+
+/***/ 118:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
-var Buffer = __webpack_require__(293).Buffer
+"use strict";
 
-module.exports = function(targets, hint) {
-  return hint !== undefined ?
-    Buffer.concat(targets, hint) :
-    Buffer.concat(targets)
-}
+const os = __webpack_require__(87);
+
+const nameMap = new Map([
+	[19, 'Catalina'],
+	[18, 'Mojave'],
+	[17, 'High Sierra'],
+	[16, 'Sierra'],
+	[15, 'El Capitan'],
+	[14, 'Yosemite'],
+	[13, 'Mavericks'],
+	[12, 'Mountain Lion'],
+	[11, 'Lion'],
+	[10, 'Snow Leopard'],
+	[9, 'Leopard'],
+	[8, 'Tiger'],
+	[7, 'Panther'],
+	[6, 'Jaguar'],
+	[5, 'Puma']
+]);
+
+const macosRelease = release => {
+	release = Number((release || os.release()).split('.')[0]);
+	return {
+		name: nameMap.get(release),
+		version: '10.' + (release - 4)
+	};
+};
+
+module.exports = macosRelease;
+// TODO: remove this in the next major version
+module.exports.default = macosRelease;
 
 
 /***/ }),
-/* 119 */,
-/* 120 */,
-/* 121 */
+
+/***/ 121:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -3352,9 +3286,8 @@ exports.getMinMaxDistributiveLattice = getMinMaxDistributiveLattice;
 
 
 /***/ }),
-/* 122 */,
-/* 123 */,
-/* 124 */
+
+/***/ 124:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -3363,10 +3296,8 @@ module.exports = __webpack_require__(543);
 
 
 /***/ }),
-/* 125 */,
-/* 126 */,
-/* 127 */,
-/* 128 */
+
+/***/ 128:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -3375,24 +3306,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 129 */
+
+/***/ 129:
 /***/ (function(module) {
 
 module.exports = require("child_process");
 
 /***/ }),
-/* 130 */,
-/* 131 */,
-/* 132 */,
-/* 133 */,
-/* 134 */,
-/* 135 */,
-/* 136 */,
-/* 137 */,
-/* 138 */,
-/* 139 */,
-/* 140 */,
-/* 141 */
+
+/***/ 141:
 /***/ (function(module) {
 
 "use strict";
@@ -3450,10 +3372,8 @@ module.exports = adler32;
 
 
 /***/ }),
-/* 142 */,
-/* 143 */,
-/* 144 */,
-/* 145 */
+
+/***/ 145:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -3510,10 +3430,8 @@ module.exports.MaxBufferError = MaxBufferError;
 
 
 /***/ }),
-/* 146 */,
-/* 147 */,
-/* 148 */,
-/* 149 */
+
+/***/ 149:
 /***/ (function(module, exports, __webpack_require__) {
 
 /*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
@@ -3584,13 +3502,8 @@ SafeBuffer.allocUnsafeSlow = function (size) {
 
 
 /***/ }),
-/* 150 */,
-/* 151 */,
-/* 152 */,
-/* 153 */,
-/* 154 */,
-/* 155 */,
-/* 156 */
+
+/***/ 156:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -3810,7 +3723,8 @@ exports.getIntercalateSemigroup = getIntercalateSemigroup;
 
 
 /***/ }),
-/* 157 */
+
+/***/ 157:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -3855,13 +3769,8 @@ exports.getStateM = getStateM;
 
 
 /***/ }),
-/* 158 */,
-/* 159 */,
-/* 160 */,
-/* 161 */,
-/* 162 */,
-/* 163 */,
-/* 164 */
+
+/***/ 164:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -3870,10 +3779,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 165 */,
-/* 166 */,
-/* 167 */,
-/* 168 */
+
+/***/ 168:
 /***/ (function(module) {
 
 "use strict";
@@ -3921,9 +3828,8 @@ module.exports = opts => {
 
 
 /***/ }),
-/* 169 */,
-/* 170 */,
-/* 171 */
+
+/***/ 171:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -4784,10 +4690,8 @@ exports.getRefinement = getRefinement;
 
 
 /***/ }),
-/* 172 */,
-/* 173 */,
-/* 174 */,
-/* 175 */
+
+/***/ 175:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -4924,12 +4828,8 @@ exports.tuple =
 
 
 /***/ }),
-/* 176 */,
-/* 177 */,
-/* 178 */,
-/* 179 */,
-/* 180 */,
-/* 181 */
+
+/***/ 181:
 /***/ (function(module) {
 
 "use strict";
@@ -5281,7 +5181,8 @@ module.exports = function inflate_fast(strm, start) {
 
 
 /***/ }),
-/* 182 */
+
+/***/ 182:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -5958,17 +5859,8 @@ exports.readonlyMap = {
 
 
 /***/ }),
-/* 183 */,
-/* 184 */,
-/* 185 */,
-/* 186 */,
-/* 187 */,
-/* 188 */,
-/* 189 */,
-/* 190 */,
-/* 191 */,
-/* 192 */,
-/* 193 */
+
+/***/ 193:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -6020,7 +5912,8 @@ exports.getTheseM = getTheseM;
 
 
 /***/ }),
-/* 194 */
+
+/***/ 194:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -6187,9 +6080,8 @@ exports.pipeable = pipeable;
 
 
 /***/ }),
-/* 195 */,
-/* 196 */,
-/* 197 */
+
+/***/ 197:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -6291,11 +6183,8 @@ exports.REAL_DOCKER = config => ({
 
 
 /***/ }),
-/* 198 */,
-/* 199 */,
-/* 200 */,
-/* 201 */,
-/* 202 */
+
+/***/ 202:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -6361,21 +6250,15 @@ exports.getDualBooleanAlgebra = getDualBooleanAlgebra;
 
 
 /***/ }),
-/* 203 */,
-/* 204 */,
-/* 205 */,
-/* 206 */,
-/* 207 */,
-/* 208 */,
-/* 209 */,
-/* 210 */,
-/* 211 */
+
+/***/ 211:
 /***/ (function(module) {
 
 module.exports = require("https");
 
 /***/ }),
-/* 212 */
+
+/***/ 212:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -6384,14 +6267,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 213 */,
-/* 214 */,
-/* 215 */,
-/* 216 */,
-/* 217 */,
-/* 218 */,
-/* 219 */,
-/* 220 */
+
+/***/ 220:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -6412,12 +6289,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 221 */,
-/* 222 */,
-/* 223 */,
-/* 224 */,
-/* 225 */,
-/* 226 */
+
+/***/ 226:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -6670,11 +6543,8 @@ exports.readonlyTuple = {
 
 
 /***/ }),
-/* 227 */,
-/* 228 */,
-/* 229 */,
-/* 230 */,
-/* 231 */
+
+/***/ 231:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -6890,13 +6760,8 @@ exports.pipe = pipe;
 
 
 /***/ }),
-/* 232 */,
-/* 233 */,
-/* 234 */,
-/* 235 */,
-/* 236 */,
-/* 237 */,
-/* 238 */
+
+/***/ 238:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -6940,14 +6805,8 @@ exports.eqYear = {
 
 
 /***/ }),
-/* 239 */,
-/* 240 */,
-/* 241 */,
-/* 242 */,
-/* 243 */,
-/* 244 */,
-/* 245 */,
-/* 246 */
+
+/***/ 246:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -6968,16 +6827,8 @@ module.exports = pako;
 
 
 /***/ }),
-/* 247 */,
-/* 248 */,
-/* 249 */,
-/* 250 */,
-/* 251 */,
-/* 252 */,
-/* 253 */,
-/* 254 */,
-/* 255 */,
-/* 256 */
+
+/***/ 256:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -7003,106 +6854,8 @@ exports.getCompactableComposition = getCompactableComposition;
 
 
 /***/ }),
-/* 257 */,
-/* 258 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = apply_delta
-
-var binary = __webpack_require__(68)
-  , Decoder = __webpack_require__(330)
-  , vi = new Decoder
-
-// we use writeUint[8|32][LE|BE] instead of indexing
-// into buffers so that we get buffer-browserify compat.
-var OFFSET_BUFFER = binary.create(4)
-  , LENGTH_BUFFER = binary.create(4)
-
-function apply_delta(delta, target) {
-  var base_size_info = {size: null, buffer: null}
-    , resized_size_info = {size: null, buffer: null}
-    , output_buffer
-    , out_idx
-    , command
-    , len
-    , idx
-
-  delta_header(delta, base_size_info)
-  delta_header(base_size_info.buffer, resized_size_info)
-
-  delta = resized_size_info.buffer
-
-  idx =
-  out_idx = 0
-  output_buffer = binary.create(resized_size_info.size)
-
-  len = delta.length
-
-  while(idx < len) {
-    command = delta[idx++]
-    command & 0x80 ? copy() : insert()
-  }
-
-  return output_buffer
-
-  function copy() {
-    binary.writeUInt32LE(OFFSET_BUFFER, 0, 0)
-    binary.writeUInt32LE(LENGTH_BUFFER, 0, 0)
-
-    var check = 1
-      , length
-      , offset
-
-    for(var x = 0; x < 4; ++x) {
-      if(command & check) {
-        OFFSET_BUFFER[3 - x] = delta[idx++]
-      }
-      check <<= 1
-    }
-
-    for(var x = 0; x < 3; ++x) {
-      if(command & check) {
-        LENGTH_BUFFER[3 - x] = delta[idx++]
-      }
-      check <<= 1
-    }
-    LENGTH_BUFFER[0] = 0
-
-    length = binary.readUInt32BE(LENGTH_BUFFER, 0) || 0x10000
-    offset = binary.readUInt32BE(OFFSET_BUFFER, 0)
-
-    binary.copy(target, output_buffer, out_idx, offset, offset + length)
-    out_idx += length
-  }
-
-  function insert() {
-    binary.copy(delta, output_buffer, out_idx, idx, command + idx)
-    idx += command
-    out_idx += command
-  }
-}
-
-function delta_header(buf, output) {
-  var done = false
-    , idx = 0
-    , size = 0
-
-  vi.ondata = function(s) {
-    size = s
-    done = true
-  }
-
-  do {
-    vi.write(buf[idx++])
-  } while(!done)
-
-  output.size = size
-  output.buffer = binary.subarray(buf, idx)
-}
-
-
-/***/ }),
-/* 259 */
+/***/ 259:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -7509,7 +7262,8 @@ exports.gzip = gzip;
 
 
 /***/ }),
-/* 260 */
+
+/***/ 260:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -7988,9 +7742,8 @@ exports.taskify = taskify;
 
 
 /***/ }),
-/* 261 */,
-/* 262 */,
-/* 263 */
+
+/***/ 263:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -7999,14 +7752,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 264 */,
-/* 265 */,
-/* 266 */,
-/* 267 */,
-/* 268 */,
-/* 269 */,
-/* 270 */,
-/* 271 */
+
+/***/ 271:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 var wrappy = __webpack_require__(11)
@@ -8054,11 +7801,8 @@ function onceStrict (fn) {
 
 
 /***/ }),
-/* 272 */,
-/* 273 */,
-/* 274 */,
-/* 275 */,
-/* 276 */
+
+/***/ 276:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -8309,9 +8053,8 @@ exports.record =
 
 
 /***/ }),
-/* 277 */,
-/* 278 */,
-/* 279 */
+
+/***/ 279:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -8505,7 +8248,8 @@ exports.utf8border = function (buf, max) {
 
 
 /***/ }),
-/* 280 */
+
+/***/ 280:
 /***/ (function(module) {
 
 module.exports = register
@@ -8539,14 +8283,8 @@ function register (state, name, method, options) {
 
 
 /***/ }),
-/* 281 */,
-/* 282 */,
-/* 283 */,
-/* 284 */,
-/* 285 */,
-/* 286 */,
-/* 287 */,
-/* 288 */
+
+/***/ 288:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -8555,8 +8293,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 289 */,
-/* 290 */
+
+/***/ 290:
 /***/ (function(module) {
 
 /*
@@ -8740,7 +8478,8 @@ module.exports = function (a_, b_) {
 
 
 /***/ }),
-/* 291 */
+
+/***/ 291:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -8934,7 +8673,8 @@ exports.getConfig = async (env) => {
 
 
 /***/ }),
-/* 292 */
+
+/***/ 292:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -8993,18 +8733,15 @@ exports.getTupleShow = getTupleShow;
 
 
 /***/ }),
-/* 293 */
+
+/***/ 293:
 /***/ (function(module) {
 
 module.exports = require("buffer");
 
 /***/ }),
-/* 294 */,
-/* 295 */,
-/* 296 */,
-/* 297 */,
-/* 298 */,
-/* 299 */
+
+/***/ 299:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -9141,13 +8878,8 @@ exports.paginateRest = paginateRest;
 
 
 /***/ }),
-/* 300 */,
-/* 301 */,
-/* 302 */,
-/* 303 */,
-/* 304 */,
-/* 305 */,
-/* 306 */
+
+/***/ 306:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -9202,19 +8934,8 @@ exports.PathReporter = {
 
 
 /***/ }),
-/* 307 */,
-/* 308 */
-/***/ (function(__unusedmodule, exports) {
 
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-
-
-/***/ }),
-/* 309 */,
-/* 310 */,
-/* 311 */
+/***/ 311:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -9939,10 +9660,8 @@ exports.exists = exists;
 
 
 /***/ }),
-/* 312 */,
-/* 313 */,
-/* 314 */,
-/* 315 */
+
+/***/ 315:
 /***/ (function(module) {
 
 if (typeof Object.create === 'function') {
@@ -9975,8 +9694,8 @@ if (typeof Object.create === 'function') {
 
 
 /***/ }),
-/* 316 */,
-/* 317 */
+
+/***/ 317:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -9985,12 +9704,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 318 */,
-/* 319 */,
-/* 320 */,
-/* 321 */,
-/* 322 */,
-/* 323 */
+
+/***/ 323:
 /***/ (function(module) {
 
 "use strict";
@@ -10018,9 +9733,8 @@ isStream.transform = function (stream) {
 
 
 /***/ }),
-/* 324 */,
-/* 325 */,
-/* 326 */
+
+/***/ 326:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -10029,55 +9743,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 327 */,
-/* 328 */,
-/* 329 */,
-/* 330 */
-/***/ (function(module) {
 
-module.exports = Decoder
-
-var MSB = 0x80
-  , REST = 0x7F
-
-
-function Decoder() {
-  this.accum = []
-}
-Decoder.prototype.write = write;
-
-function write(byte) {
-  var msb = byte & MSB
-    , accum = this.accum
-    , len
-    , out
-
-  accum[accum.length] = byte & REST
-  if(msb) {
-    return
-  }
-
-  len = accum.length
-  out = 0
-
-  for(var i = 0; i < len; ++i) {
-    out |= accum[i] << (7 * i)
-  }
-
-  accum.length = 0
-  this.ondata(out)
-  return
-}
-
-/***/ }),
-/* 331 */,
-/* 332 */,
-/* 333 */,
-/* 334 */,
-/* 335 */,
-/* 336 */,
-/* 337 */,
-/* 338 */
+/***/ 338:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -11699,10 +11366,8 @@ exports.getIndex = getIndex;
 
 
 /***/ }),
-/* 339 */,
-/* 340 */,
-/* 341 */,
-/* 342 */
+
+/***/ 342:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -11711,7 +11376,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 343 */
+
+/***/ 343:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -11890,15 +11556,8 @@ exports.filterMap = RS.filterMap;
 
 
 /***/ }),
-/* 344 */,
-/* 345 */,
-/* 346 */,
-/* 347 */,
-/* 348 */,
-/* 349 */,
-/* 350 */,
-/* 351 */,
-/* 352 */
+
+/***/ 352:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -13087,11 +12746,8 @@ exports.restEndpointMethods = restEndpointMethods;
 
 
 /***/ }),
-/* 353 */,
-/* 354 */,
-/* 355 */,
-/* 356 */,
-/* 357 */
+
+/***/ 357:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -13116,13 +12772,8 @@ exports.getMinMaxBoundedDistributiveLattice = getMinMaxBoundedDistributiveLattic
 
 
 /***/ }),
-/* 358 */,
-/* 359 */,
-/* 360 */,
-/* 361 */,
-/* 362 */,
-/* 363 */,
-/* 364 */
+
+/***/ 364:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -13560,12 +13211,8 @@ exports.readonlyNonEmptyArray = {
 
 
 /***/ }),
-/* 365 */,
-/* 366 */,
-/* 367 */,
-/* 368 */,
-/* 369 */,
-/* 370 */
+
+/***/ 370:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -13638,10 +13285,8 @@ exports.apComposition = apComposition;
 
 
 /***/ }),
-/* 371 */,
-/* 372 */,
-/* 373 */,
-/* 374 */
+
+/***/ 374:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -14002,10 +13647,8 @@ exports.tree = {
 
 
 /***/ }),
-/* 375 */,
-/* 376 */,
-/* 377 */,
-/* 378 */
+
+/***/ 378:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -15886,13 +15529,8 @@ exports.deflateTune = deflateTune;
 
 
 /***/ }),
-/* 379 */,
-/* 380 */,
-/* 381 */,
-/* 382 */,
-/* 383 */,
-/* 384 */,
-/* 385 */
+
+/***/ 385:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -16278,9 +15916,8 @@ exports.endpoint = endpoint;
 
 
 /***/ }),
-/* 386 */,
-/* 387 */,
-/* 388 */
+
+/***/ 388:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -16361,7 +15998,8 @@ exports.exec = util_1.promisify(child_process.exec);
 
 
 /***/ }),
-/* 389 */
+
+/***/ 389:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -16400,36 +16038,8 @@ module.exports = readShebang;
 
 
 /***/ }),
-/* 390 */
-/***/ (function(module) {
 
-var proto = {}
-  , rex = /read.+/
-  , buildFn
-
-buildFn = function(key) {
-  var code = '' +
-    'return buf.' + key + '(' + ['a', 'b', 'c'].join(',' ) + ')'
-
-  return new Function(['buf', 'a', 'b', 'c'], code)
-}
-
-module.exports = proto
-
-for(var key in Buffer.prototype) {
-  if(rex.test(key)) {
-    proto[key] = buildFn(key)
-  }
-}
-
-
-/***/ }),
-/* 391 */,
-/* 392 */,
-/* 393 */,
-/* 394 */,
-/* 395 */,
-/* 396 */
+/***/ 396:
 /***/ (function(module) {
 
 // A simple implementation of make-array
@@ -17032,11 +16642,8 @@ if (
 
 
 /***/ }),
-/* 397 */,
-/* 398 */,
-/* 399 */,
-/* 400 */,
-/* 401 */
+
+/***/ 401:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -18599,26 +18206,66 @@ exports.inflateUndermine = inflateUndermine;
 
 
 /***/ }),
-/* 402 */,
-/* 403 */,
-/* 404 */,
-/* 405 */,
-/* 406 */,
-/* 407 */,
-/* 408 */,
-/* 409 */,
-/* 410 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-var Buffer = __webpack_require__(293).Buffer
+/***/ 410:
+/***/ (function(__unusedmodule, exports) {
 
-module.exports = function(buffer) {
-  return Buffer.isBuffer(buffer);
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.invert = exports.monoidOrdering = exports.semigroupOrdering = exports.eqOrdering = exports.sign = void 0;
+/**
+ * @since 2.0.0
+ */
+function sign(n) {
+    return n <= -1 ? -1 : n >= 1 ? 1 : 0;
 }
+exports.sign = sign;
+/**
+ * @category instances
+ * @since 2.0.0
+ */
+exports.eqOrdering = {
+    equals: function (x, y) { return x === y; }
+};
+/**
+ * Use `monoidOrdering` instead
+ *
+ * @category instances
+ * @since 2.0.0
+ * @deprecated
+ */
+exports.semigroupOrdering = {
+    concat: function (x, y) { return (x !== 0 ? x : y); }
+};
+/**
+ * @category instances
+ * @since 2.4.0
+ */
+exports.monoidOrdering = {
+    // tslint:disable-next-line: deprecation
+    concat: exports.semigroupOrdering.concat,
+    empty: 0
+};
+/**
+ * @since 2.0.0
+ */
+function invert(O) {
+    switch (O) {
+        case -1:
+            return 1;
+        case 1:
+            return -1;
+        default:
+            return 0;
+    }
+}
+exports.invert = invert;
 
 
 /***/ }),
-/* 411 */
+
+/***/ 411:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -18672,8 +18319,8 @@ module.exports = resolveCommand;
 
 
 /***/ }),
-/* 412 */,
-/* 413 */
+
+/***/ 413:
 /***/ (function(module) {
 
 "use strict";
@@ -18748,18 +18395,8 @@ module.exports = (input, options) => {
 
 
 /***/ }),
-/* 414 */,
-/* 415 */,
-/* 416 */,
-/* 417 */,
-/* 418 */,
-/* 419 */,
-/* 420 */,
-/* 421 */,
-/* 422 */,
-/* 423 */,
-/* 424 */,
-/* 425 */
+
+/***/ 425:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -18896,8 +18533,8 @@ exports.execWriter = function (fa) { return fa()[1]; };
 
 
 /***/ }),
-/* 426 */,
-/* 427 */
+
+/***/ 427:
 /***/ (function(module) {
 
 "use strict";
@@ -18919,7 +18556,8 @@ module.exports = (promise, onFinally) => {
 
 
 /***/ }),
-/* 428 */
+
+/***/ 428:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -19444,7 +19082,8 @@ exports.run = run;
 
 
 /***/ }),
-/* 429 */
+
+/***/ 429:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -19467,8 +19106,8 @@ exports.fanin = fanin;
 
 
 /***/ }),
-/* 430 */,
-/* 431 */
+
+/***/ 431:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -19477,23 +19116,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 432 */,
-/* 433 */,
-/* 434 */,
-/* 435 */,
-/* 436 */,
-/* 437 */,
-/* 438 */,
-/* 439 */,
-/* 440 */,
-/* 441 */,
-/* 442 */,
-/* 443 */,
-/* 444 */,
-/* 445 */,
-/* 446 */,
-/* 447 */,
-/* 448 */
+
+/***/ 448:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -19670,7 +19294,8 @@ exports.Octokit = Octokit;
 
 
 /***/ }),
-/* 449 */
+
+/***/ 449:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -19727,10 +19352,8 @@ exports.newIORef = newIORef;
 
 
 /***/ }),
-/* 450 */,
-/* 451 */,
-/* 452 */,
-/* 453 */
+
+/***/ 453:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 var once = __webpack_require__(271)
@@ -19818,7 +19441,8 @@ module.exports = pump
 
 
 /***/ }),
-/* 454 */
+
+/***/ 454:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -21474,14 +21098,8 @@ exports.FetchError = FetchError;
 
 
 /***/ }),
-/* 455 */,
-/* 456 */,
-/* 457 */,
-/* 458 */,
-/* 459 */,
-/* 460 */,
-/* 461 */,
-/* 462 */
+
+/***/ 462:
 /***/ (function(module) {
 
 "use strict";
@@ -21533,7 +21151,8 @@ module.exports.argument = escapeArgument;
 
 
 /***/ }),
-/* 463 */
+
+/***/ 463:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -21595,10 +21214,8 @@ exports.RequestError = RequestError;
 
 
 /***/ }),
-/* 464 */,
-/* 465 */,
-/* 466 */,
-/* 467 */
+
+/***/ 467:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -21936,9 +21553,8 @@ exports.nonEmptyArray =
 
 
 /***/ }),
-/* 468 */,
-/* 469 */,
-/* 470 */
+
+/***/ 470:
 /***/ (function(module, exports) {
 
 exports = module.exports = SemVer
@@ -23427,16 +23043,8 @@ function coerce (version) {
 
 
 /***/ }),
-/* 471 */,
-/* 472 */,
-/* 473 */,
-/* 474 */,
-/* 475 */,
-/* 476 */,
-/* 477 */,
-/* 478 */,
-/* 479 */,
-/* 480 */
+
+/***/ 480:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -23482,7 +23090,8 @@ exports.lcm = lcm;
 
 
 /***/ }),
-/* 481 */
+
+/***/ 481:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -23491,14 +23100,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 482 */,
-/* 483 */,
-/* 484 */,
-/* 485 */,
-/* 486 */,
-/* 487 */,
-/* 488 */,
-/* 489 */
+
+/***/ 489:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -23530,9 +23133,8 @@ exports.getTraversableComposition = getTraversableComposition;
 
 
 /***/ }),
-/* 490 */,
-/* 491 */,
-/* 492 */
+
+/***/ 492:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -23778,11 +23380,8 @@ exports.run = run;
 
 
 /***/ }),
-/* 493 */,
-/* 494 */,
-/* 495 */,
-/* 496 */,
-/* 497 */
+
+/***/ 497:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 // Note: since nyc uses this module to output coverage, any lines
@@ -23951,19 +23550,8 @@ function processEmit (ev, arg) {
 
 
 /***/ }),
-/* 498 */,
-/* 499 */,
-/* 500 */,
-/* 501 */,
-/* 502 */,
-/* 503 */,
-/* 504 */,
-/* 505 */,
-/* 506 */,
-/* 507 */,
-/* 508 */,
-/* 509 */,
-/* 510 */
+
+/***/ 510:
 /***/ (function(module) {
 
 module.exports = addHook
@@ -24015,10 +23603,8 @@ function addHook (state, kind, name, hook) {
 
 
 /***/ }),
-/* 511 */,
-/* 512 */,
-/* 513 */,
-/* 514 */
+
+/***/ 514:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -24032,23 +23618,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 515 */,
-/* 516 */,
-/* 517 */,
-/* 518 */,
-/* 519 */
-/***/ (function(__unusedmodule, exports) {
 
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-
-
-/***/ }),
-/* 520 */,
-/* 521 */,
-/* 522 */,
-/* 523 */
+/***/ 523:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 var register = __webpack_require__(280)
@@ -24111,12 +23682,8 @@ module.exports.Collection = Hook.Collection
 
 
 /***/ }),
-/* 524 */,
-/* 525 */,
-/* 526 */,
-/* 527 */,
-/* 528 */,
-/* 529 */
+
+/***/ 529:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 /*
@@ -24221,20 +23788,8 @@ module.exports = Sha1
 
 
 /***/ }),
-/* 530 */,
-/* 531 */,
-/* 532 */,
-/* 533 */,
-/* 534 */,
-/* 535 */,
-/* 536 */,
-/* 537 */,
-/* 538 */,
-/* 539 */,
-/* 540 */,
-/* 541 */,
-/* 542 */,
-/* 543 */
+
+/***/ 543:
 /***/ (function(module) {
 
 "use strict";
@@ -24249,17 +23804,29 @@ var AsyncLock = function (opts) {
 	// queues[key] = null indicates no job running for key
 	this.queues = Object.create(null);
 
-	// domain of current running func {key : fn}
-	this.domains = Object.create(null);
-
 	// lock is reentrant for same domain
 	this.domainReentrant = opts.domainReentrant || false;
+	if (this.domainReentrant) {
+		if (typeof process === 'undefined' || typeof process.domain === 'undefined') {
+			throw new Error(
+				'Domain-reentrant locks require `process.domain` to exist. Please flip `opts.domainReentrant = false`, ' +
+				'use a NodeJS version that still implements Domain, or install a browser polyfill.');
+		}
+		// domain of current running func {key : fn}
+		this.domains = Object.create(null);
+	}
 
 	this.timeout = opts.timeout || AsyncLock.DEFAULT_TIMEOUT;
-	this.maxPending = opts.maxPending || AsyncLock.DEFAULT_MAX_PENDING;
+	this.maxOccupationTime = opts.maxOccupationTime || AsyncLock.DEFAULT_MAX_OCCUPATION_TIME;
+	if (opts.maxPending === Infinity || (Number.isInteger(opts.maxPending) && opts.maxPending >= 0)) {
+		this.maxPending = opts.maxPending;
+	} else {
+		this.maxPending = AsyncLock.DEFAULT_MAX_PENDING;
+	}
 };
 
 AsyncLock.DEFAULT_TIMEOUT = 0; //Never
+AsyncLock.DEFAULT_MAX_OCCUPATION_TIME = 0; //Never
 AsyncLock.DEFAULT_MAX_PENDING = 1000;
 
 /**
@@ -24289,7 +23856,7 @@ AsyncLock.prototype.acquire = function (key, fn, cb, opts) {
 		cb = null;
 
 		// will return a promise
-		deferred =  new this.Promise(function(resolve, reject) {
+		deferred = new this.Promise(function(resolve, reject) {
 			deferredResolve = resolve;
 			deferredReject = reject;
 		});
@@ -24299,14 +23866,23 @@ AsyncLock.prototype.acquire = function (key, fn, cb, opts) {
 
 	var resolved = false;
 	var timer = null;
+	var occupationTimer = null;
 	var self = this;
 
 	var done = function (locked, err, ret) {
+
+		if (occupationTimer) {
+			clearTimeout(occupationTimer);
+			occupationTimer = null;
+		}
+
 		if (locked) {
-			if (self.queues[key].length === 0) {
+			if (!!self.queues[key] && self.queues[key].length === 0) {
 				delete self.queues[key];
 			}
-			delete self.domains[key];
+			if (self.domainReentrant) {
+				delete self.domains[key];
+			}
 		}
 
 		if (!resolved) {
@@ -24345,7 +23921,7 @@ AsyncLock.prototype.acquire = function (key, fn, cb, opts) {
 			timer = null;
 		}
 
-		if (locked) {
+		if (self.domainReentrant && locked) {
 			self.domains[key] = process.domain;
 		}
 
@@ -24371,7 +23947,8 @@ AsyncLock.prototype.acquire = function (key, fn, cb, opts) {
 			});
 		}
 	};
-	if (!!process.domain) {
+
+	if (self.domainReentrant && !!process.domain) {
 		exec = process.domain.bind(exec);
 	}
 
@@ -24405,6 +23982,15 @@ AsyncLock.prototype.acquire = function (key, fn, cb, opts) {
 			}, timeout);
 		}
 	}
+
+	var maxOccupationTime = opts.maxOccupationTime || self.maxOccupationTime;
+		if (maxOccupationTime) {
+			occupationTimer = setTimeout(function () {
+				if (!!self.queues[key]) {
+					done(false, new Error('Maximum occupation time is exceeded'));
+				}
+			}, maxOccupationTime);
+		}
 
 	if (deferred) {
 		return deferred;
@@ -24496,8 +24082,8 @@ module.exports = AsyncLock;
 
 
 /***/ }),
-/* 544 */,
-/* 545 */
+
+/***/ 545:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -24506,9 +24092,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 546 */,
-/* 547 */,
-/* 548 */
+
+/***/ 548:
 /***/ (function(module) {
 
 "use strict";
@@ -24563,12 +24148,8 @@ module.exports = isPlainObject;
 
 
 /***/ }),
-/* 549 */,
-/* 550 */,
-/* 551 */,
-/* 552 */,
-/* 553 */,
-/* 554 */
+
+/***/ 554:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -24577,10 +24158,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 555 */,
-/* 556 */,
-/* 557 */,
-/* 558 */
+
+/***/ 558:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -24678,12 +24257,8 @@ exports.traced = {
 
 
 /***/ }),
-/* 559 */,
-/* 560 */,
-/* 561 */,
-/* 562 */,
-/* 563 */,
-/* 564 */
+
+/***/ 564:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -24867,35 +24442,8 @@ exports.taskThese = {
 
 
 /***/ }),
-/* 565 */,
-/* 566 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-var Buffer = __webpack_require__(293).Buffer
-
-var proto = {}
-  , rex = /write.+/
-  , buildFn
-
-buildFn = function(key) {
-  var code = '' +
-    'return buf.' + key + '(' + ['a', 'b', 'c'].join(',' ) + ')'
-
-  return new Function(['buf', 'a', 'b', 'c'], code)
-}
-
-module.exports = proto
-
-for(var key in Buffer.prototype) {
-  if(rex.test(key)) {
-    proto[key] = buildFn(key)
-  }
-}
-
-
-/***/ }),
-/* 567 */,
-/* 568 */
+/***/ 568:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -25608,17 +25156,8 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
 
 
 /***/ }),
-/* 569 */,
-/* 570 */,
-/* 571 */,
-/* 572 */,
-/* 573 */,
-/* 574 */,
-/* 575 */,
-/* 576 */,
-/* 577 */,
-/* 578 */,
-/* 579 */
+
+/***/ 579:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -25642,7 +25181,8 @@ exports.getReaderM = getReaderM;
 
 
 /***/ }),
-/* 580 */
+
+/***/ 580:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -25651,15 +25191,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 581 */,
-/* 582 */,
-/* 583 */,
-/* 584 */,
-/* 585 */,
-/* 586 */,
-/* 587 */,
-/* 588 */,
-/* 589 */
+
+/***/ 589:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -26033,10 +25566,8 @@ exports.ioEither = {
 
 
 /***/ }),
-/* 590 */,
-/* 591 */,
-/* 592 */,
-/* 593 */
+
+/***/ 593:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -26055,13 +25586,8 @@ action_1.runAction({
 
 
 /***/ }),
-/* 594 */,
-/* 595 */,
-/* 596 */,
-/* 597 */,
-/* 598 */,
-/* 599 */,
-/* 600 */
+
+/***/ 600:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -26274,22 +25800,15 @@ exports.reader = {
 
 
 /***/ }),
-/* 601 */,
-/* 602 */,
-/* 603 */,
-/* 604 */,
-/* 605 */
+
+/***/ 605:
 /***/ (function(module) {
 
 module.exports = require("http");
 
 /***/ }),
-/* 606 */,
-/* 607 */,
-/* 608 */,
-/* 609 */,
-/* 610 */,
-/* 611 */
+
+/***/ 611:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 // Copyright (c) 2006, 2008 Tony Garnock-Jones <tonyg@lshift.net>
@@ -26566,8 +26085,8 @@ module.exports = diff3Merge;
 
 
 /***/ }),
-/* 612 */,
-/* 613 */
+
+/***/ 613:
 /***/ (function(module) {
 
 "use strict";
@@ -26633,7 +26152,8 @@ module.exports = crc32;
 
 
 /***/ }),
-/* 614 */
+
+/***/ 614:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -26770,23 +26290,217 @@ exports.eq = {
 
 
 /***/ }),
-/* 615 */,
-/* 616 */,
-/* 617 */,
-/* 618 */
-/***/ (function(module) {
 
-module.exports = copy
+/***/ 618:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
-function copy(source, target, target_start, source_start, source_end) {
-  return source.copy(target, target_start, source_start, source_end)
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.map_ = exports.getWitherable = exports.getFilterableWithIndex = exports.separate = exports.partitionMap = exports.partition = exports.map = exports.filterMap = exports.filter = exports.compact = exports.fromFoldable = exports.singleton = exports.getMonoid = exports.getEq = exports.empty = exports.isSubmap = exports.lookup = exports.lookupWithKey = exports.pop = exports.modifyAt = exports.updateAt = exports.deleteAt = exports.insertAt = exports.toUnfoldable = exports.toArray = exports.collect = exports.values = exports.keys = exports.elem = exports.member = exports.isEmpty = exports.size = exports.getShow = exports.URI = void 0;
+var RM = __webpack_require__(182);
+/* tslint:disable:readonly-array */
+/**
+ * @category model
+ * @since 2.0.0
+ */
+exports.URI = 'Map';
+/**
+ * @category instances
+ * @since 2.0.0
+ */
+exports.getShow = RM.getShow;
+/**
+ * Calculate the number of key/value pairs in a map
+ *
+ * @since 2.0.0
+ */
+exports.size = RM.size;
+/**
+ * Test whether or not a map is empty
+ *
+ * @since 2.0.0
+ */
+exports.isEmpty = RM.isEmpty;
+/**
+ * Test whether or not a key exists in a map
+ *
+ * @since 2.0.0
+ */
+exports.member = RM.member;
+/**
+ * Test whether or not a value is a member of a map
+ *
+ * @since 2.0.0
+ */
+exports.elem = RM.elem;
+/**
+ * Get a sorted array of the keys contained in a map
+ *
+ * @since 2.0.0
+ */
+exports.keys = RM.keys;
+/**
+ * Get a sorted array of the values contained in a map
+ *
+ * @since 2.0.0
+ */
+exports.values = RM.values;
+/**
+ * @since 2.0.0
+ */
+exports.collect = RM.collect;
+/**
+ * Get a sorted of the key/value pairs contained in a map
+ *
+ * @since 2.0.0
+ */
+exports.toArray = RM.toReadonlyArray;
+function toUnfoldable(O, U) {
+    return RM.toUnfoldable(O, U);
 }
+exports.toUnfoldable = toUnfoldable;
+/**
+ * Insert or replace a key/value pair in a map
+ *
+ * @category combinators
+ * @since 2.0.0
+ */
+exports.insertAt = RM.insertAt;
+/**
+ * Delete a key and value from a map
+ *
+ * @category combinators
+ * @since 2.0.0
+ */
+exports.deleteAt = RM.deleteAt;
+/**
+ * @since 2.0.0
+ */
+exports.updateAt = RM.updateAt;
+/**
+ * @since 2.0.0
+ */
+exports.modifyAt = RM.modifyAt;
+/**
+ * Delete a key and value from a map, returning the value as well as the subsequent map
+ *
+ * @since 2.0.0
+ */
+exports.pop = RM.pop;
+/**
+ * Lookup the value for a key in a `Map`.
+ * If the result is a `Some`, the existing key is also returned.
+ *
+ * @since 2.0.0
+ */
+exports.lookupWithKey = RM.lookupWithKey;
+/**
+ * Lookup the value for a key in a `Map`.
+ *
+ * @since 2.0.0
+ */
+exports.lookup = RM.lookup;
+/**
+ * Test whether or not one Map contains all of the keys and values contained in another Map
+ *
+ * @since 2.0.0
+ */
+exports.isSubmap = RM.isSubmap;
+/**
+ * @since 2.0.0
+ */
+exports.empty = new Map();
+/**
+ * @category instances
+ * @since 2.0.0
+ */
+exports.getEq = RM.getEq;
+/**
+ * Gets `Monoid` instance for Maps given `Semigroup` instance for their values
+ *
+ * @category instances
+ * @since 2.0.0
+ */
+exports.getMonoid = RM.getMonoid;
+/**
+ * Create a map with one key/value pair
+ *
+ * @since 2.0.0
+ */
+exports.singleton = RM.singleton;
+function fromFoldable(E, M, F) {
+    return RM.fromFoldable(E, M, F);
+}
+exports.fromFoldable = fromFoldable;
+// -------------------------------------------------------------------------------------
+// pipeables
+// -------------------------------------------------------------------------------------
+/**
+ * @category Compactable
+ * @since 2.0.0
+ */
+exports.compact = RM.compact;
+/**
+ * @category Filterable
+ * @since 2.0.0
+ */
+exports.filter = RM.filter;
+/**
+ * @category Filterable
+ * @since 2.0.0
+ */
+exports.filterMap = RM.filterMap;
+/**
+ * `map` can be used to turn functions `(a: A) => B` into functions `(fa: F<A>) => F<B>` whose argument and return types
+ * use the type constructor `F` to represent some computational context.
+ *
+ * @category Functor
+ * @since 2.0.0
+ */
+exports.map = RM.map;
+/**
+ * @category Filterable
+ * @since 2.0.0
+ */
+exports.partition = RM.partition;
+/**
+ * @category Filterable
+ * @since 2.0.0
+ */
+exports.partitionMap = RM.partitionMap;
+/**
+ * @category Compactable
+ * @since 2.0.0
+ */
+exports.separate = RM.separate;
+// -------------------------------------------------------------------------------------
+// instances
+// -------------------------------------------------------------------------------------
+/**
+ * @category instances
+ * @since 2.0.0
+ */
+exports.getFilterableWithIndex = RM.getFilterableWithIndex;
+/**
+ * @category instances
+ * @since 2.0.0
+ */
+exports.getWitherable = RM.getWitherable;
+/**
+ * @category instances
+ * @since 2.0.0
+ */
+exports.map_ = 
+/*#__PURE__*/
+(function () {
+    return Object.assign({}, RM.readonlyMap, { URI: exports.URI });
+})();
 
 
 /***/ }),
-/* 619 */,
-/* 620 */,
-/* 621 */
+
+/***/ 621:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -26832,16 +26546,15 @@ module.exports.env = opts => {
 
 
 /***/ }),
-/* 622 */
+
+/***/ 622:
 /***/ (function(module) {
 
 module.exports = require("path");
 
 /***/ }),
-/* 623 */,
-/* 624 */,
-/* 625 */,
-/* 626 */
+
+/***/ 626:
 /***/ (function(module) {
 
 "use strict";
@@ -26896,27 +26609,8 @@ module.exports = isPlainObject;
 
 
 /***/ }),
-/* 627 */,
-/* 628 */,
-/* 629 */,
-/* 630 */,
-/* 631 */,
-/* 632 */,
-/* 633 */,
-/* 634 */,
-/* 635 */,
-/* 636 */,
-/* 637 */,
-/* 638 */,
-/* 639 */,
-/* 640 */,
-/* 641 */,
-/* 642 */,
-/* 643 */,
-/* 644 */,
-/* 645 */,
-/* 646 */,
-/* 647 */
+
+/***/ 647:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -26951,13 +26645,8 @@ exports.getOptionM = getOptionM;
 
 
 /***/ }),
-/* 648 */,
-/* 649 */,
-/* 650 */,
-/* 651 */,
-/* 652 */,
-/* 653 */,
-/* 654 */
+
+/***/ 654:
 /***/ (function(module) {
 
 // This is not the set of all possible signals.
@@ -27016,17 +26705,8 @@ if (process.platform === 'linux') {
 
 
 /***/ }),
-/* 655 */,
-/* 656 */,
-/* 657 */,
-/* 658 */,
-/* 659 */,
-/* 660 */,
-/* 661 */,
-/* 662 */,
-/* 663 */,
-/* 664 */,
-/* 665 */
+
+/***/ 665:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -27049,17 +26729,15 @@ exports.fanout = fanout;
 
 
 /***/ }),
-/* 666 */,
-/* 667 */,
-/* 668 */,
-/* 669 */
+
+/***/ 669:
 /***/ (function(module) {
 
 module.exports = require("util");
 
 /***/ }),
-/* 670 */,
-/* 671 */
+
+/***/ 671:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -27721,12 +27399,8 @@ exports.readonlyRecord = {
 
 
 /***/ }),
-/* 672 */,
-/* 673 */,
-/* 674 */,
-/* 675 */,
-/* 676 */,
-/* 677 */
+
+/***/ 677:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 module.exports = isexe
@@ -27773,13 +27447,8 @@ function checkMode (stat, options) {
 
 
 /***/ }),
-/* 678 */,
-/* 679 */,
-/* 680 */,
-/* 681 */,
-/* 682 */,
-/* 683 */,
-/* 684 */
+
+/***/ 684:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -27822,7 +27491,8 @@ exports.traverse_ = traverse_;
 
 
 /***/ }),
-/* 685 */
+
+/***/ 685:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -28172,10 +27842,8 @@ module.exports = function inflate_table(type, lens, lens_index, codes, table, ta
 
 
 /***/ }),
-/* 686 */,
-/* 687 */,
-/* 688 */,
-/* 689 */
+
+/***/ 689:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 try {
@@ -28190,8 +27858,8 @@ try {
 
 
 /***/ }),
-/* 690 */,
-/* 691 */
+
+/***/ 691:
 /***/ (function(module) {
 
 "use strict";
@@ -28266,7 +27934,8 @@ module.exports = {
 
 
 /***/ }),
-/* 692 */
+
+/***/ 692:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -28293,8 +27962,8 @@ exports.Deprecation = Deprecation;
 
 
 /***/ }),
-/* 693 */,
-/* 694 */
+
+/***/ 694:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -29259,7 +28928,8 @@ exports.array =
 
 
 /***/ }),
-/* 695 */
+
+/***/ 695:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -29704,8 +29374,8 @@ exports.filterMap = filterMap;
 
 
 /***/ }),
-/* 696 */,
-/* 697 */
+
+/***/ 697:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -30125,12 +29795,8 @@ exports.these = {
 
 
 /***/ }),
-/* 698 */,
-/* 699 */,
-/* 700 */,
-/* 701 */,
-/* 702 */,
-/* 703 */
+
+/***/ 703:
 /***/ (function(module) {
 
 "use strict";
@@ -30169,7 +29835,8 @@ var CleanGitRef = {
 module.exports = CleanGitRef;
 
 /***/ }),
-/* 704 */
+
+/***/ 704:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -30237,226 +29904,8 @@ exports.getWriterM = getWriterM;
 
 
 /***/ }),
-/* 705 */,
-/* 706 */,
-/* 707 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.map_ = exports.getWitherable = exports.getFilterableWithIndex = exports.separate = exports.partitionMap = exports.partition = exports.map = exports.filterMap = exports.filter = exports.compact = exports.fromFoldable = exports.singleton = exports.getMonoid = exports.getEq = exports.empty = exports.isSubmap = exports.lookup = exports.lookupWithKey = exports.pop = exports.modifyAt = exports.updateAt = exports.deleteAt = exports.insertAt = exports.toUnfoldable = exports.toArray = exports.collect = exports.values = exports.keys = exports.elem = exports.member = exports.isEmpty = exports.size = exports.getShow = exports.URI = void 0;
-var RM = __webpack_require__(182);
-/* tslint:disable:readonly-array */
-/**
- * @category model
- * @since 2.0.0
- */
-exports.URI = 'Map';
-/**
- * @category instances
- * @since 2.0.0
- */
-exports.getShow = RM.getShow;
-/**
- * Calculate the number of key/value pairs in a map
- *
- * @since 2.0.0
- */
-exports.size = RM.size;
-/**
- * Test whether or not a map is empty
- *
- * @since 2.0.0
- */
-exports.isEmpty = RM.isEmpty;
-/**
- * Test whether or not a key exists in a map
- *
- * @since 2.0.0
- */
-exports.member = RM.member;
-/**
- * Test whether or not a value is a member of a map
- *
- * @since 2.0.0
- */
-exports.elem = RM.elem;
-/**
- * Get a sorted array of the keys contained in a map
- *
- * @since 2.0.0
- */
-exports.keys = RM.keys;
-/**
- * Get a sorted array of the values contained in a map
- *
- * @since 2.0.0
- */
-exports.values = RM.values;
-/**
- * @since 2.0.0
- */
-exports.collect = RM.collect;
-/**
- * Get a sorted of the key/value pairs contained in a map
- *
- * @since 2.0.0
- */
-exports.toArray = RM.toReadonlyArray;
-function toUnfoldable(O, U) {
-    return RM.toUnfoldable(O, U);
-}
-exports.toUnfoldable = toUnfoldable;
-/**
- * Insert or replace a key/value pair in a map
- *
- * @category combinators
- * @since 2.0.0
- */
-exports.insertAt = RM.insertAt;
-/**
- * Delete a key and value from a map
- *
- * @category combinators
- * @since 2.0.0
- */
-exports.deleteAt = RM.deleteAt;
-/**
- * @since 2.0.0
- */
-exports.updateAt = RM.updateAt;
-/**
- * @since 2.0.0
- */
-exports.modifyAt = RM.modifyAt;
-/**
- * Delete a key and value from a map, returning the value as well as the subsequent map
- *
- * @since 2.0.0
- */
-exports.pop = RM.pop;
-/**
- * Lookup the value for a key in a `Map`.
- * If the result is a `Some`, the existing key is also returned.
- *
- * @since 2.0.0
- */
-exports.lookupWithKey = RM.lookupWithKey;
-/**
- * Lookup the value for a key in a `Map`.
- *
- * @since 2.0.0
- */
-exports.lookup = RM.lookup;
-/**
- * Test whether or not one Map contains all of the keys and values contained in another Map
- *
- * @since 2.0.0
- */
-exports.isSubmap = RM.isSubmap;
-/**
- * @since 2.0.0
- */
-exports.empty = new Map();
-/**
- * @category instances
- * @since 2.0.0
- */
-exports.getEq = RM.getEq;
-/**
- * Gets `Monoid` instance for Maps given `Semigroup` instance for their values
- *
- * @category instances
- * @since 2.0.0
- */
-exports.getMonoid = RM.getMonoid;
-/**
- * Create a map with one key/value pair
- *
- * @since 2.0.0
- */
-exports.singleton = RM.singleton;
-function fromFoldable(E, M, F) {
-    return RM.fromFoldable(E, M, F);
-}
-exports.fromFoldable = fromFoldable;
-// -------------------------------------------------------------------------------------
-// pipeables
-// -------------------------------------------------------------------------------------
-/**
- * @category Compactable
- * @since 2.0.0
- */
-exports.compact = RM.compact;
-/**
- * @category Filterable
- * @since 2.0.0
- */
-exports.filter = RM.filter;
-/**
- * @category Filterable
- * @since 2.0.0
- */
-exports.filterMap = RM.filterMap;
-/**
- * `map` can be used to turn functions `(a: A) => B` into functions `(fa: F<A>) => F<B>` whose argument and return types
- * use the type constructor `F` to represent some computational context.
- *
- * @category Functor
- * @since 2.0.0
- */
-exports.map = RM.map;
-/**
- * @category Filterable
- * @since 2.0.0
- */
-exports.partition = RM.partition;
-/**
- * @category Filterable
- * @since 2.0.0
- */
-exports.partitionMap = RM.partitionMap;
-/**
- * @category Compactable
- * @since 2.0.0
- */
-exports.separate = RM.separate;
-// -------------------------------------------------------------------------------------
-// instances
-// -------------------------------------------------------------------------------------
-/**
- * @category instances
- * @since 2.0.0
- */
-exports.getFilterableWithIndex = RM.getFilterableWithIndex;
-/**
- * @category instances
- * @since 2.0.0
- */
-exports.getWitherable = RM.getWitherable;
-/**
- * @category instances
- * @since 2.0.0
- */
-exports.map_ = 
-/*#__PURE__*/
-(function () {
-    return Object.assign({}, RM.readonlyMap, { URI: exports.URI });
-})();
-
-
-/***/ }),
-/* 708 */,
-/* 709 */,
-/* 710 */,
-/* 711 */,
-/* 712 */,
-/* 713 */,
-/* 714 */,
-/* 715 */,
-/* 716 */,
-/* 717 */
+/***/ 717:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -32113,7 +31562,8 @@ exports.readonlyArray = {
 
 
 /***/ }),
-/* 718 */
+
+/***/ 718:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -32154,9 +31604,8 @@ exports.getFilterableComposition = getFilterableComposition;
 
 
 /***/ }),
-/* 719 */,
-/* 720 */,
-/* 721 */
+
+/***/ 721:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -32427,7 +31876,8 @@ exports.never = function () { return new Promise(function (_) { return undefined
 
 
 /***/ }),
-/* 722 */
+
+/***/ 722:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -32436,12 +31886,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 723 */,
-/* 724 */,
-/* 725 */,
-/* 726 */,
-/* 727 */,
-/* 728 */
+
+/***/ 728:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -32618,27 +32064,8 @@ exports.identity = {
 
 
 /***/ }),
-/* 729 */,
-/* 730 */,
-/* 731 */,
-/* 732 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = create
-
-var Buffer = __webpack_require__(293).Buffer
-
-function create(size) {
-  return new Buffer(size)
-}
-
-
-/***/ }),
-/* 733 */,
-/* 734 */,
-/* 735 */,
-/* 736 */,
-/* 737 */
+/***/ 737:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -32681,9 +32108,8 @@ exports.getFoldableWithIndexComposition = getFoldableWithIndexComposition;
 
 
 /***/ }),
-/* 738 */,
-/* 739 */,
-/* 740 */
+
+/***/ 740:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -32701,8 +32127,8 @@ exports.getFunctorWithIndexComposition = getFunctorWithIndexComposition;
 
 
 /***/ }),
-/* 741 */,
-/* 742 */
+
+/***/ 742:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 var fs = __webpack_require__(747)
@@ -32765,8 +32191,8 @@ function sync (path, options) {
 
 
 /***/ }),
-/* 743 */,
-/* 744 */
+
+/***/ 744:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -32775,7 +32201,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 745 */
+
+/***/ 745:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -32821,19 +32248,15 @@ function errname(uv, code) {
 
 
 /***/ }),
-/* 746 */,
-/* 747 */
+
+/***/ 747:
 /***/ (function(module) {
 
 module.exports = require("fs");
 
 /***/ }),
-/* 748 */,
-/* 749 */,
-/* 750 */,
-/* 751 */,
-/* 752 */,
-/* 753 */
+
+/***/ 753:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -32988,7 +32411,8 @@ exports.request = request;
 
 
 /***/ }),
-/* 754 */
+
+/***/ 754:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -33034,25 +32458,22 @@ exports.getFunctionSemiring = getFunctionSemiring;
 
 
 /***/ }),
-/* 755 */,
-/* 756 */,
-/* 757 */,
-/* 758 */,
-/* 759 */
+
+/***/ 759:
 /***/ (function(module) {
 
 module.exports = require("events");
 
 /***/ }),
-/* 760 */,
-/* 761 */
+
+/***/ 761:
 /***/ (function(module) {
 
 module.exports = require("zlib");
 
 /***/ }),
-/* 762 */,
-/* 763 */
+
+/***/ 763:
 /***/ (function(module) {
 
 module.exports = removeHook
@@ -33075,10 +32496,8 @@ function removeHook (state, name, method) {
 
 
 /***/ }),
-/* 764 */,
-/* 765 */,
-/* 766 */,
-/* 767 */
+
+/***/ 767:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -33099,7 +32518,8 @@ exports.getApplicativeComposition = getApplicativeComposition;
 
 
 /***/ }),
-/* 768 */
+
+/***/ 768:
 /***/ (function(module) {
 
 "use strict";
@@ -33121,79 +32541,8 @@ module.exports = function (x) {
 
 
 /***/ }),
-/* 769 */,
-/* 770 */,
-/* 771 */,
-/* 772 */,
-/* 773 */,
-/* 774 */,
-/* 775 */,
-/* 776 */,
-/* 777 */,
-/* 778 */,
-/* 779 */
-/***/ (function(__unusedmodule, exports) {
 
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.invert = exports.monoidOrdering = exports.semigroupOrdering = exports.eqOrdering = exports.sign = void 0;
-/**
- * @since 2.0.0
- */
-function sign(n) {
-    return n <= -1 ? -1 : n >= 1 ? 1 : 0;
-}
-exports.sign = sign;
-/**
- * @category instances
- * @since 2.0.0
- */
-exports.eqOrdering = {
-    equals: function (x, y) { return x === y; }
-};
-/**
- * Use `monoidOrdering` instead
- *
- * @category instances
- * @since 2.0.0
- * @deprecated
- */
-exports.semigroupOrdering = {
-    concat: function (x, y) { return (x !== 0 ? x : y); }
-};
-/**
- * @category instances
- * @since 2.4.0
- */
-exports.monoidOrdering = {
-    // tslint:disable-next-line: deprecation
-    concat: exports.semigroupOrdering.concat,
-    empty: 0
-};
-/**
- * @since 2.0.0
- */
-function invert(O) {
-    switch (O) {
-        case -1:
-            return 1;
-        case 1:
-            return -1;
-        default:
-            return 0;
-    }
-}
-exports.invert = invert;
-
-
-/***/ }),
-/* 780 */,
-/* 781 */,
-/* 782 */,
-/* 783 */,
-/* 784 */,
-/* 785 */
+/***/ 785:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -33223,7 +32572,8 @@ exports.boundedNumber = {
 
 
 /***/ }),
-/* 786 */
+
+/***/ 786:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -33232,20 +32582,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 787 */,
-/* 788 */,
-/* 789 */,
-/* 790 */,
-/* 791 */,
-/* 792 */,
-/* 793 */,
-/* 794 */
+
+/***/ 794:
 /***/ (function(module) {
 
 module.exports = require("stream");
 
 /***/ }),
-/* 795 */
+
+/***/ 795:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -33399,7 +32744,8 @@ exports.const_ = {
 
 
 /***/ }),
-/* 796 */
+
+/***/ 796:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -33428,10 +32774,8 @@ exports.getUserAgent = getUserAgent;
 
 
 /***/ }),
-/* 797 */,
-/* 798 */,
-/* 799 */,
-/* 800 */
+
+/***/ 800:
 /***/ (function(__unusedmodule, exports) {
 
 /* crc32.js (C) 2014-present SheetJS -- http://sheetjs.com */
@@ -33547,12 +32891,8 @@ CRC32.str = crc32_str;
 
 
 /***/ }),
-/* 801 */,
-/* 802 */,
-/* 803 */,
-/* 804 */,
-/* 805 */,
-/* 806 */
+
+/***/ 806:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -33561,12 +32901,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 807 */,
-/* 808 */,
-/* 809 */,
-/* 810 */,
-/* 811 */,
-/* 812 */
+
+/***/ 812:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -33630,7 +32966,8 @@ exports.REAL_GITHUB = ({ token, githubRepo }) => {
 
 
 /***/ }),
-/* 813 */
+
+/***/ 813:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -33686,9 +33023,8 @@ exports.createTokenAuth = createTokenAuth;
 
 
 /***/ }),
-/* 814 */,
-/* 815 */,
-/* 816 */
+
+/***/ 816:
 /***/ (function(module) {
 
 "use strict";
@@ -33697,8 +33033,8 @@ module.exports = /^#!.*/;
 
 
 /***/ }),
-/* 817 */,
-/* 818 */
+
+/***/ 818:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 module.exports = isexe
@@ -33746,20 +33082,8 @@ function sync (path, options) {
 
 
 /***/ }),
-/* 819 */,
-/* 820 */,
-/* 821 */,
-/* 822 */,
-/* 823 */,
-/* 824 */,
-/* 825 */,
-/* 826 */,
-/* 827 */,
-/* 828 */,
-/* 829 */,
-/* 830 */,
-/* 831 */,
-/* 832 */
+
+/***/ 832:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -34189,21 +33513,15 @@ exports.ungzip  = inflate;
 
 
 /***/ }),
-/* 833 */,
-/* 834 */,
-/* 835 */
+
+/***/ 835:
 /***/ (function(module) {
 
 module.exports = require("url");
 
 /***/ }),
-/* 836 */,
-/* 837 */,
-/* 838 */,
-/* 839 */,
-/* 840 */,
-/* 841 */,
-/* 842 */
+
+/***/ 842:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -34299,11 +33617,8 @@ exports.store = {
 
 
 /***/ }),
-/* 843 */,
-/* 844 */,
-/* 845 */,
-/* 846 */,
-/* 847 */
+
+/***/ 847:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -34447,15 +33762,8 @@ exports.io = {
 
 
 /***/ }),
-/* 848 */,
-/* 849 */,
-/* 850 */,
-/* 851 */,
-/* 852 */,
-/* 853 */,
-/* 854 */,
-/* 855 */,
-/* 856 */
+
+/***/ 856:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -34464,16 +33772,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 857 */,
-/* 858 */,
-/* 859 */,
-/* 860 */,
-/* 861 */,
-/* 862 */,
-/* 863 */,
-/* 864 */,
-/* 865 */,
-/* 866 */
+
+/***/ 866:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -34499,8 +33799,8 @@ module.exports = function (str) {
 
 
 /***/ }),
-/* 867 */,
-/* 868 */
+
+/***/ 868:
 /***/ (function(module) {
 
 "use strict";
@@ -34539,19 +33839,8 @@ module.exports = {
 
 
 /***/ }),
-/* 869 */,
-/* 870 */,
-/* 871 */,
-/* 872 */,
-/* 873 */,
-/* 874 */,
-/* 875 */,
-/* 876 */,
-/* 877 */,
-/* 878 */,
-/* 879 */,
-/* 880 */,
-/* 881 */
+
+/***/ 881:
 /***/ (function(module) {
 
 "use strict";
@@ -34617,14 +33906,8 @@ module.exports = {
 
 
 /***/ }),
-/* 882 */,
-/* 883 */,
-/* 884 */,
-/* 885 */,
-/* 886 */,
-/* 887 */,
-/* 888 */,
-/* 889 */
+
+/***/ 889:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -34648,15 +33931,8 @@ exports.Octokit = Octokit;
 
 
 /***/ }),
-/* 890 */,
-/* 891 */,
-/* 892 */,
-/* 893 */,
-/* 894 */,
-/* 895 */,
-/* 896 */,
-/* 897 */,
-/* 898 */
+
+/***/ 898:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -34748,15 +34024,8 @@ exports.withCustomRequest = withCustomRequest;
 
 
 /***/ }),
-/* 899 */,
-/* 900 */,
-/* 901 */,
-/* 902 */,
-/* 903 */,
-/* 904 */,
-/* 905 */,
-/* 906 */,
-/* 907 */
+
+/***/ 907:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -34833,12 +34102,8 @@ exports.getTupleRing = getTupleRing;
 
 
 /***/ }),
-/* 908 */,
-/* 909 */,
-/* 910 */,
-/* 911 */,
-/* 912 */,
-/* 913 */
+
+/***/ 913:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -34847,7 +34112,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 914 */
+
+/***/ 914:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -34898,8 +34164,8 @@ function_1.pipe(exports.random, IO_1.map(function (n) { return n < 0.5; }));
 
 
 /***/ }),
-/* 915 */,
-/* 916 */
+
+/***/ 916:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -34936,10 +34202,8 @@ exports.requestLog = requestLog;
 
 
 /***/ }),
-/* 917 */,
-/* 918 */,
-/* 919 */,
-/* 920 */
+
+/***/ 920:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -34960,12 +34224,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 921 */,
-/* 922 */,
-/* 923 */,
-/* 924 */,
-/* 925 */,
-/* 926 */
+
+/***/ 926:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -34974,23 +34234,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 927 */,
-/* 928 */,
-/* 929 */,
-/* 930 */,
-/* 931 */,
-/* 932 */,
-/* 933 */,
-/* 934 */,
-/* 935 */,
-/* 936 */,
-/* 937 */,
-/* 938 */,
-/* 939 */,
-/* 940 */,
-/* 941 */,
-/* 942 */,
-/* 943 */
+
+/***/ 943:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -35006,11 +34251,8 @@ exports.getFunctorComposition = getFunctorComposition;
 
 
 /***/ }),
-/* 944 */,
-/* 945 */,
-/* 946 */,
-/* 947 */,
-/* 948 */
+
+/***/ 948:
 /***/ (function(module) {
 
 "use strict";
@@ -35028,21 +34270,8 @@ module.exports = function(fn) {
 }
 
 /***/ }),
-/* 949 */,
-/* 950 */,
-/* 951 */,
-/* 952 */,
-/* 953 */
-/***/ (function(module) {
 
-module.exports = function(source, encoding) {
-  return source.toString(encoding)
-}
-
-
-/***/ }),
-/* 954 */,
-/* 955 */
+/***/ 955:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -35410,7 +34639,8 @@ module.exports.shellSync = (cmd, opts) => handleShell(module.exports.sync, cmd, 
 
 
 /***/ }),
-/* 956 */
+
+/***/ 956:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -35423,7 +34653,6 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 var AsyncLock = _interopDefault(__webpack_require__(124));
 var Hash = _interopDefault(__webpack_require__(529));
 var crc32 = _interopDefault(__webpack_require__(800));
-var applyDelta = _interopDefault(__webpack_require__(258));
 var pako = _interopDefault(__webpack_require__(246));
 var ignore = _interopDefault(__webpack_require__(396));
 var pify = _interopDefault(__webpack_require__(413));
@@ -35531,6 +34760,14 @@ var diff3Merge = _interopDefault(__webpack_require__(611));
  * @property {string} oid - SHA-1 object id of this commit
  * @property {CommitObject} commit - the parsed commit object
  * @property {string} payload - PGP signing payload
+ */
+
+/**
+ * @typedef {Object} ServerRef - This object has the following schema:
+ * @property {string} ref - The name of the ref
+ * @property {string} oid - The SHA-1 object id the ref points to
+ * @property {string} [target] - The target ref pointed to by a symbolic ref
+ * @property {string} [peeled] - If the oid is the SHA-1 object id of an annotated tag, this is the SHA-1 object id that the annotated tag points to
  */
 
 /**
@@ -35752,6 +34989,19 @@ class InternalError extends BaseError {
 /** @type {'InternalError'} */
 InternalError.code = 'InternalError';
 
+class UnsafeFilepathError extends BaseError {
+  /**
+   * @param {string} filepath
+   */
+  constructor(filepath) {
+    super(`The filepath "${filepath}" contains unsafe character sequences`);
+    this.code = this.name = UnsafeFilepathError.code;
+    this.data = { filepath };
+  }
+}
+/** @type {'UnsafeFilepathError'} */
+UnsafeFilepathError.code = 'UnsafeFilepathError';
+
 // Modeled after https://github.com/tjfontaine/node-buffercursor
 // but with the goal of being much lighter weight.
 class BufferCursor {
@@ -35787,6 +35037,12 @@ class BufferCursor {
   write(value, length, enc) {
     const r = this.buffer.write(value, this._start, length, enc);
     this._start += length;
+    return r
+  }
+
+  copy(source, start, end) {
+    const r = source.copy(this.buffer, this._start, start, end);
+    this._start += r;
     return r
   }
 
@@ -36061,6 +35317,12 @@ class GitIndex {
       }
       // TODO: handle pathnames larger than 12 bits
       entry.path = reader.toString('utf8', pathlength);
+
+      // Prevent malicious paths like "..\foo"
+      if (entry.path.includes('..\\') || entry.path.includes('../')) {
+        throw new UnsafeFilepathError(entry.path)
+      }
+
       // The next bit is awkward. We expect 1 to 8 null characters
       // such that the total size of the entry is a multiple of 8 bits.
       // (Hence subtract 12 bytes for the header.)
@@ -36210,6 +35472,8 @@ function compareStats(entry, stats) {
 // const lm = new LockManager()
 let lock = null;
 
+const IndexCache = Symbol('IndexCache');
+
 function createCache() {
   return {
     map: new Map(),
@@ -36247,7 +35511,7 @@ class GitIndexManager {
    * @param {function(GitIndex): any} closure
    */
   static async acquire({ fs, gitdir, cache }, closure) {
-    if (!cache.index) cache.index = createCache();
+    if (!cache[IndexCache]) cache[IndexCache] = createCache();
 
     const filepath = `${gitdir}/index`;
     if (lock === null) lock = new AsyncLock({ maxPending: Infinity });
@@ -36257,10 +35521,10 @@ class GitIndexManager {
       // to make sure other processes aren't writing to it
       // simultaneously, which could result in a corrupted index.
       // const fileLock = await Lock(filepath)
-      if (await isIndexStale(fs, filepath, cache.index)) {
-        await updateCachedIndexFile(fs, filepath, cache.index);
+      if (await isIndexStale(fs, filepath, cache[IndexCache])) {
+        await updateCachedIndexFile(fs, filepath, cache[IndexCache]);
       }
-      const index = cache.index.map.get(filepath);
+      const index = cache[IndexCache].map.get(filepath);
       result = await closure(index);
       if (index._dirty) {
         // Acquire a file lock while we're writing the index file
@@ -36268,7 +35532,7 @@ class GitIndexManager {
         const buffer = await index.toObject();
         await fs.write(filepath, buffer);
         // Update cached stat value
-        cache.index.stats.set(filepath, await fs.lstat(filepath));
+        cache[IndexCache].stats.set(filepath, await fs.lstat(filepath));
         index._dirty = false;
       }
     });
@@ -37390,6 +36654,12 @@ function parseBuffer(buffer) {
     if (mode === '40000') mode = '040000'; // makes it line up neater in printed output
     const type = mode2type$1(mode);
     const path = buffer.slice(space + 1, nullchar).toString('utf8');
+
+    // Prevent malicious git repos from writing to "..\foo" on clone etc
+    if (path.includes('\\') || path.includes('/')) {
+      throw new UnsafeFilepathError(path)
+    }
+
     const oid = buffer.slice(nullchar + 1, nullchar + 21).toString('hex');
     cursor = nullchar + 21;
     _entries.push({ mode, path, oid, type });
@@ -37509,6 +36779,91 @@ async function readObjectLoose({ fs, gitdir, oid }) {
     return null
   }
   return { object: file, format: 'deflated', source }
+}
+
+/**
+ * @param {Buffer} delta
+ * @param {Buffer} source
+ * @returns {Buffer}
+ */
+function applyDelta(delta, source) {
+  const reader = new BufferCursor(delta);
+  const sourceSize = readVarIntLE(reader);
+
+  if (sourceSize !== source.byteLength) {
+    throw new InternalError(
+      `applyDelta expected source buffer to be ${sourceSize} bytes but the provided buffer was ${source.length} bytes`
+    )
+  }
+  const targetSize = readVarIntLE(reader);
+  let target;
+
+  const firstOp = readOp(reader, source);
+  // Speed optimization - return raw buffer if it's just single simple copy
+  if (firstOp.byteLength === targetSize) {
+    target = firstOp;
+  } else {
+    // Otherwise, allocate a fresh buffer and slices
+    target = Buffer.alloc(targetSize);
+    const writer = new BufferCursor(target);
+    writer.copy(firstOp);
+
+    while (!reader.eof()) {
+      writer.copy(readOp(reader, source));
+    }
+
+    const tell = writer.tell();
+    if (targetSize !== tell) {
+      throw new InternalError(
+        `applyDelta expected target buffer to be ${targetSize} bytes but the resulting buffer was ${tell} bytes`
+      )
+    }
+  }
+  return target
+}
+
+function readVarIntLE(reader) {
+  let result = 0;
+  let shift = 0;
+  let byte = null;
+  do {
+    byte = reader.readUInt8();
+    result |= (byte & 0b01111111) << shift;
+    shift += 7;
+  } while (byte & 0b10000000)
+  return result
+}
+
+function readCompactLE(reader, flags, size) {
+  let result = 0;
+  let shift = 0;
+  while (size--) {
+    if (flags & 0b00000001) {
+      result |= reader.readUInt8() << shift;
+    }
+    flags >>= 1;
+    shift += 8;
+  }
+  return result
+}
+
+function readOp(reader, source) {
+  /** @type {number} */
+  const byte = reader.readUInt8();
+  const COPY = 0b10000000;
+  const OFFS = 0b00001111;
+  const SIZE = 0b01110000;
+  if (byte & COPY) {
+    // copy consists of 4 byte offset, 3 byte size (in LE order)
+    const offset = readCompactLE(reader, byte & OFFS, 4);
+    let size = readCompactLE(reader, (byte & SIZE) >> 4, 3);
+    // Yup. They really did this optimization.
+    if (size === 0) size = 0x10000;
+    return source.slice(offset, offset + size)
+  } else {
+    // insert
+    return reader.slice(byte)
+  }
 }
 
 // Convert a value to an Async Iterator
@@ -38131,7 +37486,7 @@ class GitPackIndex {
   }
 }
 
-const PackfileCache = new Map();
+const PackfileCache = Symbol('PackfileCache');
 
 async function loadPackIndex({
   fs,
@@ -38146,13 +37501,15 @@ async function loadPackIndex({
 
 function readPackIndex({
   fs,
+  cache,
   filename,
   getExternalRefDelta,
   emitter,
   emitterPrefix,
 }) {
   // Try to get the packfile index from the in-memory cache
-  let p = PackfileCache.get(filename);
+  if (!cache[PackfileCache]) cache[PackfileCache] = new Map();
+  let p = cache[PackfileCache].get(filename);
   if (!p) {
     p = loadPackIndex({
       fs,
@@ -38161,13 +37518,14 @@ function readPackIndex({
       emitter,
       emitterPrefix,
     });
-    PackfileCache.set(filename, p);
+    cache[PackfileCache].set(filename, p);
   }
   return p
 }
 
 async function readObjectPacked({
   fs,
+  cache,
   gitdir,
   oid,
   format = 'content',
@@ -38181,6 +37539,7 @@ async function readObjectPacked({
     const indexFile = `${gitdir}/objects/pack/${filename}`;
     const p = await readPackIndex({
       fs,
+      cache,
       filename: indexFile,
       getExternalRefDelta,
     });
@@ -38202,10 +37561,24 @@ async function readObjectPacked({
   return null
 }
 
-async function _readObject({ fs, gitdir, oid, format = 'content' }) {
+/**
+ * @param {object} args
+ * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
+ * @param {string} args.gitdir
+ * @param {string} args.oid
+ * @param {string} [args.format]
+ */
+async function _readObject({
+  fs,
+  cache,
+  gitdir,
+  oid,
+  format = 'content',
+}) {
   // Curry the current read method so that the packfile un-deltification
   // process can acquire external ref-deltas.
-  const getExternalRefDelta = oid => _readObject({ fs, gitdir, oid });
+  const getExternalRefDelta = oid => _readObject({ fs, cache, gitdir, oid });
 
   let result;
   // Empty tree - hard-coded so we can use it as a shorthand.
@@ -38220,7 +37593,13 @@ async function _readObject({ fs, gitdir, oid, format = 'content' }) {
   }
   // Check to see if it's in a packfile.
   if (!result) {
-    result = await readObjectPacked({ fs, gitdir, oid, getExternalRefDelta });
+    result = await readObjectPacked({
+      fs,
+      cache,
+      gitdir,
+      oid,
+      getExternalRefDelta,
+    });
   }
   // Finally
   if (!result) {
@@ -38607,6 +37986,7 @@ var Errors = /*#__PURE__*/Object.freeze({
   RemoteCapabilityError: RemoteCapabilityError,
   SmartHttpError: SmartHttpError,
   UnknownTransportError: UnknownTransportError,
+  UnsafeFilepathError: UnsafeFilepathError,
   UrlParseError: UrlParseError,
   UserCanceledError: UserCanceledError
 });
@@ -38958,21 +38338,21 @@ class GitCommit {
   }
 }
 
-async function resolveTree({ fs, gitdir, oid }) {
+async function resolveTree({ fs, cache, gitdir, oid }) {
   // Empty tree - bypass `readObject`
   if (oid === '4b825dc642cb6eb9a060e54bf8d69288fbee4904') {
     return { tree: GitTree.from([]), oid }
   }
-  const { type, object } = await _readObject({ fs, gitdir, oid });
+  const { type, object } = await _readObject({ fs, cache, gitdir, oid });
   // Resolve annotated tag objects to whatever
   if (type === 'tag') {
     oid = GitAnnotatedTag.from(object).parse().object;
-    return resolveTree({ fs, gitdir, oid })
+    return resolveTree({ fs, cache, gitdir, oid })
   }
   // Resolve commits to trees
   if (type === 'commit') {
     oid = GitCommit.from(object).parse().tree;
-    return resolveTree({ fs, gitdir, oid })
+    return resolveTree({ fs, cache, gitdir, oid })
   }
   if (type !== 'tree') {
     throw new ObjectTypeError(oid, type, 'tree')
@@ -38981,8 +38361,9 @@ async function resolveTree({ fs, gitdir, oid }) {
 }
 
 class GitWalkerRepo {
-  constructor({ fs, gitdir, ref }) {
+  constructor({ fs, gitdir, ref, cache }) {
     this.fs = fs;
+    this.cache = cache;
     this.gitdir = gitdir;
     this.mapPromise = (async () => {
       const map = new Map();
@@ -38995,7 +38376,7 @@ class GitWalkerRepo {
           oid = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
         }
       }
-      const tree = await resolveTree({ fs, gitdir, oid });
+      const tree = await resolveTree({ fs, cache: this.cache, gitdir, oid });
       tree.type = 'tree';
       tree.mode = '40000';
       map.set('.', tree);
@@ -39036,7 +38417,7 @@ class GitWalkerRepo {
 
   async readdir(entry) {
     const filepath = entry._fullpath;
-    const { fs, gitdir } = this;
+    const { fs, cache, gitdir } = this;
     const map = await this.mapPromise;
     const obj = map.get(filepath);
     if (!obj) throw new Error(`No obj for ${filepath}`)
@@ -39046,7 +38427,7 @@ class GitWalkerRepo {
       // TODO: support submodules (type === 'commit')
       return null
     }
-    const { type, object } = await _readObject({ fs, gitdir, oid });
+    const { type, object } = await _readObject({ fs, cache, gitdir, oid });
     if (type !== obj.type) {
       throw new ObjectTypeError(oid, type, obj.type)
     }
@@ -39081,10 +38462,10 @@ class GitWalkerRepo {
   async content(entry) {
     if (entry._content === false) {
       const map = await this.mapPromise;
-      const { fs, gitdir } = this;
+      const { fs, cache, gitdir } = this;
       const obj = map.get(entry._fullpath);
       const oid = obj.oid;
-      const { type, object } = await _readObject({ fs, gitdir, oid });
+      const { type, object } = await _readObject({ fs, cache, gitdir, oid });
       if (type !== 'blob') {
         entry._content = undefined;
       } else {
@@ -39114,8 +38495,8 @@ class GitWalkerRepo {
 function TREE({ ref = 'HEAD' }) {
   const o = Object.create(null);
   Object.defineProperty(o, GitWalkSymbol, {
-    value: function({ fs, gitdir }) {
-      return new GitWalkerRepo({ fs, gitdir, ref })
+    value: function({ fs, gitdir, cache }) {
+      return new GitWalkerRepo({ fs, gitdir, ref, cache })
     },
   });
   Object.freeze(o);
@@ -39586,6 +38967,8 @@ async function browserDeflate(buffer) {
 function testCompressionStream() {
   try {
     const cs = new CompressionStream('deflate');
+    // Test if `Blob.stream` is present. React Native does not have the `stream` method
+    new Blob([]).stream();
     if (cs) return true
   } catch (_) {
     // no bother
@@ -39631,6 +39014,7 @@ function assertParameter(name, value) {
  * @param {string} args.dir - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string} args.filepath - The path to the file to add to the index
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<void>} Resolves successfully once the git index has been updated
  *
@@ -39645,6 +39029,7 @@ async function add({
   dir,
   gitdir = join(dir, '.git'),
   filepath,
+  cache = {},
 }) {
   try {
     assertParameter('fs', _fs);
@@ -39653,7 +39038,6 @@ async function add({
     assertParameter('filepath', filepath);
 
     const fs = new FileSystem(_fs);
-    const cache = {};
     await GitIndexManager.acquire({ fs, gitdir, cache }, async function(index) {
       await addToIndex({ dir, gitdir, fs, filepath, index });
     });
@@ -39821,7 +39205,7 @@ async function constructTree({ fs, gitdir, inode, dryRun }) {
 
 // @ts-check
 
-async function resolveFilepath({ fs, gitdir, oid, filepath }) {
+async function resolveFilepath({ fs, cache, gitdir, oid, filepath }) {
   // Ensure there are no leading or trailing directory separators.
   // I was going to do this automatically, but then found that the Git Terminal for Windows
   // auto-expands --filepath=/src/utils to --filepath=C:/Users/Will/AppData/Local/Programs/Git/src/utils
@@ -39832,7 +39216,7 @@ async function resolveFilepath({ fs, gitdir, oid, filepath }) {
     throw new InvalidFilepathError('trailing-slash')
   }
   const _oid = oid;
-  const result = await resolveTree({ fs, gitdir, oid });
+  const result = await resolveTree({ fs, cache, gitdir, oid });
   const tree = result.tree;
   if (filepath === '') {
     oid = result.oid;
@@ -39840,6 +39224,7 @@ async function resolveFilepath({ fs, gitdir, oid, filepath }) {
     const pathArray = filepath.split('/');
     oid = await _resolveFilepath({
       fs,
+      cache,
       gitdir,
       tree,
       pathArray,
@@ -39852,6 +39237,7 @@ async function resolveFilepath({ fs, gitdir, oid, filepath }) {
 
 async function _resolveFilepath({
   fs,
+  cache,
   gitdir,
   tree,
   pathArray,
@@ -39866,6 +39252,7 @@ async function _resolveFilepath({
       } else {
         const { type, object } = await _readObject({
           fs,
+          cache,
           gitdir,
           oid: entry.oid,
         });
@@ -39873,7 +39260,15 @@ async function _resolveFilepath({
           throw new ObjectTypeError(oid, type, 'blob', filepath)
         }
         tree = GitTree.from(object);
-        return _resolveFilepath({ fs, gitdir, tree, pathArray, oid, filepath })
+        return _resolveFilepath({
+          fs,
+          cache,
+          gitdir,
+          tree,
+          pathArray,
+          oid,
+          filepath,
+        })
       }
     }
   }
@@ -39892,17 +39287,24 @@ async function _resolveFilepath({
 /**
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
  * @param {string} args.gitdir
  * @param {string} args.oid
  * @param {string} [args.filepath]
  *
  * @returns {Promise<ReadTreeResult>}
  */
-async function _readTree({ fs, gitdir, oid, filepath = undefined }) {
+async function _readTree({
+  fs,
+  cache,
+  gitdir,
+  oid,
+  filepath = undefined,
+}) {
   if (filepath !== undefined) {
-    oid = await resolveFilepath({ fs, gitdir, oid, filepath });
+    oid = await resolveFilepath({ fs, cache, gitdir, oid, filepath });
   }
-  const { tree, oid: treeOid } = await resolveTree({ fs, gitdir, oid });
+  const { tree, oid: treeOid } = await resolveTree({ fs, cache, gitdir, oid });
   const result = {
     oid: treeOid,
     tree: tree.entries(),
@@ -39986,6 +39388,7 @@ async function _addNote({
   // I'm using the "empty tree" magic number here for brevity
   const result = await _readTree({
     fs,
+    cache,
     gitdir,
     oid: parent || '4b825dc642cb6eb9a060e54bf8d69288fbee4904',
   });
@@ -40131,6 +39534,7 @@ async function normalizeCommitterObject({
  * @param {number} [args.committer.timestamp=Math.floor(Date.now()/1000)] - Set the committer timestamp field. This is the integer number of seconds since the Unix epoch (1970-01-01 00:00:00).
  * @param {number} [args.committer.timezoneOffset] - Set the committer timezone offset field. This is the difference, in minutes, from the current timezone to UTC. Default is `(new Date()).getTimezoneOffset()`.
  * @param {string} [args.signingKey] - Sign the note commit using this private PGP key.
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<string>} Resolves successfully with the SHA-1 object id of the commit object for the added note.
  */
@@ -40147,6 +39551,7 @@ async function addNote({
   author: _author,
   committer: _committer,
   signingKey,
+  cache = {},
 }) {
   try {
     assertParameter('fs', _fs);
@@ -40157,7 +39562,6 @@ async function addNote({
       assertParameter('onSign', onSign);
     }
     const fs = new FileSystem(_fs);
-    const cache = {};
 
     const author = await normalizeAuthorObject({ fs, gitdir, author: _author });
     if (!author) throw new MissingNameError('author')
@@ -40284,6 +39688,7 @@ async function addRemote({
  *
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
  * @param {SignCallback} [args.onSign]
  * @param {string} args.gitdir
  * @param {string} args.ref
@@ -40315,6 +39720,7 @@ async function addRemote({
  */
 async function _annotatedTag({
   fs,
+  cache,
   onSign,
   gitdir,
   ref,
@@ -40338,7 +39744,7 @@ async function _annotatedTag({
     ref: object || 'HEAD',
   });
 
-  const { type } = await _readObject({ fs, gitdir, oid });
+  const { type } = await _readObject({ fs, cache, gitdir, oid });
   let tagObject = GitAnnotatedTag.from({
     object: oid,
     type,
@@ -40381,6 +39787,7 @@ async function _annotatedTag({
  * @param {string} [args.gpgsig] - The gpgsig attatched to the tag object. (Mutually exclusive with the `signingKey` option.)
  * @param {string} [args.signingKey] - Sign the tag object using this private PGP key. (Mutually exclusive with the `gpgsig` option.)
  * @param {boolean} [args.force = false] - Instead of throwing an error if a tag named `ref` already exists, overwrite the existing tag. Note that this option does not modify the original tag object itself.
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<void>} Resolves successfully when filesystem operations are complete
  *
@@ -40410,6 +39817,7 @@ async function annotatedTag({
   object,
   signingKey,
   force = false,
+  cache = {},
 }) {
   try {
     assertParameter('fs', _fs);
@@ -40426,6 +39834,7 @@ async function annotatedTag({
 
     return await _annotatedTag({
       fs,
+      cache,
       onSign,
       gitdir,
       ref,
@@ -40912,7 +40321,7 @@ async function _checkout({
             const filepath = `${dir}/${fullpath}`;
             try {
               if (method !== 'create-index' && method !== 'mkdir-index') {
-                const { object } = await _readObject({ fs, gitdir, oid });
+                const { object } = await _readObject({ fs, cache, gitdir, oid });
                 if (chmod) {
                   // Note: the mode option of fs.write only works when creating files,
                   // not updating them. Since the `fs` plugin doesn't expose `chmod` this
@@ -41292,15 +40701,16 @@ async function analyze({
  * @param {boolean} [args.noUpdateHead] - If true, will update the working directory but won't update HEAD. Defaults to `false` when `ref` is provided, and `true` if `ref` is not provided.
  * @param {boolean} [args.dryRun = false] - If true, simulates a checkout so you can test whether it would succeed.
  * @param {boolean} [args.force = false] - If true, conflicts will be ignored and files will be overwritten regardless of local changes.
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<void>} Resolves successfully when filesystem operations are complete
  *
  * @example
- * // switch to the master branch
+ * // switch to the main branch
  * await git.checkout({
  *   fs,
  *   dir: '/tutorial',
- *   ref: 'master'
+ *   ref: 'main'
  * })
  * console.log('done')
  *
@@ -41338,6 +40748,7 @@ async function checkout({
   noUpdateHead = _ref === undefined,
   dryRun = false,
   force = false,
+  cache = {},
 }) {
   try {
     assertParameter('fs', fs);
@@ -41347,7 +40758,7 @@ async function checkout({
     const ref = _ref || 'HEAD';
     return await _checkout({
       fs: new FileSystem(fs),
-      cache: {},
+      cache,
       onProgress,
       dir,
       gitdir,
@@ -41386,8 +40797,8 @@ function abbreviateRef(ref) {
  * @param {Object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
  * @param {string} args.gitdir
- * @param {boolean} [args.fullname = false] - Return the full path (e.g. "refs/heads/master") instead of the abbreviated form.
- * @param {boolean} [args.test = false] - If the current branch doesn't actually exist (such as 'master' right after git init) then return `undefined`.
+ * @param {boolean} [args.fullname = false] - Return the full path (e.g. "refs/heads/main") instead of the abbreviated form.
+ * @param {boolean} [args.test = false] - If the current branch doesn't actually exist (such as right after git init) then return `undefined`.
  *
  * @returns {Promise<string|void>} The name of the current branch or undefined if the HEAD is detached.
  *
@@ -41538,6 +40949,10 @@ class GitPktLine {
     return Buffer.from('0000', 'utf8')
   }
 
+  static delim() {
+    return Buffer.from('0001', 'utf8')
+  }
+
   static encode(line) {
     if (typeof line === 'string') {
       line = Buffer.from(line);
@@ -41555,6 +40970,7 @@ class GitPktLine {
         if (length == null) return true
         length = parseInt(length.toString('utf8'), 16);
         if (length === 0) return null
+        if (length === 1) return null // delim packets
         const buffer = await reader.read(length - 4);
         if (buffer == null) return true
         return buffer
@@ -41564,6 +40980,33 @@ class GitPktLine {
       }
     }
   }
+}
+
+// @ts-check
+
+/**
+ * @param {function} read
+ */
+async function parseCapabilitiesV2(read) {
+  /** @type {Object<string, string | true>} */
+  const capabilities2 = {};
+
+  let line;
+  while (true) {
+    line = await read();
+    if (line === true) break
+    if (line === null) continue
+    line = line.toString('utf8').replace(/\n$/, '');
+    const i = line.indexOf('=');
+    if (i > -1) {
+      const key = line.slice(0, i);
+      const value = line.slice(i + 1);
+      capabilities2[key] = value;
+    } else {
+      capabilities2[line] = true;
+    }
+  }
+  return { protocolVersion: 2, capabilities2 }
 }
 
 async function parseRefsAdResponse(stream, { service }) {
@@ -41588,11 +41031,12 @@ async function parseRefsAdResponse(stream, { service }) {
   // In the edge case of a brand new repo, zero refs (and zero capabilities)
   // are returned.
   if (lineTwo === true) return { capabilities, refs, symrefs }
-  const [firstRef, capabilitiesLine] = splitAndAssert(
-    lineTwo.toString('utf8'),
-    '\x00',
-    '\\x00'
-  );
+  lineTwo = lineTwo.toString('utf8');
+  // Handle protocol v2 responses
+  if (lineTwo.includes('version 2')) {
+    return parseCapabilitiesV2(read)
+  }
+  const [firstRef, capabilitiesLine] = splitAndAssert(lineTwo, '\x00', '\\x00');
   capabilitiesLine.split(' ').map(x => capabilities.add(x));
   const [ref, name] = splitAndAssert(firstRef, ' ', ' ');
   refs.set(name, ref);
@@ -41613,7 +41057,7 @@ async function parseRefsAdResponse(stream, { service }) {
       }
     }
   }
-  return { capabilities, refs, symrefs }
+  return { protocolVersion: 1, capabilities, refs, symrefs }
 }
 
 function splitAndAssert(line, sep, expected) {
@@ -41679,7 +41123,8 @@ class GitRemoteHTTP {
    * @param {string} [args.corsProxy]
    * @param {string} args.service
    * @param {string} args.url
-   * @param {Object<string, string>} [args.headers]
+   * @param {Object<string, string>} args.headers
+   * @param {1 | 2} args.protocolVersion - Git Protocol Version
    */
   static async discover({
     http,
@@ -41691,11 +41136,15 @@ class GitRemoteHTTP {
     service,
     url: _origUrl,
     headers,
+    protocolVersion,
   }) {
     let { url, auth } = extractAuthFromUrl(_origUrl);
     const proxifiedURL = corsProxy ? corsProxify(corsProxy, url) : url;
     if (auth.username || auth.password) {
       headers.Authorization = calculateBasicAuthHeader(auth);
+    }
+    if (protocolVersion === 2) {
+      headers['Git-Protocol'] = 'version=2';
     }
 
     let res;
@@ -41770,6 +41219,17 @@ class GitRemoteHTTP {
     }
   }
 
+  /**
+   * @param {Object} args
+   * @param {HttpClient} args.http
+   * @param {ProgressCallback} [args.onProgress]
+   * @param {string} [args.corsProxy]
+   * @param {string} args.service
+   * @param {string} args.url
+   * @param {Object<string, string>} [args.headers]
+   * @param {any} args.body
+   * @param {any} args.auth
+   */
   static async connect({
     http,
     onProgress,
@@ -41910,6 +41370,7 @@ async function hasObjectLoose({ fs, gitdir, oid }) {
 
 async function hasObjectPacked({
   fs,
+  cache,
   gitdir,
   oid,
   getExternalRefDelta,
@@ -41922,6 +41383,7 @@ async function hasObjectPacked({
     const indexFile = `${gitdir}/objects/pack/${filename}`;
     const p = await readPackIndex({
       fs,
+      cache,
       filename: indexFile,
       getExternalRefDelta,
     });
@@ -41935,16 +41397,28 @@ async function hasObjectPacked({
   return false
 }
 
-async function hasObject({ fs, gitdir, oid, format = 'content' }) {
+async function hasObject({
+  fs,
+  cache,
+  gitdir,
+  oid,
+  format = 'content',
+}) {
   // Curry the current read method so that the packfile un-deltification
   // process can acquire external ref-deltas.
-  const getExternalRefDelta = oid => _readObject({ fs, gitdir, oid });
+  const getExternalRefDelta = oid => _readObject({ fs, cache, gitdir, oid });
 
   // Look for it in the loose object directory.
   let result = await hasObjectLoose({ fs, gitdir, oid });
   // Check to see if it's in a packfile.
   if (!result) {
-    result = await hasObjectPacked({ fs, gitdir, oid, getExternalRefDelta });
+    result = await hasObjectPacked({
+      fs,
+      cache,
+      gitdir,
+      oid,
+      getExternalRefDelta,
+    });
   }
   // Finally
   return result
@@ -41969,8 +41443,8 @@ function filterCapabilities(server, client) {
 
 const pkg = {
   name: 'isomorphic-git',
-  version: '1.4.4',
-  agent: 'git/isomorphic-git@1.4.4',
+  version: '1.8.2',
+  agent: 'git/isomorphic-git@1.8.2',
 };
 
 class FIFO {
@@ -42285,7 +41759,7 @@ function writeUploadPackRequest({
 /**
  *
  * @typedef {object} FetchResult - The object returned has the following schema:
- * @property {string | null} defaultBranch - The branch that is cloned if no branch is specified (typically "master")
+ * @property {string | null} defaultBranch - The branch that is cloned if no branch is specified
  * @property {string | null} fetchHead - The SHA-1 object id of the fetched head commit
  * @property {string | null} fetchHeadDescription - a textual description of the branch that was fetched
  * @property {Object<string, string>} [headers] - The HTTP response headers returned by the git server
@@ -42296,6 +41770,7 @@ function writeUploadPackRequest({
 /**
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
  * @param {HttpClient} args.http
  * @param {ProgressCallback} [args.onProgress]
  * @param {MessageCallback} [args.onMessage]
@@ -42323,6 +41798,7 @@ function writeUploadPackRequest({
  */
 async function _fetch({
   fs,
+  cache,
   http,
   onProgress,
   onMessage,
@@ -42376,6 +41852,7 @@ async function _fetch({
     service: 'git-upload-pack',
     url,
     headers,
+    protocolVersion: 1,
   });
   const auth = remoteHTTP.auth; // hack to get new credentials from CredentialManager API
   const remoteRefs = remoteHTTP.refs;
@@ -42450,7 +41927,7 @@ async function _fetch({
     try {
       ref = await GitRefManager.expand({ fs, gitdir, ref });
       const oid = await GitRefManager.resolve({ fs, gitdir, ref });
-      if (await hasObject({ fs, gitdir, oid })) {
+      if (await hasObject({ fs, cache, gitdir, oid })) {
         haves.push(oid);
       }
     } catch (err) {}
@@ -42490,10 +41967,12 @@ async function _fetch({
       // this is in a try/catch mostly because my old test fixtures are missing objects
       try {
         // server says it's shallow, but do we have the parents?
-        const { object } = await _readObject({ fs, gitdir, oid });
+        const { object } = await _readObject({ fs, cache, gitdir, oid });
         const commit = new GitCommit(object);
         const hasParents = await Promise.all(
-          commit.headers().parent.map(oid => hasObject({ fs, gitdir, oid }))
+          commit
+            .headers()
+            .parent.map(oid => hasObject({ fs, cache, gitdir, oid }))
         );
         const haveAllParents =
           hasParents.length === 0 || hasParents.every(has => has);
@@ -42524,7 +42003,11 @@ async function _fetch({
       key = value;
     }
     // final value must not be a symref but a real ref
-    refs.set(key, remoteRefs.get(key));
+    const realRef = remoteRefs.get(key);
+    // There may be no ref at all if we've fetched a specific commit hash
+    if (realRef) {
+      refs.set(key, realRef);
+    }
     const { pruned } = await GitRefManager.updateRemoteRefs({
       fs,
       gitdir,
@@ -42615,7 +42098,7 @@ async function _fetch({
     res.packfile = `objects/pack/pack-${packfileSha}.pack`;
     const fullpath = join(gitdir, res.packfile);
     await fs.write(fullpath, packfile);
-    const getExternalRefDelta = oid => _readObject({ fs, gitdir, oid });
+    const getExternalRefDelta = oid => _readObject({ fs, cache, gitdir, oid });
     const idx = await GitPackIndex.fromPack({
       pack: packfile,
       getExternalRefDelta,
@@ -42635,19 +42118,16 @@ async function _fetch({
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
  * @param {string} [args.dir]
  * @param {string} [args.gitdir]
- * @param {boolean} [args.bare = false] - Initialize a bare repository
- * @returns {Promise<void>}  Resolves successfully when filesystem operations are complete
- *
- * @example
- * await git.init({ dir: '$input((/))' })
- * console.log('done')
- *
+ * @param {boolean} [args.bare = false]
+ * @param {string} [args.defaultBranch = 'master']
+ * @returns {Promise<void>}
  */
 async function _init({
   fs,
   bare = false,
   dir,
   gitdir = bare ? dir : join(dir, '.git'),
+  defaultBranch = 'master',
 }) {
   // Don't overwrite an existing config
   if (await fs.exists(gitdir + '/config')) return
@@ -42675,7 +42155,7 @@ async function _init({
       '\tsymlinks = false\n' +
       '\tignorecase = true\n'
   );
-  await fs.write(gitdir + '/HEAD', 'ref: refs/heads/master\n');
+  await fs.write(gitdir + '/HEAD', `ref: refs/heads/${defaultBranch}\n`);
 }
 
 // @ts-check
@@ -42741,6 +42221,7 @@ async function _clone({
   }
   const { defaultBranch, fetchHead } = await _fetch({
     fs,
+    cache,
     http,
     onProgress,
     onMessage,
@@ -42801,6 +42282,7 @@ async function _clone({
  * @param {string[]} [args.exclude = []] - A list of branches or tags. Instructs the remote server not to send us any commits reachable from these refs.
  * @param {boolean} [args.relative = false] - Changes the meaning of `depth` to be measured from the current shallow depth rather than from the branch tip.
  * @param {Object<string, string>} [args.headers = {}] - Additional headers to include in HTTP requests, similar to git's `extraHeader` config
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<void>} Resolves successfully when clone completes
  *
@@ -42839,6 +42321,7 @@ async function clone({
   noCheckout = false,
   noTags = false,
   headers = {},
+  cache = {},
 }) {
   try {
     assertParameter('fs', fs);
@@ -42851,7 +42334,7 @@ async function clone({
 
     return await _clone({
       fs: new FileSystem(fs),
-      cache: {},
+      cache,
       http,
       onProgress,
       onMessage,
@@ -42906,6 +42389,7 @@ async function clone({
  * @param {string} [args.ref] - The fully expanded name of the branch to commit to. Default is the current branch pointed to by HEAD. (TODO: fix it so it can expand branch names without throwing if the branch doesn't exist yet.)
  * @param {string[]} [args.parent] - The SHA-1 object ids of the commits to use as parents. If not specified, the commit pointed to by `ref` is used.
  * @param {string} [args.tree] - The SHA-1 object id of the tree to use. If not specified, a new tree object is created from the current git index.
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<string>} Resolves successfully with the SHA-1 object id of the newly created commit.
  *
@@ -42936,6 +42420,7 @@ async function commit({
   ref,
   parent,
   tree,
+  cache = {},
 }) {
   try {
     assertParameter('fs', _fs);
@@ -42944,7 +42429,6 @@ async function commit({
       assertParameter('onSign', onSign);
     }
     const fs = new FileSystem(_fs);
-    const cache = {};
 
     const author = await normalizeAuthorObject({ fs, gitdir, author: _author });
     if (!author) throw new MissingNameError('author')
@@ -42987,8 +42471,8 @@ async function commit({
  * @param {FsClient} args.fs - a file system implementation
  * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
- * @param {boolean} [args.fullname = false] - Return the full path (e.g. "refs/heads/master") instead of the abbreviated form.
- * @param {boolean} [args.test = false] - If the current branch doesn't actually exist (such as 'master' right after git init) then return `undefined`.
+ * @param {boolean} [args.fullname = false] - Return the full path (e.g. "refs/heads/main") instead of the abbreviated form.
+ * @param {boolean} [args.test = false] - If the current branch doesn't actually exist (such as right after git init) then return `undefined`.
  *
  * @returns {Promise<string|void>} The name of the current branch or undefined if the HEAD is detached.
  *
@@ -43240,6 +42724,7 @@ async function expandOidLoose({ fs, gitdir, oid: short }) {
 
 async function expandOidPacked({
   fs,
+  cache,
   gitdir,
   oid: short,
   getExternalRefDelta,
@@ -43252,6 +42737,7 @@ async function expandOidPacked({
     const indexFile = `${gitdir}/objects/pack/${filename}`;
     const p = await readPackIndex({
       fs,
+      cache,
       filename: indexFile,
       getExternalRefDelta,
     });
@@ -43264,14 +42750,15 @@ async function expandOidPacked({
   return results
 }
 
-async function _expandOid({ fs, gitdir, oid: short }) {
+async function _expandOid({ fs, cache, gitdir, oid: short }) {
   // Curry the current read method so that the packfile un-deltification
   // process can acquire external ref-deltas.
-  const getExternalRefDelta = oid => _readObject({ fs, gitdir, oid });
+  const getExternalRefDelta = oid => _readObject({ fs, cache, gitdir, oid });
 
   const results1 = await expandOidLoose({ fs, gitdir, oid: short });
   const results2 = await expandOidPacked({
     fs,
+    cache,
     gitdir,
     oid: short,
     getExternalRefDelta,
@@ -43297,6 +42784,7 @@ async function _expandOid({ fs, gitdir, oid: short }) {
  * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string} args.oid - The shortened oid prefix to expand (like "0414d2a")
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<string>} Resolves successfully with the full oid (like "0414d2a286d7bbc7a4a326a61c1f9f888a8ab87f")
  *
@@ -43305,13 +42793,20 @@ async function _expandOid({ fs, gitdir, oid: short }) {
  * console.log(oid)
  *
  */
-async function expandOid({ fs, dir, gitdir = join(dir, '.git'), oid }) {
+async function expandOid({
+  fs,
+  dir,
+  gitdir = join(dir, '.git'),
+  oid,
+  cache = {},
+}) {
   try {
     assertParameter('fs', fs);
     assertParameter('gitdir', gitdir);
     assertParameter('oid', oid);
     return await _expandOid({
       fs: new FileSystem(fs),
+      cache,
       gitdir,
       oid,
     })
@@ -43335,7 +42830,7 @@ async function expandOid({ fs, dir, gitdir = join(dir, '.git'), oid }) {
  * @returns {Promise<string>} Resolves successfully with a full ref name ("refs/tags/v1.0.0")
  *
  * @example
- * let fullRef = await git.expandRef({ fs, dir: '/tutorial', ref: 'master'})
+ * let fullRef = await git.expandRef({ fs, dir: '/tutorial', ref: 'main'})
  * console.log(fullRef)
  *
  */
@@ -43360,11 +42855,12 @@ async function expandRef({ fs, dir, gitdir = join(dir, '.git'), ref }) {
 /**
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
  * @param {string} args.gitdir
  * @param {string[]} args.oids
  *
  */
-async function _findMergeBase({ fs, gitdir, oids }) {
+async function _findMergeBase({ fs, cache, gitdir, oids }) {
   // Note: right now, the tests are geared so that the output should match that of
   // `git merge-base --all --octopus`
   // because without the --octopus flag, git's output seems to depend on the ORDER of the oids,
@@ -43394,7 +42890,7 @@ async function _findMergeBase({ fs, gitdir, oids }) {
     const newheads = new Map();
     for (const { oid, index } of heads) {
       try {
-        const { object } = await _readObject({ fs, gitdir, oid });
+        const { object } = await _readObject({ fs, cache, gitdir, oid });
         const commit = GitCommit.from(object);
         const { parent } = commit.parseHeaders();
         for (const oid of parent) {
@@ -43460,6 +42956,7 @@ function mergeFile({
  *
  * @param {Object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {object} args.cache
  * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string} args.ourOid - The SHA-1 object id of our tree
@@ -43475,6 +42972,7 @@ function mergeFile({
  */
 async function mergeTree({
   fs,
+  cache,
   dir,
   gitdir = join(dir, '.git'),
   ourOid,
@@ -43491,6 +42989,7 @@ async function mergeTree({
 
   const results = await _walk({
     fs,
+    cache,
     dir,
     gitdir,
     trees: [ourTree, baseTree, theirTree],
@@ -43561,6 +43060,9 @@ async function mergeTree({
      */
     reduce: async (parent, children) => {
       const entries = children.filter(Boolean); // remove undefineds
+
+      // if the parent was deleted, the children have to go
+      if (!parent) return
 
       // automatically delete directories if they have been emptied
       if (parent && parent.type === 'tree' && entries.length === 0) return
@@ -43718,11 +43220,6 @@ async function mergeBlobs({
  * @param {string} [args.signingKey]
  *
  * @returns {Promise<MergeResult>} Resolves to a description of the merge operation
- * @see MergeResult
- *
- * @example
- * let m = await git.merge({ dir: '$input((/))', ours: '$input((master))', theirs: '$input((remotes/origin/master))' })
- * console.log(m)
  *
  */
 async function _merge({
@@ -43765,6 +43262,7 @@ async function _merge({
   // find most recent common ancestor of ref a and ref b
   const baseOids = await _findMergeBase({
     fs,
+    cache,
     gitdir,
     oids: [ourOid, theirOid],
   });
@@ -43795,6 +43293,7 @@ async function _merge({
     // try a fancier merge
     const tree = await mergeTree({
       fs,
+      cache,
       gitdir,
       ourOid,
       theirOid,
@@ -43904,6 +43403,7 @@ async function _pull({
 
     const { fetchHead, fetchHeadDescription } = await _fetch({
       fs,
+      cache,
       http,
       onProgress,
       onMessage,
@@ -43922,6 +43422,7 @@ async function _pull({
     // Merge the remote tracking branch into the local one.
     await _merge({
       fs,
+      cache,
       gitdir,
       ours: ref,
       theirs: fetchHead,
@@ -43971,6 +43472,7 @@ async function _pull({
  * @param {string} [args.corsProxy] - Optional [CORS proxy](https://www.npmjs.com/%40isomorphic-git/cors-proxy). Overrides value in repo config.
  * @param {boolean} [args.singleBranch = false] - Instead of the default behavior of fetching all the branches, only fetch a single branch.
  * @param {Object<string, string>} [args.headers] - Additional headers to include in HTTP requests, similar to git's `extraHeader` config
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<void>} Resolves successfully when pull operation completes
  *
@@ -43979,7 +43481,7 @@ async function _pull({
  *   fs,
  *   http,
  *   dir: '/tutorial',
- *   ref: 'master',
+ *   ref: 'main',
  *   singleBranch: true
  * })
  * console.log('done')
@@ -44002,6 +43504,7 @@ async function fastForward({
   corsProxy,
   singleBranch,
   headers = {},
+  cache = {},
 }) {
   try {
     assertParameter('fs', fs);
@@ -44017,7 +43520,7 @@ async function fastForward({
 
     return await _pull({
       fs: new FileSystem(fs),
-      cache: {},
+      cache,
       http,
       onProgress,
       onMessage,
@@ -44048,7 +43551,7 @@ async function fastForward({
 /**
  *
  * @typedef {object} FetchResult - The object returned has the following schema:
- * @property {string | null} defaultBranch - The branch that is cloned if no branch is specified (typically "master")
+ * @property {string | null} defaultBranch - The branch that is cloned if no branch is specified
  * @property {string | null} fetchHead - The SHA-1 object id of the fetched head commit
  * @property {string | null} fetchHeadDescription - a textual description of the branch that was fetched
  * @property {Object<string, string>} [headers] - The HTTP response headers returned by the git server
@@ -44083,6 +43586,7 @@ async function fastForward({
  * @param {boolean} [args.pruneTags] - Prune local tags that don’t exist on the remote, and force-update those tags that differ
  * @param {string} [args.corsProxy] - Optional [CORS proxy](https://www.npmjs.com/%40isomorphic-git/cors-proxy). Overrides value in repo config.
  * @param {Object<string, string>} [args.headers] - Additional headers to include in HTTP requests, similar to git's `extraHeader` config
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<FetchResult>} Resolves successfully when fetch completes
  * @see FetchResult
@@ -44094,7 +43598,7 @@ async function fastForward({
  *   dir: '/tutorial',
  *   corsProxy: 'https://cors.isomorphic-git.org',
  *   url: 'https://github.com/isomorphic-git/isomorphic-git',
- *   ref: 'master',
+ *   ref: 'main',
  *   depth: 1,
  *   singleBranch: true,
  *   tags: false
@@ -44126,6 +43630,7 @@ async function fetch({
   headers = {},
   prune = false,
   pruneTags = false,
+  cache = {},
 }) {
   try {
     assertParameter('fs', fs);
@@ -44134,6 +43639,7 @@ async function fetch({
 
     return await _fetch({
       fs: new FileSystem(fs),
+      cache,
       http,
       onProgress,
       onMessage,
@@ -44172,6 +43678,7 @@ async function fetch({
  * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string[]} args.oids - Which commits
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  */
 async function findMergeBase({
@@ -44179,6 +43686,7 @@ async function findMergeBase({
   dir,
   gitdir = join(dir, '.git'),
   oids,
+  cache = {},
 }) {
   try {
     assertParameter('fs', fs);
@@ -44187,6 +43695,7 @@ async function findMergeBase({
 
     return await _findMergeBase({
       fs: new FileSystem(fs),
+      cache,
       gitdir,
       oids,
     })
@@ -44410,6 +43919,7 @@ async function getRemoteInfo({
     assertParameter('http', http);
     assertParameter('url', url);
 
+    const GitRemoteHTTP = GitRemoteManager.getRemoteHelperFor({ url });
     const remote = await GitRemoteHTTP.discover({
       http,
       onAuth,
@@ -44419,6 +43929,7 @@ async function getRemoteInfo({
       service: forPush ? 'git-receive-pack' : 'git-upload-pack',
       url,
       headers,
+      protocolVersion: 1,
     });
 
     // Note: remote.capabilities, remote.refs, and remote.symrefs are Set and Map objects,
@@ -44453,6 +43964,154 @@ async function getRemoteInfo({
     return result
   } catch (err) {
     err.caller = 'git.getRemoteInfo';
+    throw err
+  }
+}
+
+// @ts-check
+
+/**
+ * @param {any} remote
+ * @param {string} prefix
+ * @param {boolean} symrefs
+ * @param {boolean} peelTags
+ * @returns {ServerRef[]}
+ */
+function formatInfoRefs(remote, prefix, symrefs, peelTags) {
+  const refs = [];
+  for (const [key, value] of remote.refs) {
+    if (prefix && !key.startsWith(prefix)) continue
+
+    if (key.endsWith('^{}')) {
+      if (peelTags) {
+        const _key = key.replace('^{}', '');
+        // Peeled tags are almost always listed immediately after the original tag
+        const last = refs[refs.length - 1];
+        const r = last.ref === _key ? last : refs.find(x => x.ref === _key);
+        if (r === undefined) {
+          throw new Error('I did not expect this to happen')
+        }
+        r.peeled = value;
+      }
+      continue
+    }
+    /** @type ServerRef */
+    const ref = { ref: key, oid: value };
+    if (symrefs) {
+      if (remote.symrefs.has(key)) {
+        ref.target = remote.symrefs.get(key);
+      }
+    }
+    refs.push(ref);
+  }
+  return refs
+}
+
+// @ts-check
+
+/**
+ * @typedef {Object} GetRemoteInfo2Result - This object has the following schema:
+ * @property {1 | 2} protocolVersion - Git protocol version the server supports
+ * @property {Object<string, string | true>} capabilities - An object of capabilities represented as keys and values
+ * @property {ServerRef[]} [refs] - Server refs (they get returned by protocol version 1 whether you want them or not)
+ */
+
+/**
+ * List a remote server's capabilities.
+ *
+ * This is a rare command that doesn't require an `fs`, `dir`, or even `gitdir` argument.
+ * It just communicates to a remote git server, determining what protocol version, commands, and features it supports.
+ *
+ * > The successor to [`getRemoteInfo`](./getRemoteInfo.md), this command supports Git Wire Protocol Version 2.
+ * > Therefore its return type is more complicated as either:
+ * >
+ * > - v1 capabilities (and refs) or
+ * > - v2 capabilities (and no refs)
+ * >
+ * > are returned.
+ * > If you just care about refs, use [`listServerRefs`](./listServerRefs.md)
+ *
+ * @param {object} args
+ * @param {HttpClient} args.http - an HTTP client
+ * @param {AuthCallback} [args.onAuth] - optional auth fill callback
+ * @param {AuthFailureCallback} [args.onAuthFailure] - optional auth rejected callback
+ * @param {AuthSuccessCallback} [args.onAuthSuccess] - optional auth approved callback
+ * @param {string} args.url - The URL of the remote repository. Will be gotten from gitconfig if absent.
+ * @param {string} [args.corsProxy] - Optional [CORS proxy](https://www.npmjs.com/%40isomorphic-git/cors-proxy). Overrides value in repo config.
+ * @param {boolean} [args.forPush = false] - By default, the command queries the 'fetch' capabilities. If true, it will ask for the 'push' capabilities.
+ * @param {Object<string, string>} [args.headers] - Additional headers to include in HTTP requests, similar to git's `extraHeader` config
+ * @param {1 | 2} [args.protocolVersion = 2] - Which version of the Git Protocol to use.
+ *
+ * @returns {Promise<GetRemoteInfo2Result>} Resolves successfully with an object listing the capabilities of the remote.
+ * @see GetRemoteInfo2Result
+ * @see ServerRef
+ *
+ * @example
+ * let info = await git.getRemoteInfo2({
+ *   http,
+ *   corsProxy: "https://cors.isomorphic-git.org",
+ *   url: "https://github.com/isomorphic-git/isomorphic-git.git"
+ * });
+ * console.log(info);
+ *
+ */
+async function getRemoteInfo2({
+  http,
+  onAuth,
+  onAuthSuccess,
+  onAuthFailure,
+  corsProxy,
+  url,
+  headers = {},
+  forPush = false,
+  protocolVersion = 2,
+}) {
+  try {
+    assertParameter('http', http);
+    assertParameter('url', url);
+
+    const GitRemoteHTTP = GitRemoteManager.getRemoteHelperFor({ url });
+    const remote = await GitRemoteHTTP.discover({
+      http,
+      onAuth,
+      onAuthSuccess,
+      onAuthFailure,
+      corsProxy,
+      service: forPush ? 'git-receive-pack' : 'git-upload-pack',
+      url,
+      headers,
+      protocolVersion,
+    });
+
+    if (remote.protocolVersion === 2) {
+      /** @type GetRemoteInfo2Result */
+      return {
+        protocolVersion: remote.protocolVersion,
+        capabilities: remote.capabilities2,
+      }
+    }
+
+    // Note: remote.capabilities, remote.refs, and remote.symrefs are Set and Map objects,
+    // but one of the objectives of the public API is to always return JSON-compatible objects
+    // so we must JSONify them.
+    /** @type Object<string, true> */
+    const capabilities = {};
+    for (const cap of remote.capabilities) {
+      const [key, value] = cap.split('=');
+      if (value) {
+        capabilities[key] = value;
+      } else {
+        capabilities[key] = true;
+      }
+    }
+    /** @type GetRemoteInfo2Result */
+    return {
+      protocolVersion: 1,
+      capabilities,
+      refs: formatInfoRefs(remote, undefined, true, true),
+    }
+  } catch (err) {
+    err.caller = 'git.getRemoteInfo2';
     throw err
   }
 }
@@ -44533,6 +44192,7 @@ async function hashBlob({ object }) {
 /**
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
  * @param {ProgressCallback} [args.onProgress]
  * @param {string} args.dir
  * @param {string} args.gitdir
@@ -44540,11 +44200,18 @@ async function hashBlob({ object }) {
  *
  * @returns {Promise<{oids: string[]}>}
  */
-async function _indexPack({ fs, onProgress, dir, gitdir, filepath }) {
+async function _indexPack({
+  fs,
+  cache,
+  onProgress,
+  dir,
+  gitdir,
+  filepath,
+}) {
   try {
     filepath = join(dir, filepath);
     const pack = await fs.read(filepath);
-    const getExternalRefDelta = oid => _readObject({ fs, gitdir, oid });
+    const getExternalRefDelta = oid => _readObject({ fs, cache, gitdir, oid });
     const idx = await GitPackIndex.fromPack({
       pack,
       getExternalRefDelta,
@@ -44571,6 +44238,7 @@ async function _indexPack({ fs, onProgress, dir, gitdir, filepath }) {
  * @param {string} args.dir - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string} args.filepath - The path to the .pack file to index
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<{oids: string[]}>} Resolves with a list of the SHA-1 object ids contained in the packfile
  *
@@ -44596,6 +44264,7 @@ async function indexPack({
   dir,
   gitdir = join(dir, '.git'),
   filepath,
+  cache = {},
 }) {
   try {
     assertParameter('fs', fs);
@@ -44605,6 +44274,7 @@ async function indexPack({
 
     return await _indexPack({
       fs: new FileSystem(fs),
+      cache,
       onProgress,
       dir,
       gitdir,
@@ -44626,6 +44296,7 @@ async function indexPack({
  * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {boolean} [args.bare = false] - Initialize a bare repository
+ * @param {string} [args.defaultBranch = 'master'] - The name of the default branch (might be changed to a required argument in 2.0.0)
  * @returns {Promise<void>}  Resolves successfully when filesystem operations are complete
  *
  * @example
@@ -44638,6 +44309,7 @@ async function init({
   bare = false,
   dir,
   gitdir = bare ? dir : join(dir, '.git'),
+  defaultBranch = 'master',
 }) {
   try {
     assertParameter('fs', fs);
@@ -44651,6 +44323,7 @@ async function init({
       bare,
       dir,
       gitdir,
+      defaultBranch,
     })
   } catch (err) {
     err.caller = 'git.init';
@@ -44663,6 +44336,7 @@ async function init({
 /**
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
  * @param {string} args.gitdir
  * @param {string} args.oid
  * @param {string} args.ancestor
@@ -44670,7 +44344,14 @@ async function init({
  *
  * @returns {Promise<boolean>}
  */
-async function _isDescendent({ fs, gitdir, oid, ancestor, depth }) {
+async function _isDescendent({
+  fs,
+  cache,
+  gitdir,
+  oid,
+  ancestor,
+  depth,
+}) {
   const shallows = await GitShallowManager.read({ fs, gitdir });
   if (!oid) {
     throw new MissingParameterError('oid')
@@ -44693,6 +44374,7 @@ async function _isDescendent({ fs, gitdir, oid, ancestor, depth }) {
     const oid = queue.shift();
     const { type, object } = await _readObject({
       fs,
+      cache,
       gitdir,
       oid,
     });
@@ -44733,11 +44415,12 @@ async function _isDescendent({ fs, gitdir, oid, ancestor, depth }) {
  * @param {string} args.oid - The descendent commit
  * @param {string} args.ancestor - The (proposed) ancestor commit
  * @param {number} [args.depth = -1] - Maximum depth to search before giving up. -1 means no maximum depth.
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<boolean>} Resolves to true if `oid` is a descendent of `ancestor`
  *
  * @example
- * let oid = await git.resolveRef({ fs, dir: '/tutorial', ref: 'master' })
+ * let oid = await git.resolveRef({ fs, dir: '/tutorial', ref: 'main' })
  * let ancestor = await git.resolveRef({ fs, dir: '/tutorial', ref: 'v0.20.0' })
  * console.log(oid, ancestor)
  * await git.isDescendent({ fs, dir: '/tutorial', oid, ancestor, depth: -1 })
@@ -44750,6 +44433,7 @@ async function isDescendent({
   oid,
   ancestor,
   depth = -1,
+  cache = {},
 }) {
   try {
     assertParameter('fs', fs);
@@ -44759,6 +44443,7 @@ async function isDescendent({
 
     return await _isDescendent({
       fs: new FileSystem(fs),
+      cache,
       gitdir,
       oid,
       ancestor,
@@ -44832,7 +44517,14 @@ async function _listFiles({ fs, gitdir, ref, cache }) {
   if (ref) {
     const oid = await GitRefManager.resolve({ gitdir, fs, ref });
     const filenames = [];
-    await accumulateFilesFromOid({ fs, gitdir, oid, filenames, prefix: '' });
+    await accumulateFilesFromOid({
+      fs,
+      cache,
+      gitdir,
+      oid,
+      filenames,
+      prefix: '',
+    });
     return filenames
   } else {
     return GitIndexManager.acquire({ fs, gitdir, cache }, async function(
@@ -44843,13 +44535,21 @@ async function _listFiles({ fs, gitdir, ref, cache }) {
   }
 }
 
-async function accumulateFilesFromOid({ fs, gitdir, oid, filenames, prefix }) {
-  const { tree } = await _readTree({ fs, gitdir, oid });
+async function accumulateFilesFromOid({
+  fs,
+  cache,
+  gitdir,
+  oid,
+  filenames,
+  prefix,
+}) {
+  const { tree } = await _readTree({ fs, cache, gitdir, oid });
   // TODO: Use `walk` to do this. Should be faster.
   for (const entry of tree) {
     if (entry.type === 'tree') {
       await accumulateFilesFromOid({
         fs,
+        cache,
         gitdir,
         oid: entry.oid,
         filenames,
@@ -44874,6 +44574,7 @@ async function accumulateFilesFromOid({ fs, gitdir, oid, filenames, prefix }) {
  * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string} [args.ref] - Return a list of all the files in the commit at `ref` instead of the files currently in the git index (aka staging area)
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<Array<string>>} Resolves successfully with an array of filepaths
  *
@@ -44886,14 +44587,20 @@ async function accumulateFilesFromOid({ fs, gitdir, oid, filenames, prefix }) {
  * console.log(files)
  *
  */
-async function listFiles({ fs, dir, gitdir = join(dir, '.git'), ref }) {
+async function listFiles({
+  fs,
+  dir,
+  gitdir = join(dir, '.git'),
+  ref,
+  cache = {},
+}) {
   try {
     assertParameter('fs', fs);
     assertParameter('gitdir', gitdir);
 
     return await _listFiles({
       fs: new FileSystem(fs),
-      cache: {},
+      cache,
       gitdir,
       ref,
     })
@@ -44910,13 +44617,14 @@ async function listFiles({ fs, dir, gitdir = join(dir, '.git'), ref }) {
  *
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
  * @param {string} args.gitdir
  * @param {string} args.ref
  *
  * @returns {Promise<Array<{target: string, note: string}>>}
  */
 
-async function _listNotes({ fs, gitdir, ref }) {
+async function _listNotes({ fs, cache, gitdir, ref }) {
   // Get the current note commit
   let parent;
   try {
@@ -44930,6 +44638,7 @@ async function _listNotes({ fs, gitdir, ref }) {
   // Create the current note tree
   const result = await _readTree({
     fs,
+    cache,
     gitdir,
     oid: parent,
   });
@@ -44952,6 +44661,7 @@ async function _listNotes({ fs, gitdir, ref }) {
  * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string} [args.ref] - The notes ref to look under
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<Array<{target: string, note: string}>>} Resolves successfully with an array of entries containing SHA-1 object ids of the note and the object the note targets
  */
@@ -44961,6 +44671,7 @@ async function listNotes({
   dir,
   gitdir = join(dir, '.git'),
   ref = 'refs/notes/commits',
+  cache = {},
 }) {
   try {
     assertParameter('fs', fs);
@@ -44969,6 +44680,7 @@ async function listNotes({
 
     return await _listNotes({
       fs: new FileSystem(fs),
+      cache,
       gitdir,
       ref,
     })
@@ -45031,6 +44743,218 @@ async function listRemotes({ fs, dir, gitdir = join(dir, '.git') }) {
   }
 }
 
+/**
+ * @typedef {Object} ServerRef - This object has the following schema:
+ * @property {string} ref - The name of the ref
+ * @property {string} oid - The SHA-1 object id the ref points to
+ * @property {string} [target] - The target ref pointed to by a symbolic ref
+ * @property {string} [peeled] - If the oid is the SHA-1 object id of an annotated tag, this is the SHA-1 object id that the annotated tag points to
+ */
+
+async function parseListRefsResponse(stream) {
+  const read = GitPktLine.streamReader(stream);
+
+  // TODO: when we re-write everything to minimize memory usage,
+  // we could make this a generator
+  const refs = [];
+
+  let line;
+  while (true) {
+    line = await read();
+    if (line === true) break
+    if (line === null) continue
+    line = line.toString('utf8').replace(/\n$/, '');
+    const [oid, ref, ...attrs] = line.split(' ');
+    const r = { ref, oid };
+    for (const attr of attrs) {
+      const [name, value] = attr.split(':');
+      if (name === 'symref-target') {
+        r.target = value;
+      } else if (name === 'peeled') {
+        r.peeled = value;
+      }
+    }
+    refs.push(r);
+  }
+
+  return refs
+}
+
+/**
+ * @param {object} args
+ * @param {string} [args.prefix] - Only list refs that start with this prefix
+ * @param {boolean} [args.symrefs = false] - Include symbolic ref targets
+ * @param {boolean} [args.peelTags = false] - Include peeled tags values
+ * @returns {Uint8Array[]}
+ */
+async function writeListRefsRequest({ prefix, symrefs, peelTags }) {
+  const packstream = [];
+  // command
+  packstream.push(GitPktLine.encode('command=ls-refs\n'));
+  // capability-list
+  packstream.push(GitPktLine.encode(`agent=${pkg.agent}\n`));
+  // [command-args]
+  if (peelTags || symrefs || prefix) {
+    packstream.push(GitPktLine.delim());
+  }
+  if (peelTags) packstream.push(GitPktLine.encode('peel'));
+  if (symrefs) packstream.push(GitPktLine.encode('symrefs'));
+  if (prefix) packstream.push(GitPktLine.encode(`ref-prefix ${prefix}`));
+  packstream.push(GitPktLine.flush());
+  return packstream
+}
+
+// @ts-check
+
+/**
+ * Fetch a list of refs (branches, tags, etc) from a server.
+ *
+ * This is a rare command that doesn't require an `fs`, `dir`, or even `gitdir` argument.
+ * It just requires an `http` argument.
+ *
+ * ### About `protocolVersion`
+ *
+ * There's a rather fun trade-off between Git Protocol Version 1 and Git Protocol Version 2.
+ * Version 2 actually requires 2 HTTP requests instead of 1, making it similar to fetch or push in that regard.
+ * However, version 2 supports server-side filtering by prefix, whereas that filtering is done client-side in version 1.
+ * Which protocol is most efficient therefore depends on the number of refs on the remote, the latency of the server, and speed of the network connection.
+ * For an small repos (or fast Internet connections), the requirement to make two trips to the server makes protocol 2 slower.
+ * But for large repos (or slow Internet connections), the decreased payload size of the second request makes up for the additional request.
+ *
+ * Hard numbers vary by situation, but here's some numbers from my machine:
+ *
+ * Using isomorphic-git in a browser, with a CORS proxy, listing only the branches (refs/heads) of https://github.com/isomorphic-git/isomorphic-git
+ * - Protocol Version 1 took ~300ms and transfered 84 KB.
+ * - Protocol Version 2 took ~500ms and transfered 4.1 KB.
+ *
+ * Using isomorphic-git in a browser, with a CORS proxy, listing only the branches (refs/heads) of https://gitlab.com/gitlab-org/gitlab
+ * - Protocol Version 1 took ~4900ms and transfered 9.41 MB.
+ * - Protocol Version 2 took ~1280ms and transfered 433 KB.
+ *
+ * Finally, there is a fun quirk regarding the `symrefs` parameter.
+ * Protocol Version 1 will generally only return the `HEAD` symref and not others.
+ * Historically, this meant that servers don't use symbolic refs except for `HEAD`, which is used to point at the "default branch".
+ * However Protocol Version 2 can return *all* the symbolic refs on the server.
+ * So if you are running your own git server, you could take advantage of that I guess.
+ *
+ * #### TL;DR
+ * If you are _not_ taking advantage of `prefix` I would recommend `protocolVersion: 1`.
+ * Otherwise, I recommend to use the default which is `protocolVersion: 2`.
+ *
+ * @param {object} args
+ * @param {HttpClient} args.http - an HTTP client
+ * @param {AuthCallback} [args.onAuth] - optional auth fill callback
+ * @param {AuthFailureCallback} [args.onAuthFailure] - optional auth rejected callback
+ * @param {AuthSuccessCallback} [args.onAuthSuccess] - optional auth approved callback
+ * @param {string} args.url - The URL of the remote repository. Will be gotten from gitconfig if absent.
+ * @param {string} [args.corsProxy] - Optional [CORS proxy](https://www.npmjs.com/%40isomorphic-git/cors-proxy). Overrides value in repo config.
+ * @param {boolean} [args.forPush = false] - By default, the command queries the 'fetch' capabilities. If true, it will ask for the 'push' capabilities.
+ * @param {Object<string, string>} [args.headers] - Additional headers to include in HTTP requests, similar to git's `extraHeader` config
+ * @param {1 | 2} [args.protocolVersion = 2] - Which version of the Git Protocol to use.
+ * @param {string} [args.prefix] - Only list refs that start with this prefix
+ * @param {boolean} [args.symrefs = false] - Include symbolic ref targets
+ * @param {boolean} [args.peelTags = false] - Include annotated tag peeled targets
+ *
+ * @returns {Promise<ServerRef[]>} Resolves successfully with an array of ServerRef objects
+ * @see ServerRef
+ *
+ * @example
+ * // List all the branches on a repo
+ * let refs = await git.listServerRefs({
+ *   http,
+ *   corsProxy: "https://cors.isomorphic-git.org",
+ *   url: "https://github.com/isomorphic-git/isomorphic-git.git",
+ *   prefix: "refs/heads/",
+ * });
+ * console.log(refs);
+ *
+ * @example
+ * // Get the default branch on a repo
+ * let refs = await git.listServerRefs({
+ *   http,
+ *   corsProxy: "https://cors.isomorphic-git.org",
+ *   url: "https://github.com/isomorphic-git/isomorphic-git.git",
+ *   prefix: "HEAD",
+ *   symrefs: true,
+ * });
+ * console.log(refs);
+ *
+ * @example
+ * // List all the tags on a repo
+ * let refs = await git.listServerRefs({
+ *   http,
+ *   corsProxy: "https://cors.isomorphic-git.org",
+ *   url: "https://github.com/isomorphic-git/isomorphic-git.git",
+ *   prefix: "refs/tags/",
+ *   peelTags: true,
+ * });
+ * console.log(refs);
+ *
+ * @example
+ * // List all the pull requests on a repo
+ * let refs = await git.listServerRefs({
+ *   http,
+ *   corsProxy: "https://cors.isomorphic-git.org",
+ *   url: "https://github.com/isomorphic-git/isomorphic-git.git",
+ *   prefix: "refs/pull/",
+ * });
+ * console.log(refs);
+ *
+ */
+async function listServerRefs({
+  http,
+  onAuth,
+  onAuthSuccess,
+  onAuthFailure,
+  corsProxy,
+  url,
+  headers = {},
+  forPush = false,
+  protocolVersion = 2,
+  prefix,
+  symrefs,
+  peelTags,
+}) {
+  try {
+    assertParameter('http', http);
+    assertParameter('url', url);
+
+    const remote = await GitRemoteHTTP.discover({
+      http,
+      onAuth,
+      onAuthSuccess,
+      onAuthFailure,
+      corsProxy,
+      service: forPush ? 'git-receive-pack' : 'git-upload-pack',
+      url,
+      headers,
+      protocolVersion,
+    });
+
+    if (remote.protocolVersion === 1) {
+      return formatInfoRefs(remote, prefix, symrefs, peelTags)
+    }
+
+    // Protocol Version 2
+    const body = await writeListRefsRequest({ prefix, symrefs, peelTags });
+
+    const res = await GitRemoteHTTP.connect({
+      http,
+      auth: remote.auth,
+      headers,
+      corsProxy,
+      service: forPush ? 'git-receive-pack' : 'git-upload-pack',
+      url,
+      body,
+    });
+
+    return parseListRefsResponse(res.body)
+  } catch (err) {
+    err.caller = 'git.listServerRefs';
+    throw err
+  }
+}
+
 // @ts-check
 
 /**
@@ -45059,12 +44983,12 @@ async function listTags({ fs, dir, gitdir = join(dir, '.git') }) {
   }
 }
 
-async function resolveCommit({ fs, gitdir, oid }) {
-  const { type, object } = await _readObject({ fs, gitdir, oid });
+async function resolveCommit({ fs, cache, gitdir, oid }) {
+  const { type, object } = await _readObject({ fs, cache, gitdir, oid });
   // Resolve annotated tag objects to whatever
   if (type === 'tag') {
     oid = GitAnnotatedTag.from(object).parse().object;
-    return resolveCommit({ fs, gitdir, oid })
+    return resolveCommit({ fs, cache, gitdir, oid })
   }
   if (type !== 'commit') {
     throw new ObjectTypeError(oid, type, 'commit')
@@ -45077,6 +45001,7 @@ async function resolveCommit({ fs, gitdir, oid }) {
 /**
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
  * @param {string} args.gitdir
  * @param {string} args.oid
  *
@@ -45085,9 +45010,10 @@ async function resolveCommit({ fs, gitdir, oid }) {
  * @see CommitObject
  *
  */
-async function _readCommit({ fs, gitdir, oid }) {
+async function _readCommit({ fs, cache, gitdir, oid }) {
   const { commit, oid: commitOid } = await resolveCommit({
     fs,
+    cache,
     gitdir,
     oid,
   });
@@ -45111,21 +45037,15 @@ function compareAge(a, b) {
  *
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
  * @param {string} args.gitdir
  * @param {string} args.ref
  * @param {number|void} args.depth
  * @param {Date|void} args.since
  *
- * @returns {Promise<Array<ReadCommitResult>>} Resolves to an array of ReadCommitResult objects
- * @see ReadCommitResult
- * @see CommitObject
- *
- * @example
- * let commits = await git.log({ dir: '$input((/))', depth: $input((5)), ref: '$input((master))' })
- * console.log(commits)
- *
+ * @returns {Promise<Array<ReadCommitResult>>}
  */
-async function _log({ fs, gitdir, ref, depth, since }) {
+async function _log({ fs, cache, gitdir, ref, depth, since }) {
   const sinceTimestamp =
     typeof since === 'undefined'
       ? undefined
@@ -45135,7 +45055,7 @@ async function _log({ fs, gitdir, ref, depth, since }) {
   const commits = [];
   const shallowCommits = await GitShallowManager.read({ fs, gitdir });
   const oid = await GitRefManager.resolve({ fs, gitdir, ref });
-  const tips = [await _readCommit({ fs, gitdir, oid })];
+  const tips = [await _readCommit({ fs, cache, gitdir, oid })];
 
   while (true) {
     const commit = tips.pop();
@@ -45158,7 +45078,7 @@ async function _log({ fs, gitdir, ref, depth, since }) {
       // Add the parents of this commit to the queue
       // Note: for the case of a commit with no parents, it will concat an empty array, having no net effect.
       for (const oid of commit.commit.parent) {
-        const commit = await _readCommit({ fs, gitdir, oid });
+        const commit = await _readCommit({ fs, cache, gitdir, oid });
         if (!tips.map(commit => commit.oid).includes(commit.oid)) {
           tips.push(commit);
         }
@@ -45186,6 +45106,7 @@ async function _log({ fs, gitdir, ref, depth, since }) {
  * @param {string} [args.ref = 'HEAD'] - The commit to begin walking backwards through the history from
  * @param {number} [args.depth] - Limit the number of commits returned. No limit by default.
  * @param {Date} [args.since] - Return history newer than the given date. Can be combined with `depth` to get whichever is shorter.
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<Array<ReadCommitResult>>} Resolves to an array of ReadCommitResult objects
  * @see ReadCommitResult
@@ -45196,7 +45117,7 @@ async function _log({ fs, gitdir, ref, depth, since }) {
  *   fs,
  *   dir: '/tutorial',
  *   depth: 5,
- *   ref: 'master'
+ *   ref: 'main'
  * })
  * console.log(commits)
  *
@@ -45208,6 +45129,7 @@ async function log({
   ref = 'HEAD',
   depth,
   since, // Date
+  cache = {},
 }) {
   try {
     assertParameter('fs', fs);
@@ -45216,6 +45138,7 @@ async function log({
 
     return await _log({
       fs: new FileSystem(fs),
+      cache,
       gitdir,
       ref,
       depth,
@@ -45274,6 +45197,7 @@ async function log({
  * @param {number} [args.committer.timestamp=Math.floor(Date.now()/1000)] - Set the committer timestamp field. This is the integer number of seconds since the Unix epoch (1970-01-01 00:00:00).
  * @param {number} [args.committer.timezoneOffset] - Set the committer timezone offset field. This is the difference, in minutes, from the current timezone to UTC. Default is `(new Date()).getTimezoneOffset()`.
  * @param {string} [args.signingKey] - passed to [commit](commit.md) when creating a merge commit
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<MergeResult>} Resolves to a description of the merge operation
  * @see MergeResult
@@ -45282,8 +45206,8 @@ async function log({
  * let m = await git.merge({
  *   fs,
  *   dir: '/tutorial',
- *   ours: 'master',
- *   theirs: 'remotes/origin/master'
+ *   ours: 'main',
+ *   theirs: 'remotes/origin/main'
  * })
  * console.log(m)
  *
@@ -45302,6 +45226,7 @@ async function merge({
   author: _author,
   committer: _committer,
   signingKey,
+  cache = {},
 }) {
   try {
     assertParameter('fs', _fs);
@@ -45309,7 +45234,6 @@ async function merge({
       assertParameter('onSign', onSign);
     }
     const fs = new FileSystem(_fs);
-    const cache = {};
 
     const author = await normalizeAuthorObject({ fs, gitdir, author: _author });
     if (!author && !fastForwardOnly) throw new MissingNameError('author')
@@ -45359,11 +45283,18 @@ const types = {
 /**
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
  * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string[]} args.oids
  */
-async function _pack({ fs, dir, gitdir = join(dir, '.git'), oids }) {
+async function _pack({
+  fs,
+  cache,
+  dir,
+  gitdir = join(dir, '.git'),
+  oids,
+}) {
   const hash = new Hash();
   const outputStream = [];
   function write(chunk, enc) {
@@ -45402,7 +45333,7 @@ async function _pack({ fs, dir, gitdir = join(dir, '.git'), oids }) {
   // Write a 4 byte (32-bit) int
   write(padHex(8, oids.length), 'hex');
   for (const oid of oids) {
-    const { type, object } = await _readObject({ fs, gitdir, oid });
+    const { type, object } = await _readObject({ fs, cache, gitdir, oid });
     await writeObject({ write, object, stype: type });
   }
   // Write SHA1 checksum
@@ -45423,6 +45354,7 @@ async function _pack({ fs, dir, gitdir = join(dir, '.git'), oids }) {
 /**
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
  * @param {string} args.gitdir
  * @param {string[]} args.oids
  * @param {boolean} args.write
@@ -45430,8 +45362,8 @@ async function _pack({ fs, dir, gitdir = join(dir, '.git'), oids }) {
  * @returns {Promise<PackObjectsResult>}
  * @see PackObjectsResult
  */
-async function _packObjects({ fs, gitdir, oids, write }) {
-  const buffers = await _pack({ fs, gitdir, oids });
+async function _packObjects({ fs, cache, gitdir, oids, write }) {
+  const buffers = await _pack({ fs, cache, gitdir, oids });
   const packfile = Buffer.from(await collect(buffers));
   const packfileSha = packfile.slice(-20).toString('hex');
   const filename = `pack-${packfileSha}.pack`;
@@ -45463,6 +45395,7 @@ async function _packObjects({ fs, gitdir, oids, write }) {
  * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string[]} args.oids - An array of SHA-1 object ids to be included in the packfile
  * @param {boolean} [args.write = false] - Whether to save the packfile to disk or not
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<PackObjectsResult>} Resolves successfully when the packfile is ready with the filename and buffer
  * @see PackObjectsResult
@@ -45483,6 +45416,7 @@ async function packObjects({
   gitdir = join(dir, '.git'),
   oids,
   write = false,
+  cache = {},
 }) {
   try {
     assertParameter('fs', fs);
@@ -45491,6 +45425,7 @@ async function packObjects({
 
     return await _packObjects({
       fs: new FileSystem(fs),
+      cache,
       gitdir,
       oids,
       write,
@@ -45535,6 +45470,7 @@ async function packObjects({
  * @param {number} [args.committer.timestamp=Math.floor(Date.now()/1000)] - Set the committer timestamp field. This is the integer number of seconds since the Unix epoch (1970-01-01 00:00:00).
  * @param {number} [args.committer.timezoneOffset] - Set the committer timezone offset field. This is the difference, in minutes, from the current timezone to UTC. Default is `(new Date()).getTimezoneOffset()`.
  * @param {string} [args.signingKey] - passed to [commit](commit.md) when creating a merge commit
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<void>} Resolves successfully when pull operation completes
  *
@@ -45543,7 +45479,7 @@ async function packObjects({
  *   fs,
  *   http,
  *   dir: '/tutorial',
- *   ref: 'master',
+ *   ref: 'main',
  *   singleBranch: true
  * })
  * console.log('done')
@@ -45570,6 +45506,7 @@ async function pull({
   author: _author,
   committer: _committer,
   signingKey,
+  cache = {},
 }) {
   try {
     assertParameter('fs', _fs);
@@ -45590,7 +45527,7 @@ async function pull({
 
     return await _pull({
       fs,
-      cache: {},
+      cache,
       http,
       onProgress,
       onMessage,
@@ -45620,6 +45557,7 @@ async function pull({
 /**
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
  * @param {string} [args.dir]
  * @param {string} args.gitdir
  * @param {Iterable<string>} args.start
@@ -45628,6 +45566,7 @@ async function pull({
  */
 async function listCommitsAndTags({
   fs,
+  cache,
   dir,
   gitdir = join(dir, '.git'),
   start,
@@ -45652,7 +45591,7 @@ async function listCommitsAndTags({
   // setting a default recursion limit.
   async function walk(oid) {
     visited.add(oid);
-    const { type, object } = await _readObject({ fs, gitdir, oid });
+    const { type, object } = await _readObject({ fs, cache, gitdir, oid });
     // Recursively resolve annotated tags
     if (type === 'tag') {
       const tag = GitAnnotatedTag.from(object);
@@ -45682,6 +45621,7 @@ async function listCommitsAndTags({
 /**
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
  * @param {string} [args.dir]
  * @param {string} args.gitdir
  * @param {Iterable<string>} args.oids
@@ -45689,6 +45629,7 @@ async function listCommitsAndTags({
  */
 async function listObjects({
   fs,
+  cache,
   dir,
   gitdir = join(dir, '.git'),
   oids,
@@ -45700,7 +45641,7 @@ async function listObjects({
   async function walk(oid) {
     if (visited.has(oid)) return
     visited.add(oid);
-    const { type, object } = await _readObject({ fs, gitdir, oid });
+    const { type, object } = await _readObject({ fs, cache, gitdir, oid });
     if (type === 'tag') {
       const tag = GitAnnotatedTag.from(object);
       const obj = tag.headers().object;
@@ -45712,8 +45653,9 @@ async function listObjects({
     } else if (type === 'tree') {
       const tree = GitTree.from(object);
       for (const entry of tree) {
-        // add blobs and submodules to the visited set
-        if (entry.type === 'blob' || entry.type === 'commit') {
+        // add blobs to the set
+        // skip over submodules whose type is 'commit'
+        if (entry.type === 'blob') {
           visited.add(entry.oid);
         }
         // recurse for trees
@@ -45791,6 +45733,7 @@ async function writeReceivePackRequest({
 /**
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
  * @param {HttpClient} args.http
  * @param {ProgressCallback} [args.onProgress]
  * @param {MessageCallback} [args.onMessage]
@@ -45811,6 +45754,7 @@ async function writeReceivePackRequest({
  */
 async function _push({
   fs,
+  cache,
   http,
   onProgress,
   onMessage,
@@ -45873,6 +45817,7 @@ async function _push({
     service: 'git-receive-pack',
     url,
     headers,
+    protocolVersion: 1,
   });
   const auth = httpRemote.auth; // hack to get new credentials from CredentialManager API
   let fullRemoteRef;
@@ -45913,12 +45858,13 @@ async function _push({
       // trick to speed up common force push scenarios
       const mergebase = await _findMergeBase({
         fs,
+        cache,
         gitdir,
         oids: [oid, oldoid],
       });
       for (const oid of mergebase) finish.push(oid);
       if (thinPack) {
-        skipObjects = await listObjects({ fs, gitdir, oids: mergebase });
+        skipObjects = await listObjects({ fs, cache, gitdir, oids: mergebase });
       }
     }
 
@@ -45926,11 +45872,12 @@ async function _push({
     if (!finish.includes(oid)) {
       const commits = await listCommitsAndTags({
         fs,
+        cache,
         gitdir,
         start: [oid],
         finish,
       });
-      objects = await listObjects({ fs, gitdir, oids: commits });
+      objects = await listObjects({ fs, cache, gitdir, oids: commits });
     }
 
     if (thinPack) {
@@ -45952,7 +45899,7 @@ async function _push({
           map: httpRemote.refs,
         });
         const oids = [oid];
-        for (const oid of await listObjects({ fs, gitdir, oids })) {
+        for (const oid of await listObjects({ fs, cache, gitdir, oids })) {
           skipObjects.add(oid);
         }
       } catch (e) {}
@@ -45975,7 +45922,14 @@ async function _push({
       if (
         oid !== '0000000000000000000000000000000000000000' &&
         oldoid !== '0000000000000000000000000000000000000000' &&
-        !(await _isDescendent({ fs, gitdir, oid, ancestor: oldoid, depth: -1 }))
+        !(await _isDescendent({
+          fs,
+          cache,
+          gitdir,
+          oid,
+          ancestor: oldoid,
+          depth: -1,
+        }))
       ) {
         throw new PushRejectedError('not-fast-forward')
       }
@@ -45995,6 +45949,7 @@ async function _push({
     ? []
     : await _pack({
         fs,
+        cache,
         gitdir,
         oids: [...objects],
       });
@@ -46076,6 +46031,7 @@ async function _push({
  * @param {boolean} [args.delete = false] - If true, delete the remote ref
  * @param {string} [args.corsProxy] - Optional [CORS proxy](https://www.npmjs.com/%40isomorphic-git/cors-proxy). Overrides value in repo config.
  * @param {Object<string, string>} [args.headers] - Additional headers to include in HTTP requests, similar to git's `extraHeader` config
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<PushResult>} Resolves successfully when push completes with a detailed description of the operation from the server.
  * @see PushResult
@@ -46087,7 +46043,7 @@ async function _push({
  *   http,
  *   dir: '/tutorial',
  *   remote: 'origin',
- *   ref: 'master',
+ *   ref: 'main',
  *   onAuth: () => ({ username: process.env.GITHUB_TOKEN }),
  * })
  * console.log(pushResult)
@@ -46111,6 +46067,7 @@ async function push({
   delete: _delete = false,
   corsProxy,
   headers = {},
+  cache = {},
 }) {
   try {
     assertParameter('fs', fs);
@@ -46119,6 +46076,7 @@ async function push({
 
     return await _push({
       fs: new FileSystem(fs),
+      cache,
       http,
       onProgress,
       onMessage,
@@ -46141,12 +46099,12 @@ async function push({
   }
 }
 
-async function resolveBlob({ fs, gitdir, oid }) {
-  const { type, object } = await _readObject({ fs, gitdir, oid });
+async function resolveBlob({ fs, cache, gitdir, oid }) {
+  const { type, object } = await _readObject({ fs, cache, gitdir, oid });
   // Resolve annotated tag objects to whatever
   if (type === 'tag') {
     oid = GitAnnotatedTag.from(object).parse().object;
-    return resolveBlob({ fs, gitdir, oid })
+    return resolveBlob({ fs, cache, gitdir, oid })
   }
   if (type !== 'blob') {
     throw new ObjectTypeError(oid, type, 'blob')
@@ -46167,6 +46125,7 @@ async function resolveBlob({ fs, gitdir, oid }) {
 /**
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
  * @param {string} args.gitdir
  * @param {string} args.oid
  * @param {string} [args.filepath]
@@ -46174,12 +46133,19 @@ async function resolveBlob({ fs, gitdir, oid }) {
  * @returns {Promise<ReadBlobResult>} Resolves successfully with a blob object description
  * @see ReadBlobResult
  */
-async function _readBlob({ fs, gitdir, oid, filepath = undefined }) {
+async function _readBlob({
+  fs,
+  cache,
+  gitdir,
+  oid,
+  filepath = undefined,
+}) {
   if (filepath !== undefined) {
-    oid = await resolveFilepath({ fs, gitdir, oid, filepath });
+    oid = await resolveFilepath({ fs, cache, gitdir, oid, filepath });
   }
   const blob = await resolveBlob({
     fs,
+    cache,
     gitdir,
     oid,
   });
@@ -46205,13 +46171,14 @@ async function _readBlob({ fs, gitdir, oid, filepath = undefined }) {
  * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string} args.oid - The SHA-1 object id to get. Annotated tags, commits, and trees are peeled.
  * @param {string} [args.filepath] - Don't return the object with `oid` itself, but resolve `oid` to a tree and then return the blob object at that filepath.
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<ReadBlobResult>} Resolves successfully with a blob object description
  * @see ReadBlobResult
  *
  * @example
- * // Get the contents of 'README.md' in the master branch.
- * let commitOid = await git.resolveRef({ fs, dir: '/tutorial', ref: 'master' })
+ * // Get the contents of 'README.md' in the main branch.
+ * let commitOid = await git.resolveRef({ fs, dir: '/tutorial', ref: 'main' })
  * console.log(commitOid)
  * let { blob } = await git.readBlob({
  *   fs,
@@ -46228,6 +46195,7 @@ async function readBlob({
   gitdir = join(dir, '.git'),
   oid,
   filepath,
+  cache = {},
 }) {
   try {
     assertParameter('fs', fs);
@@ -46236,6 +46204,7 @@ async function readBlob({
 
     return await _readBlob({
       fs: new FileSystem(fs),
+      cache,
       gitdir,
       oid,
       filepath,
@@ -46256,6 +46225,7 @@ async function readBlob({
  * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string} args.oid - The SHA-1 object id to get. Annotated tags are peeled.
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<ReadCommitResult>} Resolves successfully with a git commit object
  * @see ReadCommitResult
@@ -46263,13 +46233,19 @@ async function readBlob({
  *
  * @example
  * // Read a commit object
- * let sha = await git.resolveRef({ fs, dir: '/tutorial', ref: 'master' })
+ * let sha = await git.resolveRef({ fs, dir: '/tutorial', ref: 'main' })
  * console.log(sha)
  * let commit = await git.readCommit({ fs, dir: '/tutorial', oid: sha })
  * console.log(commit)
  *
  */
-async function readCommit({ fs, dir, gitdir = join(dir, '.git'), oid }) {
+async function readCommit({
+  fs,
+  dir,
+  gitdir = join(dir, '.git'),
+  oid,
+  cache = {},
+}) {
   try {
     assertParameter('fs', fs);
     assertParameter('gitdir', gitdir);
@@ -46277,6 +46253,7 @@ async function readCommit({ fs, dir, gitdir = join(dir, '.git'), oid }) {
 
     return await _readCommit({
       fs: new FileSystem(fs),
+      cache,
       gitdir,
       oid,
     })
@@ -46293,6 +46270,7 @@ async function readCommit({ fs, dir, gitdir = join(dir, '.git'), oid }) {
  *
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
  * @param {string} args.gitdir
  * @param {string} [args.ref] - The notes ref to look under
  * @param {string} args.oid
@@ -46302,6 +46280,7 @@ async function readCommit({ fs, dir, gitdir = join(dir, '.git'), oid }) {
 
 async function _readNote({
   fs,
+  cache,
   gitdir,
   ref = 'refs/notes/commits',
   oid,
@@ -46309,6 +46288,7 @@ async function _readNote({
   const parent = await GitRefManager.resolve({ gitdir, fs, ref });
   const { blob } = await _readBlob({
     fs,
+    cache,
     gitdir,
     oid: parent,
     filepath: oid,
@@ -46328,6 +46308,7 @@ async function _readNote({
  * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string} [args.ref] - The notes ref to look under
  * @param {string} args.oid - The SHA-1 object id of the object to get the note for.
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<Uint8Array>} Resolves successfully with note contents as a Buffer.
  */
@@ -46338,6 +46319,7 @@ async function readNote({
   gitdir = join(dir, '.git'),
   ref = 'refs/notes/commits',
   oid,
+  cache = {},
 }) {
   try {
     assertParameter('fs', fs);
@@ -46347,6 +46329,7 @@ async function readNote({
 
     return await _readNote({
       fs: new FileSystem(fs),
+      cache,
       gitdir,
       ref,
       oid,
@@ -46515,6 +46498,7 @@ async function readNote({
  * @param {'deflated' | 'wrapped' | 'content' | 'parsed'} [args.format = 'parsed'] - What format to return the object in. The choices are described in more detail below.
  * @param {string} [args.filepath] - Don't return the object with `oid` itself, but resolve `oid` to a tree and then return the object at that filepath. To return the root directory of a tree set filepath to `''`
  * @param {string} [args.encoding] - A convenience argument that only affects blobs. Instead of returning `object` as a buffer, it returns a string parsed using the given encoding.
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<ReadObjectResult>} Resolves successfully with a git object description
  * @see ReadObjectResult
@@ -46554,6 +46538,7 @@ async function readObject({
   format = 'parsed',
   filepath = undefined,
   encoding = undefined,
+  cache = {},
 }) {
   try {
     assertParameter('fs', _fs);
@@ -46564,6 +46549,7 @@ async function readObject({
     if (filepath !== undefined) {
       oid = await resolveFilepath({
         fs,
+        cache,
         gitdir,
         oid,
         filepath,
@@ -46573,6 +46559,7 @@ async function readObject({
     const _format = format === 'parsed' ? 'content' : format;
     const result = await _readObject({
       fs,
+      cache,
       gitdir,
       oid,
       format: _format,
@@ -46630,14 +46617,16 @@ async function readObject({
 /**
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {any} args.cache
  * @param {string} args.gitdir
  * @param {string} args.oid
  *
  * @returns {Promise<ReadTagResult>}
  */
-async function _readTag({ fs, gitdir, oid }) {
+async function _readTag({ fs, cache, gitdir, oid }) {
   const { type, object } = await _readObject({
     fs,
+    cache,
     gitdir,
     oid,
     format: 'content',
@@ -46671,13 +46660,20 @@ async function _readTag({ fs, gitdir, oid }) {
  * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string} args.oid - The SHA-1 object id to get
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<ReadTagResult>} Resolves successfully with a git object description
  * @see ReadTagResult
  * @see TagObject
  *
  */
-async function readTag({ fs, dir, gitdir = join(dir, '.git'), oid }) {
+async function readTag({
+  fs,
+  dir,
+  gitdir = join(dir, '.git'),
+  oid,
+  cache = {},
+}) {
   try {
     assertParameter('fs', fs);
     assertParameter('gitdir', gitdir);
@@ -46685,6 +46681,7 @@ async function readTag({ fs, dir, gitdir = join(dir, '.git'), oid }) {
 
     return await _readTag({
       fs: new FileSystem(fs),
+      cache,
       gitdir,
       oid,
     })
@@ -46712,6 +46709,7 @@ async function readTag({ fs, dir, gitdir = join(dir, '.git'), oid }) {
  * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string} args.oid - The SHA-1 object id to get. Annotated tags and commits are peeled.
  * @param {string} [args.filepath] - Don't return the object with `oid` itself, but resolve `oid` to a tree and then return the tree object at that filepath.
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<ReadTreeResult>} Resolves successfully with a git tree object
  * @see ReadTreeResult
@@ -46725,6 +46723,7 @@ async function readTree({
   gitdir = join(dir, '.git'),
   oid,
   filepath = undefined,
+  cache = {},
 }) {
   try {
     assertParameter('fs', fs);
@@ -46733,6 +46732,7 @@ async function readTree({
 
     return await _readTree({
       fs: new FileSystem(fs),
+      cache,
       gitdir,
       oid,
       filepath,
@@ -46755,6 +46755,7 @@ async function readTree({
  * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string} args.filepath - The path to the file to remove from the index
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<void>} Resolves successfully once the git index has been updated
  *
@@ -46768,13 +46769,13 @@ async function remove({
   dir,
   gitdir = join(dir, '.git'),
   filepath,
+  cache = {},
 }) {
   try {
     assertParameter('fs', _fs);
     assertParameter('gitdir', gitdir);
     assertParameter('filepath', filepath);
 
-    const cache = {};
     await GitIndexManager.acquire(
       { fs: new FileSystem(_fs), gitdir, cache },
       async function(index) {
@@ -46893,6 +46894,7 @@ async function _removeNote({
  * @param {number} [args.committer.timestamp=Math.floor(Date.now()/1000)] - Set the committer timestamp field. This is the integer number of seconds since the Unix epoch (1970-01-01 00:00:00).
  * @param {number} [args.committer.timezoneOffset] - Set the committer timezone offset field. This is the difference, in minutes, from the current timezone to UTC. Default is `(new Date()).getTimezoneOffset()`.
  * @param {string} [args.signingKey] - Sign the tag object using this private PGP key.
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<string>} Resolves successfully with the SHA-1 object id of the commit object for the note removal.
  */
@@ -46907,6 +46909,7 @@ async function removeNote({
   author: _author,
   committer: _committer,
   signingKey,
+  cache = {},
 }) {
   try {
     assertParameter('fs', _fs);
@@ -46914,7 +46917,6 @@ async function removeNote({
     assertParameter('oid', oid);
 
     const fs = new FileSystem(_fs);
-    const cache = {};
 
     const author = await normalizeAuthorObject({ fs, gitdir, author: _author });
     if (!author) throw new MissingNameError('author')
@@ -46944,6 +46946,111 @@ async function removeNote({
   }
 }
 
+// @ts-check
+
+/**
+ * Rename a branch
+ *
+ * @param {object} args
+ * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {string} args.gitdir
+ * @param {string} args.ref - The name of the new branch
+ * @param {string} args.oldref - The name of the old branch
+ * @param {boolean} [args.checkout = false]
+ *
+ * @returns {Promise<void>} Resolves successfully when filesystem operations are complete
+ */
+async function _renameBranch({
+  fs,
+  gitdir,
+  oldref,
+  ref,
+  checkout = false,
+}) {
+  if (ref !== cleanGitRef.clean(ref)) {
+    throw new InvalidRefNameError(ref, cleanGitRef.clean(ref))
+  }
+
+  if (oldref !== cleanGitRef.clean(oldref)) {
+    throw new InvalidRefNameError(oldref, cleanGitRef.clean(oldref))
+  }
+
+  const fulloldref = `refs/heads/${oldref}`;
+  const fullnewref = `refs/heads/${ref}`;
+
+  const newexist = await GitRefManager.exists({ fs, gitdir, ref: fullnewref });
+
+  if (newexist) {
+    throw new AlreadyExistsError('branch', ref, false)
+  }
+
+  const value = await GitRefManager.resolve({
+    fs,
+    gitdir,
+    ref: fulloldref,
+    depth: 1,
+  });
+
+  await GitRefManager.writeRef({ fs, gitdir, ref: fullnewref, value });
+  await GitRefManager.deleteRef({ fs, gitdir, ref: fulloldref });
+
+  if (checkout) {
+    // Update HEAD
+    await GitRefManager.writeSymbolicRef({
+      fs,
+      gitdir,
+      ref: 'HEAD',
+      value: fullnewref,
+    });
+  }
+}
+
+// @ts-check
+
+/**
+ * Rename a branch
+ *
+ * @param {object} args
+ * @param {FsClient} args.fs - a file system implementation
+ * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
+ * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
+ * @param {string} args.ref - What to name the branch
+ * @param {string} args.oldref - What the name of the branch was
+ * @param {boolean} [args.checkout = false] - Update `HEAD` to point at the newly created branch
+ *
+ * @returns {Promise<void>} Resolves successfully when filesystem operations are complete
+ *
+ * @example
+ * await git.renameBranch({ fs, dir: '/tutorial', ref: 'main', oldref: 'master' })
+ * console.log('done')
+ *
+ */
+async function renameBranch({
+  fs,
+  dir,
+  gitdir = join(dir, '.git'),
+  ref,
+  oldref,
+  checkout = false,
+}) {
+  try {
+    assertParameter('fs', fs);
+    assertParameter('gitdir', gitdir);
+    assertParameter('ref', ref);
+    assertParameter('oldref', oldref);
+    return await _renameBranch({
+      fs: new FileSystem(fs),
+      gitdir,
+      ref,
+      oldref,
+      checkout,
+    })
+  } catch (err) {
+    err.caller = 'git.renameBranch';
+    throw err
+  }
+}
+
 async function hashObject$1({ gitdir, type, object }) {
   return shasum(GitObject.wrap({ type, object }))
 }
@@ -46961,6 +47068,7 @@ async function hashObject$1({ gitdir, type, object }) {
  * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string} args.filepath - The path to the file to reset in the index
  * @param {string} [args.ref = 'HEAD'] - A ref to the commit to use
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<void>} Resolves successfully once the git index has been updated
  *
@@ -46975,6 +47083,7 @@ async function resetIndex({
   gitdir = join(dir, '.git'),
   filepath,
   ref = 'HEAD',
+  cache = {},
 }) {
   try {
     assertParameter('fs', _fs);
@@ -46983,7 +47092,6 @@ async function resetIndex({
     assertParameter('ref', ref);
 
     const fs = new FileSystem(_fs);
-    const cache = {};
     // Resolve commit
     let oid = await GitRefManager.resolve({ fs, gitdir, ref });
     let workdirOid;
@@ -46991,6 +47099,7 @@ async function resetIndex({
       // Resolve blob
       oid = await resolveFilepath({
         fs,
+        cache,
         gitdir,
         oid,
         filepath,
@@ -47182,6 +47291,7 @@ async function setConfig({
  * @param {string} args.dir - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string} args.filepath - The path to the file to query
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<'ignored'|'unmodified'|'*modified'|'*deleted'|'*added'|'absent'|'modified'|'deleted'|'added'|'*unmodified'|'*absent'|'*undeleted'|'*undeletemodified'>} Resolves successfully with the file's git status
  *
@@ -47195,6 +47305,7 @@ async function status({
   dir,
   gitdir = join(dir, '.git'),
   filepath,
+  cache = {},
 }) {
   try {
     assertParameter('fs', _fs);
@@ -47202,7 +47313,6 @@ async function status({
     assertParameter('filepath', filepath);
 
     const fs = new FileSystem(_fs);
-    const cache = {};
     const ignored = await GitIgnoreManager.isIgnored({
       fs,
       gitdir,
@@ -47212,9 +47322,10 @@ async function status({
     if (ignored) {
       return 'ignored'
     }
-    const headTree = await getHeadTree({ fs, gitdir });
+    const headTree = await getHeadTree({ fs, cache, gitdir });
     const treeOid = await getOidAtPath({
       fs,
+      cache,
       gitdir,
       tree: headTree,
       path: filepath,
@@ -47311,7 +47422,7 @@ async function status({
   }
 }
 
-async function getOidAtPath({ fs, gitdir, tree, path }) {
+async function getOidAtPath({ fs, cache, gitdir, tree, path }) {
   if (typeof path === 'string') path = path.split('/');
   const dirname = path.shift();
   for (const entry of tree) {
@@ -47321,12 +47432,13 @@ async function getOidAtPath({ fs, gitdir, tree, path }) {
       }
       const { type, object } = await _readObject({
         fs,
+        cache,
         gitdir,
         oid: entry.oid,
       });
       if (type === 'tree') {
         const tree = GitTree.from(object);
-        return getOidAtPath({ fs, gitdir, tree, path })
+        return getOidAtPath({ fs, cache, gitdir, tree, path })
       }
       if (type === 'blob') {
         throw new ObjectTypeError(entry.oid, type, 'blob', path.join('/'))
@@ -47336,7 +47448,7 @@ async function getOidAtPath({ fs, gitdir, tree, path }) {
   return null
 }
 
-async function getHeadTree({ fs, gitdir }) {
+async function getHeadTree({ fs, cache, gitdir }) {
   // Get the tree from the HEAD commit.
   let oid;
   try {
@@ -47347,7 +47459,7 @@ async function getHeadTree({ fs, gitdir }) {
       return []
     }
   }
-  const { tree } = await _readTree({ fs, gitdir, oid });
+  const { tree } = await _readTree({ fs, cache, gitdir, oid });
   return tree
 }
 
@@ -47488,6 +47600,7 @@ async function getHeadTree({ fs, gitdir }) {
  * @param {string} [args.ref = 'HEAD'] - Optionally specify a different commit to compare against the workdir and stage instead of the HEAD
  * @param {string[]} [args.filepaths = ['.']] - Limit the query to the given files and directories
  * @param {function(string): boolean} [args.filter] - Filter the results to only those whose filepath matches a function.
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<Array<StatusRow>>} Resolves with a status matrix, described below.
  * @see StatusRow
@@ -47499,6 +47612,7 @@ async function statusMatrix({
   ref = 'HEAD',
   filepaths = ['.'],
   filter,
+  cache = {},
 }) {
   try {
     assertParameter('fs', _fs);
@@ -47506,7 +47620,6 @@ async function statusMatrix({
     assertParameter('ref', ref);
 
     const fs = new FileSystem(_fs);
-    const cache = {};
     return await _walk({
       fs,
       cache,
@@ -47893,6 +48006,7 @@ function version() {
  * @param {WalkerMap} [args.map] - Transform `WalkerEntry`s into a result form
  * @param {WalkerReduce} [args.reduce] - Control how mapped entries are combined with their parent result
  * @param {WalkerIterate} [args.iterate] - Fine-tune how entries within a tree are iterated over
+ * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<any>} The finished tree-walking result
  */
@@ -47904,6 +48018,7 @@ async function walk({
   map,
   reduce,
   iterate,
+  cache = {},
 }) {
   try {
     assertParameter('fs', fs);
@@ -47912,7 +48027,7 @@ async function walk({
 
     return await _walk({
       fs: new FileSystem(fs),
-      cache: {},
+      cache,
       dir,
       gitdir,
       trees,
@@ -48372,6 +48487,7 @@ var index = {
   findMergeBase,
   findRoot,
   getRemoteInfo,
+  getRemoteInfo2,
   hashBlob,
   indexPack,
   init,
@@ -48380,6 +48496,7 @@ var index = {
   listFiles,
   listNotes,
   listRemotes,
+  listServerRefs,
   listTags,
   log,
   merge,
@@ -48394,6 +48511,7 @@ var index = {
   readTree,
   remove,
   removeNote,
+  renameBranch,
   resetIndex,
   resolveRef,
   status,
@@ -48436,6 +48554,7 @@ exports.findRoot = findRoot;
 exports.getConfig = getConfig;
 exports.getConfigAll = getConfigAll;
 exports.getRemoteInfo = getRemoteInfo;
+exports.getRemoteInfo2 = getRemoteInfo2;
 exports.hashBlob = hashBlob;
 exports.indexPack = indexPack;
 exports.init = init;
@@ -48444,6 +48563,7 @@ exports.listBranches = listBranches;
 exports.listFiles = listFiles;
 exports.listNotes = listNotes;
 exports.listRemotes = listRemotes;
+exports.listServerRefs = listServerRefs;
 exports.listTags = listTags;
 exports.log = log;
 exports.merge = merge;
@@ -48458,6 +48578,7 @@ exports.readTag = readTag;
 exports.readTree = readTree;
 exports.remove = remove;
 exports.removeNote = removeNote;
+exports.renameBranch = renameBranch;
 exports.resetIndex = resetIndex;
 exports.resolveRef = resolveRef;
 exports.setConfig = setConfig;
@@ -48475,9 +48596,8 @@ exports.writeTree = writeTree;
 
 
 /***/ }),
-/* 957 */,
-/* 958 */,
-/* 959 */
+
+/***/ 959:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -48657,51 +48777,8 @@ exports.getJoinMonoid = getJoinMonoid;
 
 
 /***/ }),
-/* 960 */,
-/* 961 */,
-/* 962 */,
-/* 963 */,
-/* 964 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-"use strict";
-
-const os = __webpack_require__(87);
-
-const nameMap = new Map([
-	[19, 'Catalina'],
-	[18, 'Mojave'],
-	[17, 'High Sierra'],
-	[16, 'Sierra'],
-	[15, 'El Capitan'],
-	[14, 'Yosemite'],
-	[13, 'Mavericks'],
-	[12, 'Mountain Lion'],
-	[11, 'Lion'],
-	[10, 'Snow Leopard'],
-	[9, 'Leopard'],
-	[8, 'Tiger'],
-	[7, 'Panther'],
-	[6, 'Jaguar'],
-	[5, 'Puma']
-]);
-
-const macosRelease = release => {
-	release = Number((release || os.release()).split('.')[0]);
-	return {
-		name: nameMap.get(release),
-		version: '10.' + (release - 4)
-	};
-};
-
-module.exports = macosRelease;
-// TODO: remove this in the next major version
-module.exports.default = macosRelease;
-
-
-/***/ }),
-/* 965 */,
-/* 966 */
+/***/ 966:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -48759,8 +48836,8 @@ module.exports = options => {
 
 
 /***/ }),
-/* 967 */,
-/* 968 */
+
+/***/ 968:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 module.exports = which
@@ -48901,7 +48978,8 @@ function whichSync (cmd, opt) {
 
 
 /***/ }),
-/* 969 */
+
+/***/ 969:
 /***/ (function(module) {
 
 "use strict";
@@ -48966,9 +49044,8 @@ module.exports = GZheader;
 
 
 /***/ }),
-/* 970 */,
-/* 971 */,
-/* 972 */
+
+/***/ 972:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -49301,35 +49378,18 @@ exports.readerEither = {
 
 
 /***/ }),
-/* 973 */,
-/* 974 */,
-/* 975 */,
-/* 976 */,
-/* 977 */
-/***/ (function(module) {
 
-module.exports = function(source, from, to) {
-  return arguments.length === 2 ?
-    source.slice(from) :
-    source.slice(from, to)
-}
+/***/ 977:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
 
 
 /***/ }),
-/* 978 */,
-/* 979 */,
-/* 980 */,
-/* 981 */,
-/* 982 */,
-/* 983 */,
-/* 984 */,
-/* 985 */,
-/* 986 */,
-/* 987 */,
-/* 988 */,
-/* 989 */,
-/* 990 */,
-/* 991 */
+
+/***/ 991:
 /***/ (function(module) {
 
 "use strict";
@@ -49383,14 +49443,8 @@ module.exports = ZStream;
 
 
 /***/ }),
-/* 992 */,
-/* 993 */,
-/* 994 */,
-/* 995 */,
-/* 996 */,
-/* 997 */,
-/* 998 */,
-/* 999 */
+
+/***/ 999:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -49502,4 +49556,5 @@ exports.setTyped(TYPED_OK);
 
 
 /***/ })
-/******/ ]);
+
+/******/ });
