@@ -10,12 +10,10 @@
   },
   "devDependencies": {
     "@octokit/webhooks-types": "^6.3.5",
-    "@types/git-url-parse": "^9.0.0",
     "@types/jest": "^27.5.2",
     "@types/node": "^12.11.1",
     "@zeit/ncc": "^0.20.5",
     "dotenv": "^8.2.0",
-    "git-url-parse": "^11.1.2",
     "jest": "^27.2.5",
     "nyc": "^15.1.0",
     "ts-jest": "^27.0.5",
