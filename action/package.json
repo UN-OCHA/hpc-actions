@@ -9,7 +9,7 @@
     "npm": ">=8.10.0"
   },
   "devDependencies": {
-    "@octokit/webhooks": "^7.6.4",
+    "@octokit/webhooks-types": "^6.3.5",
     "@types/git-url-parse": "^9.0.0",
     "@types/jest": "^27.5.2",
     "@types/node": "^12.11.1",
