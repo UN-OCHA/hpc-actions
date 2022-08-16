@@ -4,6 +4,10 @@
     "build": "tsc && ncc build lib/src",
     "test": "jest --projects test/jest.config.js --runInBand --verbose"
   },
+  "engines": {
+    "node": ">=16.15.0",
+    "npm": ">=8.10.0"
+  },
   "devDependencies": {
     "@octokit/webhooks": "^7.6.4",
     "@types/git-url-parse": "^9.0.0",
