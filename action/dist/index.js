@@ -53245,6 +53245,7 @@ var diff3Merge = _interopDefault(__nccwpck_require__(5211));
  * @property {string} url - The URL to request
  * @property {string} [method='GET'] - The HTTP method to use
  * @property {Object<string, string>} [headers={}] - Headers to include in the HTTP request
+ * @property {Object} [agent] - An HTTP or HTTPS agent that manages connections for the HTTP client (Node.js only)
  * @property {AsyncIterableIterator<Uint8Array>} [body] - An async iterator of Uint8Arrays that make up the body of POST requests
  * @property {ProgressCallback} [onProgress] - Reserved for future use (emitting `GitProgressEvent`s)
  * @property {object} [signal] - Reserved for future use (canceling a request)
@@ -53450,6 +53451,19 @@ var diff3Merge = _interopDefault(__nccwpck_require__(5211));
  * @callback SignCallback
  * @param {SignParams} args
  * @return {{signature: string} | Promise<{signature: string}>} - an 'ASCII armor' encoded "detached" signature
+ */
+
+/**
+ * @typedef {Object} MergeDriverParams
+ * @property {Array<string>} branches
+ * @property {Array<string>} contents
+ * @property {string} path
+ */
+
+/**
+ * @callback MergeDriverCallback
+ * @param {MergeDriverParams} args
+ * @return {{cleanMerge: boolean, mergedText: string} | Promise<{cleanMerge: boolean, mergedText: string}>}
  */
 
 /**
@@ -53975,6 +53989,10 @@ class GitIndex {
     this._dirty = true;
   }
 
+  has({ filepath }) {
+    return this._entries.has(filepath)
+  }
+
   render() {
     return this.entries
       .map(entry => `${entry.mode.toString(8)} ${entry.oid}    ${entry.path}`)
@@ -54084,7 +54102,7 @@ class GitIndexManager {
     const filepath = `${gitdir}/index`;
     if (lock === null) lock = new AsyncLock({ maxPending: Infinity });
     let result;
-    await lock.acquire(filepath, async function() {
+    await lock.acquire(filepath, async () => {
       // Acquire a file lock while we're reading the index
       // to make sure other processes aren't writing to it
       // simultaneously, which could result in a corrupted index.
@@ -54104,6 +54122,7 @@ class GitIndexManager {
         index._dirty = false;
       }
     });
+
     return result
   }
 }
@@ -54682,6 +54701,21 @@ const getPath = (section, subsection, name) => {
     .join('.')
 };
 
+const normalizePath$1 = path => {
+  const pathSegments = path.split('.');
+  const section = pathSegments.shift();
+  const name = pathSegments.pop();
+  const subsection = pathSegments.length ? pathSegments.join('.') : undefined;
+
+  return {
+    section,
+    subsection,
+    name,
+    path: getPath(section, subsection, name),
+    sectionPath: getPath(section, subsection, null),
+  }
+};
+
 const findLastIndex = (array, callback) => {
   return array.reduce((lastIndex, item, index) => {
     return callback(item) ? index : lastIndex
@@ -54721,8 +54755,9 @@ class GitConfig {
   }
 
   async get(path, getall = false) {
+    const normalizedPath = normalizePath$1(path).path;
     const allValues = this.parsedConfig
-      .filter(config => config.path === path.toLowerCase())
+      .filter(config => config.path === normalizedPath)
       .map(({ section, name, value }) => {
         const fn = schema[section] && schema[section][name];
         return fn ? fn(value) : value
@@ -54752,9 +54787,16 @@ class GitConfig {
   }
 
   async set(path, value, append = false) {
+    const {
+      section,
+      subsection,
+      name,
+      path: normalizedPath,
+      sectionPath,
+    } = normalizePath$1(path);
     const configIndex = findLastIndex(
       this.parsedConfig,
-      config => config.path === path.toLowerCase()
+      config => config.path === normalizedPath
     );
     if (value == null) {
       if (configIndex !== -1) {
@@ -54763,7 +54805,9 @@ class GitConfig {
     } else {
       if (configIndex !== -1) {
         const config = this.parsedConfig[configIndex];
+        // Name should be overwritten in case the casing changed
         const modifiedConfig = Object.assign({}, config, {
+          name,
           value,
           modified: true,
         });
@@ -54773,23 +54817,16 @@ class GitConfig {
           this.parsedConfig[configIndex] = modifiedConfig;
         }
       } else {
-        const sectionPath = path
-          .split('.')
-          .slice(0, -1)
-          .join('.')
-          .toLowerCase();
         const sectionIndex = this.parsedConfig.findIndex(
           config => config.path === sectionPath
         );
-        const [section, subsection] = sectionPath.split('.');
-        const name = path.split('.').pop();
         const newConfig = {
           section,
           subsection,
           name,
           value,
           modified: true,
-          path: getPath(section, subsection, name),
+          path: normalizedPath,
         };
         if (SECTION_REGEX.test(section) && VARIABLE_NAME_REGEX.test(name)) {
           if (sectionIndex >= 0) {
@@ -54801,7 +54838,7 @@ class GitConfig {
               section,
               subsection,
               modified: true,
-              path: getPath(section, subsection, null),
+              path: sectionPath,
             };
             this.parsedConfig.push(newSection, newConfig);
           }
@@ -54817,6 +54854,10 @@ class GitConfig {
           return line
         }
         if (name != null && value != null) {
+          if (typeof value === 'string' && /[#;]/.test(value)) {
+            // A `#` or `;` symbol denotes a comment, so we have to wrap it in double quotes
+            return `\t${name} = "${value}"`
+          }
           return `\t${name} = ${value}`
         }
         if (subsection != null) {
@@ -54908,8 +54949,8 @@ class GitRefManager {
         if (serverRef.startsWith('refs/tags') && !serverRef.endsWith('^{}')) {
           // Git's behavior is to only fetch tags that do not conflict with tags already present.
           if (!(await GitRefManager.exists({ fs, gitdir, ref: serverRef }))) {
-            // If there is a dereferenced an annotated tag value available, prefer that.
-            const oid = refs.get(serverRef + '^{}') || refs.get(serverRef);
+            // Always use the object id of the tag itself, and not the peeled object id.
+            const oid = refs.get(serverRef);
             actualRefsToWrite.set(serverRef, oid);
           }
         }
@@ -55619,7 +55660,7 @@ async function listpack(stream, onData) {
     const inflator = new pako.Inflate();
     while (!inflator.result) {
       const chunk = await reader.chunk();
-      if (reader.ended) break
+      if (!chunk) break
       inflator.push(chunk, false);
       if (inflator.err) {
         throw new InternalError(`Pako error: ${inflator.msg}`)
@@ -55885,7 +55926,7 @@ class GitPackIndex {
     const objectsByDepth = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     for (let offset in offsetToObject) {
       offset = Number(offset);
-      const percent = Math.floor((count++ * 100) / totalObjectCount);
+      const percent = Math.floor((count * 100) / totalObjectCount);
       if (percent !== lastPercent) {
         if (onProgress) {
           await onProgress({
@@ -55895,6 +55936,7 @@ class GitPackIndex {
           });
         }
       }
+      count++;
       lastPercent = percent;
 
       const o = offsetToObject[offset];
@@ -56178,38 +56220,33 @@ async function _readObject({
     return result
   }
 
-  // BEHOLD! THE ONLY TIME I'VE EVER WANTED TO USE A CASE STATEMENT WITH FOLLOWTHROUGH!
-  // eslint-ignore
-  /* eslint-disable no-fallthrough */
-  switch (result.format) {
-    case 'deflated': {
-      result.object = Buffer.from(await inflate(result.object));
-      result.format = 'wrapped';
-    }
-    case 'wrapped': {
-      if (format === 'wrapped' && result.format === 'wrapped') {
-        return result
-      }
-      const sha = await shasum(result.object);
-      if (sha !== oid) {
-        throw new InternalError(
-          `SHA check failed! Expected ${oid}, computed ${sha}`
-        )
-      }
-      const { object, type } = GitObject.unwrap(result.object);
-      result.type = type;
-      result.object = object;
-      result.format = 'content';
-    }
-    case 'content': {
-      if (format === 'content') return result
-      break
-    }
-    default: {
-      throw new InternalError(`invalid format "${result.format}"`)
-    }
+  if (result.format === 'deflated') {
+    result.object = Buffer.from(await inflate(result.object));
+    result.format = 'wrapped';
   }
-  /* eslint-enable no-fallthrough */
+
+  if (result.format === 'wrapped') {
+    if (format === 'wrapped' && result.format === 'wrapped') {
+      return result
+    }
+    const sha = await shasum(result.object);
+    if (sha !== oid) {
+      throw new InternalError(
+        `SHA check failed! Expected ${oid}, computed ${sha}`
+      )
+    }
+    const { object, type } = GitObject.unwrap(result.object);
+    result.type = type;
+    result.object = object;
+    result.format = 'content';
+  }
+
+  if (result.format === 'content') {
+    if (format === 'content') return result
+    return
+  }
+
+  throw new InternalError(`invalid format "${result.format}"`)
 }
 
 class AlreadyExistsError extends BaseError {
@@ -56336,12 +56373,14 @@ HttpError.code = 'HttpError';
 
 class InvalidFilepathError extends BaseError {
   /**
-   * @param {'leading-slash'|'trailing-slash'} [reason]
+   * @param {'leading-slash'|'trailing-slash'|'directory'} [reason]
    */
   constructor(reason) {
     let message = 'invalid filepath';
     if (reason === 'leading-slash' || reason === 'trailing-slash') {
       message = `"filepath" parameter should not include leading or trailing directory separators because these can cause problems on some platforms.`;
+    } else if (reason === 'directory') {
+      message = `"filepath" should not be a directory.`;
     }
     super(message);
     this.code = this.name = InvalidFilepathError.code;
@@ -56391,6 +56430,21 @@ class MergeNotSupportedError extends BaseError {
 /** @type {'MergeNotSupportedError'} */
 MergeNotSupportedError.code = 'MergeNotSupportedError';
 
+class MergeConflictError extends BaseError {
+  /**
+   * @param {Array<string>} filepaths
+   */
+  constructor(filepaths) {
+    super(
+      `Automatic merge failed with one or more merge conflicts in the following files: ${filepaths.toString()}. Fix conflicts then commit the result.`
+    );
+    this.code = this.name = MergeConflictError.code;
+    this.data = { filepaths };
+  }
+}
+/** @type {'MergeConflictError'} */
+MergeConflictError.code = 'MergeConflictError';
+
 class MissingNameError extends BaseError {
   /**
    * @param {'author'|'committer'|'tagger'} role
@@ -56420,6 +56474,23 @@ class MissingParameterError extends BaseError {
 }
 /** @type {'MissingParameterError'} */
 MissingParameterError.code = 'MissingParameterError';
+
+class MultipleGitError extends BaseError {
+  /**
+   * @param {Error[]} errors
+   * @param {string} message
+   */
+  constructor(errors) {
+    super(
+      `There are multiple errors that were thrown by the method. Please refer to the "errors" property to see more`
+    );
+    this.code = this.name = MultipleGitError.code;
+    this.data = { errors };
+    this.errors = errors;
+  }
+}
+/** @type {'MultipleGitError'} */
+MultipleGitError.code = 'MultipleGitError';
 
 class ParseError extends BaseError {
   /**
@@ -56490,7 +56561,7 @@ class UnknownTransportError extends BaseError {
   /**
    * @param {string} url
    * @param {string} transport
-   * @param {string} suggestion
+   * @param {string} [suggestion]
    */
   constructor(url, transport, suggestion) {
     super(
@@ -56544,8 +56615,10 @@ var Errors = /*#__PURE__*/Object.freeze({
   InvalidRefNameError: InvalidRefNameError,
   MaxDepthError: MaxDepthError,
   MergeNotSupportedError: MergeNotSupportedError,
+  MergeConflictError: MergeConflictError,
   MissingNameError: MissingNameError,
   MissingParameterError: MissingParameterError,
+  MultipleGitError: MultipleGitError,
   NoRefspecError: NoRefspecError,
   NotFoundError: NotFoundError,
   ObjectTypeError: ObjectTypeError,
@@ -57060,7 +57133,7 @@ class GitWalkerRepo {
  * @param {string} [args.ref='HEAD']
  * @returns {Walker}
  */
-function TREE({ ref = 'HEAD' }) {
+function TREE({ ref = 'HEAD' } = {}) {
   const o = Object.create(null);
   Object.defineProperty(o, GitWalkSymbol, {
     value: function({ fs, gitdir, cache }) {
@@ -57195,7 +57268,15 @@ class GitWalkerFs {
             oid = await shasum(
               GitObject.wrap({ type: 'blob', object: await entry.content() })
             );
-            if (stage && oid === stage.oid) {
+            // Update the stats in the index so we will get a "cache hit" next time
+            // 1) if we can (because the oid and mode are the same)
+            // 2) and only if we need to (because other stats differ)
+            if (
+              stage &&
+              oid === stage.oid &&
+              stats.mode === stage.mode &&
+              compareStats(stats, stage)
+            ) {
               index.insert({
                 filepath: entry._fullpath,
                 stats,
@@ -57234,15 +57315,18 @@ function WORKDIR() {
 
 // I'm putting this in a Manager because I reckon it could benefit
 // from a LOT of cacheing.
-
-// TODO: Implement .git/info/exclude
-
 class GitIgnoreManager {
   static async isIgnored({ fs, dir, gitdir = join(dir, '.git'), filepath }) {
     // ALWAYS ignore ".git" folders.
     if (basename(filepath) === '.git') return true
     // '.' is not a valid gitignore entry, so '.' is never ignored
     if (filepath === '.') return false
+    // Check and load exclusion rules from project exclude file (.git/info/exclude)
+    let excludes = '';
+    const excludesFile = join(gitdir, 'info', 'exclude');
+    if (await fs.exists(excludesFile)) {
+      excludes = await fs.read(excludesFile, 'utf8');
+    }
     // Find all the .gitignore files that could affect this file
     const pairs = [
       {
@@ -57250,7 +57334,7 @@ class GitIgnoreManager {
         filepath,
       },
     ];
-    const pieces = filepath.split('/');
+    const pieces = filepath.split('/').filter(Boolean);
     for (let i = 1; i < pieces.length; i++) {
       const folder = pieces.slice(0, i).join('/');
       const file = pieces.slice(i).join('/');
@@ -57267,7 +57351,8 @@ class GitIgnoreManager {
       } catch (err) {
         if (err.code === 'NOENT') continue
       }
-      const ign = ignore().add(file);
+      const ign = ignore().add(excludes);
+      ign.add(file);
       // If the parent directory is excluded, we are done.
       // "It is not possible to re-include a file if a parent directory of that file is excluded. Git doesn’t list excluded directories for performance reasons, so any patterns on contained files have no effect, no matter where they are defined."
       // source: https://git-scm.com/docs/gitignore
@@ -57285,6 +57370,33 @@ class GitIgnoreManager {
 }
 
 /**
+ * Removes the directory at the specified filepath recursively. Used internally to replicate the behavior of
+ * fs.promises.rm({ recursive: true, force: true }) from Node.js 14 and above when not available. If the provided
+ * filepath resolves to a file, it will be removed.
+ *
+ * @param {import('../models/FileSystem.js').FileSystem} fs
+ * @param {string} filepath - The file or directory to remove.
+ */
+async function rmRecursive(fs, filepath) {
+  const entries = await fs.readdir(filepath);
+  if (entries == null) {
+    await fs.rm(filepath);
+  } else if (entries.length) {
+    await Promise.all(
+      entries.map(entry => {
+        const subpath = join(filepath, entry);
+        return fs.lstat(subpath).then(stat => {
+          if (!stat) return
+          return stat.isDirectory() ? rmRecursive(fs, subpath) : fs.rm(subpath)
+        })
+      })
+    ).then(() => fs.rmdir(filepath));
+  } else {
+    await fs.rmdir(filepath);
+  }
+}
+
+/**
  * This is just a collection of helper functions really. At least that's how it started.
  */
 class FileSystem {
@@ -57296,6 +57408,13 @@ class FileSystem {
       this._readFile = fs.promises.readFile.bind(fs.promises);
       this._writeFile = fs.promises.writeFile.bind(fs.promises);
       this._mkdir = fs.promises.mkdir.bind(fs.promises);
+      if (fs.promises.rm) {
+        this._rm = fs.promises.rm.bind(fs.promises);
+      } else if (fs.promises.rmdir.length > 1) {
+        this._rm = fs.promises.rmdir.bind(fs.promises);
+      } else {
+        this._rm = rmRecursive.bind(null, this);
+      }
       this._rmdir = fs.promises.rmdir.bind(fs.promises);
       this._unlink = fs.promises.unlink.bind(fs.promises);
       this._stat = fs.promises.stat.bind(fs.promises);
@@ -57307,6 +57426,13 @@ class FileSystem {
       this._readFile = pify(fs.readFile.bind(fs));
       this._writeFile = pify(fs.writeFile.bind(fs));
       this._mkdir = pify(fs.mkdir.bind(fs));
+      if (fs.rm) {
+        this._rm = pify(fs.rm.bind(fs));
+      } else if (fs.rmdir.length > 2) {
+        this._rm = pify(fs.rmdir.bind(fs));
+      } else {
+        this._rm = rmRecursive.bind(null, this);
+      }
       this._rmdir = pify(fs.rmdir.bind(fs));
       this._unlink = pify(fs.unlink.bind(fs));
       this._stat = pify(fs.stat.bind(fs));
@@ -57415,9 +57541,13 @@ class FileSystem {
   /**
    * Delete a directory without throwing an error if it is already deleted.
    */
-  async rmdir(filepath) {
+  async rmdir(filepath, opts) {
     try {
-      await this._rmdir(filepath);
+      if (opts && opts.recursive) {
+        await this._rm(filepath, opts);
+      } else {
+        await this._rmdir(filepath);
+      }
     } catch (err) {
       if (err.code !== 'ENOENT') throw err
     }
@@ -57482,7 +57612,8 @@ class FileSystem {
     // Note: FileSystem.readlink returns a buffer by default
     // so we can dump it into GitObject.write just like any other file.
     try {
-      return this._readlink(filename, opts)
+      const link = await this._readlink(filename, opts);
+      return Buffer.isBuffer(link) ? link : Buffer.from(link)
     } catch (err) {
       if (err.code === 'ENOENT') {
         return null
@@ -57572,6 +57703,12 @@ function assertParameter(name, value) {
   }
 }
 
+function posixifyPathBuffer(buffer) {
+  let idx;
+  while (~(idx = buffer.indexOf(92))) buffer[idx] = 47;
+  return buffer
+}
+
 // @ts-check
 
 /**
@@ -57581,8 +57718,9 @@ function assertParameter(name, value) {
  * @param {FsClient} args.fs - a file system implementation
  * @param {string} args.dir - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
- * @param {string} args.filepath - The path to the file to add to the index
+ * @param {string|string[]} args.filepath - The path to the file to add to the index
  * @param {object} [args.cache] - a [cache](cache.md) object
+ * @param {boolean} [args.force=false] - add to index even if matches gitignore. Think `git add --force`
  *
  * @returns {Promise<void>} Resolves successfully once the git index has been updated
  *
@@ -57598,6 +57736,7 @@ async function add({
   gitdir = join(dir, '.git'),
   filepath,
   cache = {},
+  force = false,
 }) {
   try {
     assertParameter('fs', _fs);
@@ -57606,8 +57745,8 @@ async function add({
     assertParameter('filepath', filepath);
 
     const fs = new FileSystem(_fs);
-    await GitIndexManager.acquire({ fs, gitdir, cache }, async function(index) {
-      await addToIndex({ dir, gitdir, fs, filepath, index });
+    await GitIndexManager.acquire({ fs, gitdir, cache }, async index => {
+      return addToIndex({ dir, gitdir, fs, filepath, index, force })
     });
   } catch (err) {
     err.caller = 'git.add';
@@ -57615,31 +57754,61 @@ async function add({
   }
 }
 
-async function addToIndex({ dir, gitdir, fs, filepath, index }) {
+async function addToIndex({ dir, gitdir, fs, filepath, index, force }) {
   // TODO: Should ignore UNLESS it's already in the index.
-  const ignored = await GitIgnoreManager.isIgnored({
-    fs,
-    dir,
-    gitdir,
-    filepath,
+  filepath = Array.isArray(filepath) ? filepath : [filepath];
+  const promises = filepath.map(async currentFilepath => {
+    if (!force) {
+      const ignored = await GitIgnoreManager.isIgnored({
+        fs,
+        dir,
+        gitdir,
+        filepath: currentFilepath,
+      });
+      if (ignored) return
+    }
+    const stats = await fs.lstat(join(dir, currentFilepath));
+    if (!stats) throw new NotFoundError(currentFilepath)
+
+    if (stats.isDirectory()) {
+      const children = await fs.readdir(join(dir, currentFilepath));
+      const promises = children.map(child =>
+        addToIndex({
+          dir,
+          gitdir,
+          fs,
+          filepath: [join(currentFilepath, child)],
+          index,
+          force,
+        })
+      );
+      await Promise.all(promises);
+    } else {
+      const object = stats.isSymbolicLink()
+        ? await fs.readlink(join(dir, currentFilepath)).then(posixifyPathBuffer)
+        : await fs.read(join(dir, currentFilepath));
+      if (object === null) throw new NotFoundError(currentFilepath)
+      const oid = await _writeObject({ fs, gitdir, type: 'blob', object });
+      index.insert({ filepath: currentFilepath, stats, oid });
+    }
   });
-  if (ignored) return
-  const stats = await fs.lstat(join(dir, filepath));
-  if (!stats) throw new NotFoundError(filepath)
-  if (stats.isDirectory()) {
-    const children = await fs.readdir(join(dir, filepath));
-    const promises = children.map(child =>
-      addToIndex({ dir, gitdir, fs, filepath: join(filepath, child), index })
-    );
-    await Promise.all(promises);
-  } else {
-    const object = stats.isSymbolicLink()
-      ? await fs.readlink(join(dir, filepath))
-      : await fs.read(join(dir, filepath));
-    if (object === null) throw new NotFoundError(filepath)
-    const oid = await _writeObject({ fs, gitdir, type: 'blob', object });
-    index.insert({ filepath, stats, oid });
+
+  const settledPromises = await Promise.allSettled(promises);
+  const rejectedPromises = settledPromises
+    .filter(settle => settle.status === 'rejected')
+    .map(settle => settle.reason);
+  if (rejectedPromises.length > 1) {
+    throw new MultipleGitError(rejectedPromises)
   }
+  if (rejectedPromises.length === 1) {
+    throw rejectedPromises[0]
+  }
+
+  const fulfilledPromises = settledPromises
+    .filter(settle => settle.status === 'fulfilled' && settle.value)
+    .map(settle => settle.value);
+
+  return fulfilledPromises
 }
 
 // @ts-check
@@ -57714,7 +57883,15 @@ async function _commit({
         // Probably an initial commit
         parent = [];
       }
+    } else {
+      // ensure that the parents are oids, not refs
+      parent = await Promise.all(
+        parent.map(p => {
+          return GitRefManager.resolve({ fs, gitdir, ref: p })
+        })
+      );
     }
+
     let comm = GitCommit.from({
       tree,
       parent,
@@ -58706,6 +58883,7 @@ const worthWalking = (filepath, root) => {
  * @param {boolean} [args.noUpdateHead]
  * @param {boolean} [args.dryRun]
  * @param {boolean} [args.force]
+ * @param {boolean} [args.track]
  *
  * @returns {Promise<void>} Resolves successfully when filesystem operations are complete
  *
@@ -58723,6 +58901,7 @@ async function _checkout({
   noUpdateHead,
   dryRun,
   force,
+  track = true,
 }) {
   // Get tree oid
   let oid;
@@ -58740,11 +58919,13 @@ async function _checkout({
       gitdir,
       ref: remoteRef,
     });
-    // Set up remote tracking branch
-    const config = await GitConfigManager.get({ fs, gitdir });
-    await config.set(`branch.${ref}.remote`, remote);
-    await config.set(`branch.${ref}.merge`, `refs/heads/${ref}`);
-    await GitConfigManager.save({ fs, gitdir, config });
+    if (track) {
+      // Set up remote tracking branch
+      const config = await GitConfigManager.get({ fs, gitdir });
+      await config.set(`branch.${ref}.remote`, remote);
+      await config.set(`branch.${ref}.merge`, `refs/heads/${ref}`);
+      await GitConfigManager.save({ fs, gitdir, config });
+    }
     // Create a new branch that points at that same commit
     await GitRefManager.writeRef({
       fs,
@@ -58990,7 +59171,7 @@ async function analyze({
 
       // This is a kind of silly pattern but it worked so well for me in the past
       // and it makes intuitively demonstrating exhaustiveness so *easy*.
-      // This checks for the presense and/or absense of each of the 3 entries,
+      // This checks for the presense and/or absence of each of the 3 entries,
       // converts that to a 3-bit binary representation, and then handles
       // every possible combination (2^3 or 8 cases) with a lookup table.
       const key = [!!stage, !!commit, !!workdir].map(Number).join('');
@@ -59269,6 +59450,7 @@ async function analyze({
  * @param {boolean} [args.noUpdateHead] - If true, will update the working directory but won't update HEAD. Defaults to `false` when `ref` is provided, and `true` if `ref` is not provided.
  * @param {boolean} [args.dryRun = false] - If true, simulates a checkout so you can test whether it would succeed.
  * @param {boolean} [args.force = false] - If true, conflicts will be ignored and files will be overwritten regardless of local changes.
+ * @param {boolean} [args.track = true] - If false, will not set the remote branch tracking information. Defaults to true.
  * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<void>} Resolves successfully when filesystem operations are complete
@@ -59316,6 +59498,7 @@ async function checkout({
   noUpdateHead = _ref === undefined,
   dryRun = false,
   force = false,
+  track = true,
   cache = {},
 }) {
   try {
@@ -59337,6 +59520,7 @@ async function checkout({
       noUpdateHead,
       dryRun,
       force,
+      track,
     })
   } catch (err) {
     err.caller = 'git.checkout';
@@ -59588,7 +59772,14 @@ async function parseRefsAdResponse(stream, { service }) {
   let lineOne = await read();
   // skip past any flushes
   while (lineOne === null) lineOne = await read();
+
   if (lineOne === true) throw new EmptyServerResponseError()
+
+  // Handle protocol v2 responses (Bitbucket Server doesn't include a `# service=` line)
+  if (lineOne.includes('version 2')) {
+    return parseCapabilitiesV2(read)
+  }
+
   // Clients MUST ignore an LF at the end of the line.
   if (lineOne.toString('utf8').replace(/\n$/, '') !== `# service=${service}`) {
     throw new ParseError(`# service=${service}\\n`, lineOne.toString('utf8'))
@@ -59600,10 +59791,12 @@ async function parseRefsAdResponse(stream, { service }) {
   // are returned.
   if (lineTwo === true) return { capabilities, refs, symrefs }
   lineTwo = lineTwo.toString('utf8');
+
   // Handle protocol v2 responses
   if (lineTwo.includes('version 2')) {
     return parseCapabilitiesV2(read)
   }
+
   const [firstRef, capabilitiesLine] = splitAndAssert(lineTwo, '\x00', '\\x00');
   capabilitiesLine.split(' ').map(x => capabilities.add(x));
   const [ref, name] = splitAndAssert(firstRef, ' ', ' ');
@@ -60011,8 +60204,8 @@ function filterCapabilities(server, client) {
 
 const pkg = {
   name: 'isomorphic-git',
-  version: '1.8.2',
-  agent: 'git/isomorphic-git@1.8.2',
+  version: '1.19.2',
+  agent: 'git/isomorphic-git@1.19.2',
 };
 
 class FIFO {
@@ -60780,47 +60973,58 @@ async function _clone({
   noTags,
   headers,
 }) {
-  await _init({ fs, gitdir });
-  await _addRemote({ fs, gitdir, remote, url, force: false });
-  if (corsProxy) {
-    const config = await GitConfigManager.get({ fs, gitdir });
-    await config.set(`http.corsProxy`, corsProxy);
-    await GitConfigManager.save({ fs, gitdir, config });
+  try {
+    await _init({ fs, gitdir });
+    await _addRemote({ fs, gitdir, remote, url, force: false });
+    if (corsProxy) {
+      const config = await GitConfigManager.get({ fs, gitdir });
+      await config.set(`http.corsProxy`, corsProxy);
+      await GitConfigManager.save({ fs, gitdir, config });
+    }
+    const { defaultBranch, fetchHead } = await _fetch({
+      fs,
+      cache,
+      http,
+      onProgress,
+      onMessage,
+      onAuth,
+      onAuthSuccess,
+      onAuthFailure,
+      gitdir,
+      ref,
+      remote,
+      corsProxy,
+      depth,
+      since,
+      exclude,
+      relative,
+      singleBranch,
+      headers,
+      tags: !noTags,
+    });
+    if (fetchHead === null) return
+    ref = ref || defaultBranch;
+    ref = ref.replace('refs/heads/', '');
+    // Checkout that branch
+    await _checkout({
+      fs,
+      cache,
+      onProgress,
+      dir,
+      gitdir,
+      ref,
+      remote,
+      noCheckout,
+    });
+  } catch (err) {
+    // Remove partial local repository, see #1283
+    // Ignore any error as we are already failing.
+    // The catch is necessary so the original error is not masked.
+    await fs
+      .rmdir(gitdir, { recursive: true, maxRetries: 10 })
+      .catch(() => undefined);
+    throw err
   }
-  const { defaultBranch, fetchHead } = await _fetch({
-    fs,
-    cache,
-    http,
-    onProgress,
-    onMessage,
-    onAuth,
-    onAuthSuccess,
-    onAuthFailure,
-    gitdir,
-    ref,
-    remote,
-    depth,
-    since,
-    exclude,
-    relative,
-    singleBranch,
-    headers,
-    tags: !noTags,
-  });
-  if (fetchHead === null) return
-  ref = ref || defaultBranch;
-  ref = ref.replace('refs/heads/', '');
-  // Checkout that branch
-  await _checkout({
-    fs,
-    cache,
-    onProgress,
-    dir,
-    gitdir,
-    ref,
-    remote,
-    noCheckout,
-  });
 }
 
 // @ts-check
@@ -61477,16 +61681,14 @@ async function _findMergeBase({ fs, cache, gitdir, oids }) {
 
 const LINEBREAKS = /^.*(\r?\n|$)/gm;
 
-function mergeFile({
-  ourContent,
-  baseContent,
-  theirContent,
-  ourName = 'ours',
-  baseName = 'base',
-  theirName = 'theirs',
-  format = 'diff',
-  markerSize = 7,
-}) {
+function mergeFile({ branches, contents }) {
+  const ourName = branches[1];
+  const theirName = branches[2];
+
+  const baseContent = contents[0];
+  const ourContent = contents[1];
+  const theirContent = contents[2];
+
   const ours = ourContent.match(LINEBREAKS);
   const base = baseContent.match(LINEBREAKS);
   const theirs = theirContent.match(LINEBREAKS);
@@ -61494,9 +61696,12 @@ function mergeFile({
   // Here we let the diff3 library do the heavy lifting.
   const result = diff3Merge(ours, base, theirs);
 
+  const markerSize = 7;
+
   // Here we note whether there are conflicts and format the results
   let mergedText = '';
   let cleanMerge = true;
+
   for (const item of result) {
     if (item.ok) {
       mergedText += item.ok.join('');
@@ -61505,10 +61710,7 @@ function mergeFile({
       cleanMerge = false;
       mergedText += `${'<'.repeat(markerSize)} ${ourName}\n`;
       mergedText += item.conflict.a.join('');
-      if (format === 'diff3') {
-        mergedText += `${'|'.repeat(markerSize)} ${baseName}\n`;
-        mergedText += item.conflict.o.join('');
-      }
+
       mergedText += `${'='.repeat(markerSize)}\n`;
       mergedText += item.conflict.b.join('');
       mergedText += `${'>'.repeat(markerSize)} ${theirName}\n`;
@@ -61534,6 +61736,8 @@ function mergeFile({
  * @param {string} [args.baseName='base'] - The name to use in conflicted files (in diff3 format) for the base hunks
  * @param {string} [args.theirName='theirs'] - The name to use in conflicted files for their hunks
  * @param {boolean} [args.dryRun=false]
+ * @param {boolean} [args.abortOnConflict=false]
+ * @param {MergeDriverCallback} [args.mergeDriver]
  *
  * @returns {Promise<string>} - The SHA-1 object id of the merged tree
  *
@@ -61550,10 +61754,16 @@ async function mergeTree({
   baseName = 'base',
   theirName = 'theirs',
   dryRun = false,
+  abortOnConflict = true,
+  mergeDriver,
 }) {
   const ourTree = TREE({ ref: ourOid });
   const baseTree = TREE({ ref: baseOid });
   const theirTree = TREE({ ref: theirOid });
+
+  const unmergedFiles = [];
+
+  let cleanMerge = true;
 
   const results = await _walk({
     fs,
@@ -61615,6 +61825,11 @@ async function mergeTree({
               ourName,
               baseName,
               theirName,
+              mergeDriver,
+            }).then(r => {
+              cleanMerge = cleanMerge && r.cleanMerge;
+              unmergedFiles.push(filepath);
+              return r.mergeResult
             })
           }
           // all other types of conflicts fail
@@ -61650,6 +61865,29 @@ async function mergeTree({
       return parent
     },
   });
+
+  if (!cleanMerge) {
+    if (dir && !abortOnConflict) {
+      await _walk({
+        fs,
+        cache,
+        dir,
+        gitdir,
+        trees: [TREE({ ref: results.oid })],
+        map: async function(filepath, [entry]) {
+          const path = `${dir}/${filepath}`;
+          if ((await entry.type()) === 'blob') {
+            const mode = await entry.mode();
+            const content = new TextDecoder().decode(await entry.content());
+            await fs.write(path, content, { mode });
+          }
+          return true
+        },
+      });
+    }
+    throw new MergeConflictError(unmergedFiles)
+  }
+
   return results.oid
 }
 
@@ -61688,9 +61926,8 @@ async function modified(entry, base) {
  * @param {string} [args.ourName]
  * @param {string} [args.baseName]
  * @param {string} [args.theirName]
- * @param {string} [args.format]
- * @param {number} [args.markerSize]
  * @param {boolean} [args.dryRun = false]
+ * @param {MergeDriverCallback} [args.mergeDriver]
  *
  */
 async function mergeBlobs({
@@ -61703,9 +61940,8 @@ async function mergeBlobs({
   ourName,
   theirName,
   baseName,
-  format,
-  markerSize,
   dryRun,
+  mergeDriver = mergeFile,
 }) {
   const type = 'blob';
   // Compute the new mode.
@@ -61716,30 +61952,33 @@ async function mergeBlobs({
       : await ours.mode();
   // The trivial case: nothing to merge except maybe mode
   if ((await ours.oid()) === (await theirs.oid())) {
-    return { mode, path, oid: await ours.oid(), type }
+    return {
+      cleanMerge: true,
+      mergeResult: { mode, path, oid: await ours.oid(), type },
+    }
   }
   // if only one side made oid changes, return that side's oid
   if ((await ours.oid()) === (await base.oid())) {
-    return { mode, path, oid: await theirs.oid(), type }
+    return {
+      cleanMerge: true,
+      mergeResult: { mode, path, oid: await theirs.oid(), type },
+    }
   }
   if ((await theirs.oid()) === (await base.oid())) {
-    return { mode, path, oid: await ours.oid(), type }
+    return {
+      cleanMerge: true,
+      mergeResult: { mode, path, oid: await ours.oid(), type },
+    }
   }
   // if both sides made changes do a merge
-  const { mergedText, cleanMerge } = mergeFile({
-    ourContent: Buffer.from(await ours.content()).toString('utf8'),
-    baseContent: Buffer.from(await base.content()).toString('utf8'),
-    theirContent: Buffer.from(await theirs.content()).toString('utf8'),
-    ourName,
-    theirName,
-    baseName,
-    format,
-    markerSize,
+  const ourContent = Buffer.from(await ours.content()).toString('utf8');
+  const baseContent = Buffer.from(await base.content()).toString('utf8');
+  const theirContent = Buffer.from(await theirs.content()).toString('utf8');
+  const { mergedText, cleanMerge } = await mergeDriver({
+    branches: [baseName, ourName, theirName],
+    contents: [baseContent, ourContent, theirContent],
+    path,
   });
-  if (!cleanMerge) {
-    // all other types of conflicts fail
-    throw new MergeNotSupportedError()
-  }
   const oid = await _writeObject({
     fs,
     gitdir,
@@ -61747,7 +61986,8 @@ async function mergeBlobs({
     object: Buffer.from(mergedText, 'utf8'),
     dryRun,
   });
-  return { mode, path, oid, type }
+
+  return { cleanMerge, mergeResult: { mode, path, oid, type } }
 }
 
 // @ts-check
@@ -61771,9 +62011,11 @@ async function mergeBlobs({
  * @param {string} args.gitdir
  * @param {string} [args.ours]
  * @param {string} args.theirs
+ * @param {boolean} args.fastForward
  * @param {boolean} args.fastForwardOnly
  * @param {boolean} args.dryRun
  * @param {boolean} args.noUpdateBranch
+ * @param {boolean} args.abortOnConflict
  * @param {string} [args.message]
  * @param {Object} args.author
  * @param {string} args.author.name
@@ -61786,6 +62028,8 @@ async function mergeBlobs({
  * @param {number} args.committer.timestamp
  * @param {number} args.committer.timezoneOffset
  * @param {string} [args.signingKey]
+ * @param {SignCallback} [args.onSign] - a PGP signing implementation
+ * @param {MergeDriverCallback} [args.mergeDriver]
  *
  * @returns {Promise<MergeResult>} Resolves to a description of the merge operation
  *
@@ -61793,16 +62037,21 @@ async function mergeBlobs({
 async function _merge({
   fs,
   cache,
+  dir,
   gitdir,
   ours,
   theirs,
+  fastForward = true,
   fastForwardOnly = false,
   dryRun = false,
   noUpdateBranch = false,
+  abortOnConflict = true,
   message,
   author,
   committer,
   signingKey,
+  onSign,
+  mergeDriver,
 }) {
   if (ours === undefined) {
     ours = await _currentBranch({ fs, gitdir, fullname: true });
@@ -61845,7 +62094,7 @@ async function _merge({
       alreadyMerged: true,
     }
   }
-  if (baseOid === ourOid) {
+  if (fastForward && baseOid === ourOid) {
     if (!dryRun && !noUpdateBranch) {
       await GitRefManager.writeRef({ fs, gitdir, ref: ours, value: theirOid });
     }
@@ -61862,14 +62111,17 @@ async function _merge({
     const tree = await mergeTree({
       fs,
       cache,
+      dir,
       gitdir,
       ourOid,
       theirOid,
       baseOid,
-      ourName: ours,
+      ourName: abbreviateRef(ours),
       baseName: 'base',
-      theirName: theirs,
+      theirName: abbreviateRef(theirs),
       dryRun,
+      abortOnConflict,
+      mergeDriver,
     });
     if (!message) {
       message = `Merge branch '${abbreviateRef(theirs)}' into ${abbreviateRef(
@@ -61887,6 +62139,7 @@ async function _merge({
       author,
       committer,
       signingKey,
+      onSign,
       dryRun,
       noUpdateBranch,
     });
@@ -61916,8 +62169,11 @@ async function _merge({
  * @param {string} [args.url]
  * @param {string} [args.remote]
  * @param {string} [args.remoteRef]
+ * @param {boolean} [args.prune]
+ * @param {boolean} [args.pruneTags]
  * @param {string} [args.corsProxy]
  * @param {boolean} args.singleBranch
+ * @param {boolean} args.fastForward
  * @param {boolean} args.fastForwardOnly
  * @param {Object<string, string>} [args.headers]
  * @param {Object} args.author
@@ -61950,6 +62206,9 @@ async function _pull({
   url,
   remote,
   remoteRef,
+  prune,
+  pruneTags,
+  fastForward,
   fastForwardOnly,
   corsProxy,
   singleBranch,
@@ -61986,6 +62245,8 @@ async function _pull({
       remoteRef,
       singleBranch,
       headers,
+      prune,
+      pruneTags,
     });
     // Merge the remote tracking branch into the local one.
     await _merge({
@@ -61994,6 +62255,7 @@ async function _pull({
       gitdir,
       ours: ref,
       theirs: fetchHead,
+      fastForward,
       fastForwardOnly,
       message: `Merge ${fetchHeadDescription}`,
       author,
@@ -62150,8 +62412,8 @@ async function fastForward({
  * @param {boolean} [args.relative = false] - Changes the meaning of `depth` to be measured from the current shallow depth rather than from the branch tip.
  * @param {Date} [args.since] - Only fetch commits created after the given date. Mutually exclusive with `depth`.
  * @param {string[]} [args.exclude = []] - A list of branches or tags. Instructs the remote server not to send us any commits reachable from these refs.
- * @param {boolean} [args.prune] - Delete local remote-tracking branches that are not present on the remote
- * @param {boolean} [args.pruneTags] - Prune local tags that don’t exist on the remote, and force-update those tags that differ
+ * @param {boolean} [args.prune = false] - Delete local remote-tracking branches that are not present on the remote
+ * @param {boolean} [args.pruneTags = false] - Prune local tags that don’t exist on the remote, and force-update those tags that differ
  * @param {string} [args.corsProxy] - Optional [CORS proxy](https://www.npmjs.com/%40isomorphic-git/cors-proxy). Overrides value in repo config.
  * @param {Object<string, string>} [args.headers] - Additional headers to include in HTTP requests, similar to git's `extraHeader` config
  * @param {object} [args.cache] - a [cache](cache.md) object
@@ -62439,6 +62701,7 @@ async function getConfigAll({
  * @typedef {Object} GetRemoteInfoResult - The object returned has the following schema:
  * @property {string[]} capabilities - The list of capabilities returned by the server (part of the Git protocol)
  * @property {Object} [refs]
+ * @property {string} [HEAD] - The default branch of the remote
  * @property {Object<string, string>} [refs.heads] - The branches on the remote
  * @property {Object<string, string>} [refs.pull] - The special branches representing pull requests (non-standard)
  * @property {Object<string, string>} [refs.tags] - The tags on the remote
@@ -63026,6 +63289,47 @@ async function isDescendent({
 // @ts-check
 
 /**
+ * Test whether a filepath should be ignored (because of .gitignore or .git/exclude)
+ *
+ * @param {object} args
+ * @param {FsClient} args.fs - a file system client
+ * @param {string} args.dir - The [working tree](dir-vs-gitdir.md) directory path
+ * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
+ * @param {string} args.filepath - The filepath to test
+ *
+ * @returns {Promise<boolean>} Resolves to true if the file should be ignored
+ *
+ * @example
+ * await git.isIgnored({ fs, dir: '/tutorial', filepath: 'docs/add.md' })
+ *
+ */
+async function isIgnored({
+  fs,
+  dir,
+  gitdir = join(dir, '.git'),
+  filepath,
+}) {
+  try {
+    assertParameter('fs', fs);
+    assertParameter('dir', dir);
+    assertParameter('gitdir', gitdir);
+    assertParameter('filepath', filepath);
+
+    return GitIgnoreManager.isIgnored({
+      fs: new FileSystem(fs),
+      dir,
+      gitdir,
+      filepath,
+    })
+  } catch (err) {
+    err.caller = 'git.isIgnored';
+    throw err
+  }
+}
+
+// @ts-check
+
+/**
  * List branches
  *
  * By default it lists local branches. If a 'remote' is specified, it lists the remote's branches. When listing remote branches, the HEAD branch is not filtered out, so it may be included in the list of results.
@@ -63600,6 +63904,77 @@ function compareAge(a, b) {
 
 // @ts-check
 
+// the empty file content object id
+const EMPTY_OID = 'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391';
+
+async function resolveFileIdInTree({ fs, cache, gitdir, oid, fileId }) {
+  if (fileId === EMPTY_OID) return
+  const _oid = oid;
+  let filepath;
+  const result = await resolveTree({ fs, cache, gitdir, oid });
+  const tree = result.tree;
+  if (fileId === result.oid) {
+    filepath = result.path;
+  } else {
+    filepath = await _resolveFileId({
+      fs,
+      cache,
+      gitdir,
+      tree,
+      fileId,
+      oid: _oid,
+    });
+    if (Array.isArray(filepath)) {
+      if (filepath.length === 0) filepath = undefined;
+      else if (filepath.length === 1) filepath = filepath[0];
+    }
+  }
+  return filepath
+}
+
+async function _resolveFileId({
+  fs,
+  cache,
+  gitdir,
+  tree,
+  fileId,
+  oid,
+  filepaths = [],
+  parentPath = '',
+}) {
+  const walks = tree.entries().map(function(entry) {
+    let result;
+    if (entry.oid === fileId) {
+      result = join(parentPath, entry.path);
+      filepaths.push(result);
+    } else if (entry.type === 'tree') {
+      result = _readObject({
+        fs,
+        cache,
+        gitdir,
+        oid: entry.oid,
+      }).then(function({ object }) {
+        return _resolveFileId({
+          fs,
+          cache,
+          gitdir,
+          tree: GitTree.from(object),
+          fileId,
+          oid,
+          filepaths,
+          parentPath: join(parentPath, entry.path),
+        })
+      });
+    }
+    return result
+  });
+
+  await Promise.all(walks);
+  return filepaths
+}
+
+// @ts-check
+
 /**
  * Get commit descriptions from the git history
  *
@@ -63607,13 +63982,33 @@ function compareAge(a, b) {
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
  * @param {any} args.cache
  * @param {string} args.gitdir
+ * @param {string=} args.filepath optional get the commit for the filepath only
  * @param {string} args.ref
  * @param {number|void} args.depth
- * @param {Date|void} args.since
+ * @param {boolean=} [args.force=false] do not throw error if filepath is not exist (works only for a single file). defaults to false
+ * @param {boolean=} [args.follow=false] Continue listing the history of a file beyond renames (works only for a single file). defaults to false
+ * @param {boolean=} args.follow Continue listing the history of a file beyond renames (works only for a single file). defaults to false
  *
- * @returns {Promise<Array<ReadCommitResult>>}
+ * @returns {Promise<Array<ReadCommitResult>>} Resolves to an array of ReadCommitResult objects
+ * @see ReadCommitResult
+ * @see CommitObject
+ *
+ * @example
+ * let commits = await git.log({ dir: '$input((/))', depth: $input((5)), ref: '$input((master))' })
+ * console.log(commits)
+ *
  */
-async function _log({ fs, cache, gitdir, ref, depth, since }) {
+async function _log({
+  fs,
+  cache,
+  gitdir,
+  filepath,
+  ref,
+  depth,
+  since,
+  force,
+  follow,
+}) {
   const sinceTimestamp =
     typeof since === 'undefined'
       ? undefined
@@ -63624,8 +64019,15 @@ async function _log({ fs, cache, gitdir, ref, depth, since }) {
   const shallowCommits = await GitShallowManager.read({ fs, gitdir });
   const oid = await GitRefManager.resolve({ fs, gitdir, ref });
   const tips = [await _readCommit({ fs, cache, gitdir, oid })];
+  let lastFileOid;
+  let lastCommit;
+  let isOk;
 
-  while (true) {
+  function endCommit(commit) {
+    if (isOk && filepath) commits.push(commit);
+  }
+
+  while (tips.length > 0) {
     const commit = tips.pop();
 
     // Stop the log if we've hit the age limit
@@ -63636,10 +64038,82 @@ async function _log({ fs, cache, gitdir, ref, depth, since }) {
       break
     }
 
-    commits.push(commit);
+    if (filepath) {
+      let vFileOid;
+      try {
+        vFileOid = await resolveFilepath({
+          fs,
+          cache,
+          gitdir,
+          oid: commit.commit.tree,
+          filepath,
+        });
+        if (lastCommit && lastFileOid !== vFileOid) {
+          commits.push(lastCommit);
+        }
+        lastFileOid = vFileOid;
+        lastCommit = commit;
+        isOk = true;
+      } catch (e) {
+        if (e instanceof NotFoundError) {
+          let found = follow && lastFileOid;
+          if (found) {
+            found = await resolveFileIdInTree({
+              fs,
+              cache,
+              gitdir,
+              oid: commit.commit.tree,
+              fileId: lastFileOid,
+            });
+            if (found) {
+              if (Array.isArray(found)) {
+                if (lastCommit) {
+                  const lastFound = await resolveFileIdInTree({
+                    fs,
+                    cache,
+                    gitdir,
+                    oid: lastCommit.commit.tree,
+                    fileId: lastFileOid,
+                  });
+                  if (Array.isArray(lastFound)) {
+                    found = found.filter(p => lastFound.indexOf(p) === -1);
+                    if (found.length === 1) {
+                      found = found[0];
+                      filepath = found;
+                      if (lastCommit) commits.push(lastCommit);
+                    } else {
+                      found = false;
+                      if (lastCommit) commits.push(lastCommit);
+                      break
+                    }
+                  }
+                }
+              } else {
+                filepath = found;
+                if (lastCommit) commits.push(lastCommit);
+              }
+            }
+          }
+          if (!found) {
+            if (isOk && lastFileOid) {
+              commits.push(lastCommit);
+              if (!force) break
+            }
+            if (!force && !follow) throw e
+          }
+          lastCommit = commit;
+          isOk = false;
+        } else throw e
+      }
+    } else {
+      commits.push(commit);
+    }
 
     // Stop the loop if we have enough commits now.
-    if (depth !== undefined && commits.length === depth) break
+    if (depth !== undefined && commits.length === depth) {
+      endCommit(commit);
+      break
+    }
 
     // If this is not a shallow commit...
     if (!shallowCommits.has(commit.oid)) {
@@ -63654,7 +64128,9 @@ async function _log({ fs, cache, gitdir, ref, depth, since }) {
     }
 
     // Stop the loop if there are no more commit parents
-    if (tips.length === 0) break
+    if (tips.length === 0) {
+      endCommit(commit);
+    }
 
     // Process tips in order by age
     tips.sort((a, b) => compareAge(a.commit, b.commit));
@@ -63671,9 +64147,12 @@ async function _log({ fs, cache, gitdir, ref, depth, since }) {
  * @param {FsClient} args.fs - a file system client
  * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
+ * @param {string=} args.filepath optional get the commit for the filepath only
  * @param {string} [args.ref = 'HEAD'] - The commit to begin walking backwards through the history from
- * @param {number} [args.depth] - Limit the number of commits returned. No limit by default.
+ * @param {number=} [args.depth] - Limit the number of commits returned. No limit by default.
  * @param {Date} [args.since] - Return history newer than the given date. Can be combined with `depth` to get whichever is shorter.
+ * @param {boolean=} [args.force=false] do not throw error if filepath is not exist (works only for a single file). defaults to false
+ * @param {boolean=} [args.follow=false] Continue listing the history of a file beyond renames (works only for a single file). defaults to false
  * @param {object} [args.cache] - a [cache](cache.md) object
  *
  * @returns {Promise<Array<ReadCommitResult>>} Resolves to an array of ReadCommitResult objects
@@ -63694,9 +64173,12 @@ async function log({
   fs,
   dir,
   gitdir = join(dir, '.git'),
+  filepath,
   ref = 'HEAD',
   depth,
   since, // Date
+  force,
+  follow,
   cache = {},
 }) {
   try {
@@ -63708,9 +64190,12 @@ async function log({
       fs: new FileSystem(fs),
       cache,
       gitdir,
+      filepath,
       ref,
       depth,
       since,
+      force,
+      follow,
     })
   } catch (err) {
     err.caller = 'git.log';
@@ -63734,14 +64219,62 @@ async function log({
 /**
  * Merge two branches
  *
- * ## Limitations
- *
- * Currently it does not support incomplete merges. That is, if there are merge conflicts it cannot solve
- * with the built in diff3 algorithm it will not modify the working dir, and will throw a [`MergeNotSupportedError`](./errors.md#mergenotsupportedError) error.
- *
  * Currently it will fail if multiple candidate merge bases are found. (It doesn't yet implement the recursive merge strategy.)
  *
  * Currently it does not support selecting alternative merge strategies.
+ *
+ * Currently it is not possible to abort an incomplete merge. To restore the worktree to a clean state, you will need to checkout an earlier commit.
+ *
+ * Currently it does not directly support the behavior of `git merge --continue`. To complete a merge after manual conflict resolution, you will need to add and commit the files manually, and specify the appropriate parent commits.
+ *
+ * ## Manually resolving merge conflicts
+ * By default, if isomorphic-git encounters a merge conflict it cannot resolve using the builtin diff3 algorithm or provided merge driver, it will abort and throw a `MergeNotSupportedError`.
+ * This leaves the index and working tree untouched.
+ *
+ * When `abortOnConflict` is set to `false`, and a merge conflict cannot be automatically resolved, a `MergeConflictError` is thrown and the results of the incomplete merge will be written to the working directory.
+ * This includes conflict markers in files with unresolved merge conflicts.
+ *
+ * To complete the merge, edit the conflicting files as you see fit, and then add and commit the resolved merge.
+ *
+ * For a proper merge commit, be sure to specify the branches or commits you are merging in the `parent` argument to `git.commit`.
+ * For example, say we are merging the branch `feature` into the branch `main` and there is a conflict we want to resolve manually.
+ * The flow would look like this:
+ *
+ * ```
+ * await git.merge({
+ *   fs,
+ *   dir,
+ *   ours: 'main',
+ *   theirs: 'feature',
+ *   abortOnConflict: false,
+ * }).catch(e => {
+ *   if (e instanceof Errors.MergeConflictError) {
+ *     console.log(
+ *       'Automatic merge failed for the following files: '
+ *       + `${e.data}. `
+ *       + 'Resolve these conflicts and then commit your changes.'
+ *     )
+ *   } else throw e
+ * })
+ *
+ * // This is the where we manually edit the files that have been written to the working directory
+ * // ...
+ * // Files have been edited and we are ready to commit
+ *
+ * await git.add({
+ *   fs,
+ *   dir,
+ *   filepath: '.',
+ * })
+ *
+ * await git.commit({
+ *   fs,
+ *   dir,
+ *   ref: 'main',
+ *   message: "Merge branch 'feature' into main",
+ *   parent: ['main', 'feature'], // Be sure to specify the parents when creating a merge commit
+ * })
+ * ```
  *
  * @param {object} args
  * @param {FsClient} args.fs - a file system client
@@ -63750,9 +64283,11 @@ async function log({
  * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string} [args.ours] - The branch receiving the merge. If undefined, defaults to the current branch.
  * @param {string} args.theirs - The branch to be merged
+ * @param {boolean} [args.fastForward = true] - If false, create a merge commit in all cases.
  * @param {boolean} [args.fastForwardOnly = false] - If true, then non-fast-forward merges will throw an Error instead of performing a merge.
  * @param {boolean} [args.dryRun = false] - If true, simulates a merge so you can test whether it would succeed.
  * @param {boolean} [args.noUpdateBranch = false] - If true, does not update the branch pointer after creating the commit.
+ * @param {boolean} [args.abortOnConflict = true] - If true, merges with conflicts will not update the worktree or index.
  * @param {string} [args.message] - Overrides the default auto-generated merge commit message
  * @param {Object} [args.author] - passed to [commit](commit.md) when creating a merge commit
  * @param {string} [args.author.name] - Default is `user.name` config.
@@ -63766,6 +64301,7 @@ async function log({
  * @param {number} [args.committer.timezoneOffset] - Set the committer timezone offset field. This is the difference, in minutes, from the current timezone to UTC. Default is `(new Date()).getTimezoneOffset()`.
  * @param {string} [args.signingKey] - passed to [commit](commit.md) when creating a merge commit
  * @param {object} [args.cache] - a [cache](cache.md) object
+ * @param {MergeDriverCallback} [args.mergeDriver] - a [merge driver](mergeDriver.md) implementation
  *
  * @returns {Promise<MergeResult>} Resolves to a description of the merge operation
  * @see MergeResult
@@ -63787,14 +64323,17 @@ async function merge({
   gitdir = join(dir, '.git'),
   ours,
   theirs,
+  fastForward = true,
   fastForwardOnly = false,
   dryRun = false,
   noUpdateBranch = false,
+  abortOnConflict = true,
   message,
   author: _author,
   committer: _committer,
   signingKey,
   cache = {},
+  mergeDriver,
 }) {
   try {
     assertParameter('fs', _fs);
@@ -63804,7 +64343,9 @@ async function merge({
     const fs = new FileSystem(_fs);
 
     const author = await normalizeAuthorObject({ fs, gitdir, author: _author });
-    if (!author && !fastForwardOnly) throw new MissingNameError('author')
+    if (!author && (!fastForwardOnly || !fastForward)) {
+      throw new MissingNameError('author')
+    }
 
     const committer = await normalizeCommitterObject({
       fs,
@@ -63812,23 +64353,28 @@ async function merge({
       author,
       committer: _committer,
     });
-    if (!committer && !fastForwardOnly) {
+    if (!committer && (!fastForwardOnly || !fastForward)) {
       throw new MissingNameError('committer')
     }
 
     return await _merge({
       fs,
       cache,
+      dir,
       gitdir,
       ours,
       theirs,
+      fastForward,
       fastForwardOnly,
       dryRun,
       noUpdateBranch,
+      abortOnConflict,
       message,
       author,
       committer,
       signingKey,
+      onSign,
+      mergeDriver,
     })
   } catch (err) {
     err.caller = 'git.merge';
@@ -64023,8 +64569,11 @@ async function packObjects({
  * @param {string} [args.url] - (Added in 1.1.0) The URL of the remote repository. The default is the value set in the git config for that remote.
  * @param {string} [args.remote] - (Added in 1.1.0) If URL is not specified, determines which remote to use.
  * @param {string} [args.remoteRef] - (Added in 1.1.0) The name of the branch on the remote to fetch. By default this is the configured remote tracking branch.
+ * @param {boolean} [args.prune = false] - Delete local remote-tracking branches that are not present on the remote
+ * @param {boolean} [args.pruneTags = false] - Prune local tags that don’t exist on the remote, and force-update those tags that differ
  * @param {string} [args.corsProxy] - Optional [CORS proxy](https://www.npmjs.com/%40isomorphic-git/cors-proxy). Overrides value in repo config.
  * @param {boolean} [args.singleBranch = false] - Instead of the default behavior of fetching all the branches, only fetch a single branch.
+ * @param {boolean} [args.fastForward = true] -  If false, only create merge commits.
  * @param {boolean} [args.fastForwardOnly = false] - Only perform simple fast-forward merges. (Don't create merge commits.)
  * @param {Object<string, string>} [args.headers] - Additional headers to include in HTTP requests, similar to git's `extraHeader` config
  * @param {Object} [args.author] - The details about the author.
@@ -64067,6 +64616,9 @@ async function pull({
   url,
   remote,
   remoteRef,
+  prune = false,
+  pruneTags = false,
+  fastForward = true,
   fastForwardOnly = false,
   corsProxy,
   singleBranch,
@@ -64108,6 +64660,7 @@ async function pull({
       url,
       remote,
       remoteRef,
+      fastForward,
       fastForwardOnly,
       corsProxy,
       singleBranch,
@@ -64115,6 +64668,8 @@ async function pull({
       author,
       committer,
       signingKey,
+      prune,
+      pruneTags,
     })
   } catch (err) {
     err.caller = 'git.pull';
@@ -64478,6 +65033,7 @@ async function _push({
       }
     }
 
+    if (oid === oldoid) force = true;
     if (!force) {
       // Is it a tag that already exists?
       if (
@@ -65650,32 +66206,47 @@ async function resetIndex({
   dir,
   gitdir = join(dir, '.git'),
   filepath,
-  ref = 'HEAD',
+  ref,
   cache = {},
 }) {
   try {
     assertParameter('fs', _fs);
     assertParameter('gitdir', gitdir);
     assertParameter('filepath', filepath);
-    assertParameter('ref', ref);
 
     const fs = new FileSystem(_fs);
-    // Resolve commit
-    let oid = await GitRefManager.resolve({ fs, gitdir, ref });
+
+    let oid;
     let workdirOid;
+
     try {
-      // Resolve blob
-      oid = await resolveFilepath({
-        fs,
-        cache,
-        gitdir,
-        oid,
-        filepath,
-      });
+      // Resolve commit
+      oid = await GitRefManager.resolve({ fs, gitdir, ref: ref || 'HEAD' });
     } catch (e) {
-      // This means we're resetting the file to a "deleted" state
-      oid = null;
+      if (ref) {
+        // Only throw the error if a ref is explicitly provided
+        throw e
+      }
     }
+
+    // Not having an oid at this point means `resetIndex()` was called without explicit `ref` on a new git
+    // repository. If that happens, we can skip resolving the file path.
+    if (oid) {
+      try {
+        // Resolve blob
+        oid = await resolveFilepath({
+          fs,
+          cache,
+          gitdir,
+          oid,
+          filepath,
+        });
+      } catch (e) {
+        // This means we're resetting the file to a "deleted" state
+        oid = null;
+      }
+    }
+
     // For files that aren't in the workdir use zeros
     let stats = {
       ctime: new Date(0),
@@ -66169,6 +66740,7 @@ async function getHeadTree({ fs, cache, gitdir }) {
  * @param {string[]} [args.filepaths = ['.']] - Limit the query to the given files and directories
  * @param {function(string): boolean} [args.filter] - Filter the results to only those whose filepath matches a function.
  * @param {object} [args.cache] - a [cache](cache.md) object
+ * @param {boolean} [args.ignored = false] - include ignored files in the result
  *
  * @returns {Promise<Array<StatusRow>>} Resolves with a status matrix, described below.
  * @see StatusRow
@@ -66181,6 +66753,7 @@ async function statusMatrix({
   filepaths = ['.'],
   filter,
   cache = {},
+  ignored: shouldIgnore = false,
 }) {
   try {
     assertParameter('fs', _fs);
@@ -66197,14 +66770,15 @@ async function statusMatrix({
       map: async function(filepath, [head, workdir, stage]) {
         // Ignore ignored files, but only if they are not already tracked.
         if (!head && !stage && workdir) {
-          if (
-            await GitIgnoreManager.isIgnored({
+          if (!shouldIgnore) {
+            const isIgnored = await GitIgnoreManager.isIgnored({
               fs,
               dir,
               filepath,
-            })
-          ) {
-            return null
+            });
+            if (isIgnored) {
+              return null
+            }
           }
         }
         // match against base paths
@@ -66216,27 +66790,37 @@ async function statusMatrix({
           if (!filter(filepath)) return
         }
 
-        // For now, just bail on directories
-        const headType = head && (await head.type());
-        if (headType === 'tree' || headType === 'special') return
+        const [headType, workdirType, stageType] = await Promise.all([
+          head && head.type(),
+          workdir && workdir.type(),
+          stage && stage.type(),
+        ]);
+
+        const isBlob = [headType, workdirType, stageType].includes('blob');
+
+        // For now, bail on directories unless the file is also a blob in another tree
+        if ((headType === 'tree' || headType === 'special') && !isBlob) return
         if (headType === 'commit') return null
 
-        const workdirType = workdir && (await workdir.type());
-        if (workdirType === 'tree' || workdirType === 'special') return
+        if ((workdirType === 'tree' || workdirType === 'special') && !isBlob)
+          return
 
-        const stageType = stage && (await stage.type());
         if (stageType === 'commit') return null
-        if (stageType === 'tree' || stageType === 'special') return
+        if ((stageType === 'tree' || stageType === 'special') && !isBlob) return
 
-        // Figure out the oids, using the staged oid for the working dir oid if the stats match.
-        const headOid = head ? await head.oid() : undefined;
-        const stageOid = stage ? await stage.oid() : undefined;
+        // Figure out the oids for files, using the staged oid for the working dir oid if the stats match.
+        const headOid = headType === 'blob' ? await head.oid() : undefined;
+        const stageOid = stageType === 'blob' ? await stage.oid() : undefined;
         let workdirOid;
-        if (!head && workdir && !stage) {
+        if (
+          headType !== 'blob' &&
+          workdirType === 'blob' &&
+          stageType !== 'blob'
+        ) {
           // We don't actually NEED the sha. Any sha will do
           // TODO: update this logic to handle N trees instead of just 3.
           workdirOid = '42';
-        } else if (workdir) {
+        } else if (workdirType === 'blob') {
           workdirOid = await workdir.oid();
         }
         const entry = [undefined, headOid, workdirOid, stageOid];
@@ -66313,6 +66897,169 @@ async function tag({
 // @ts-check
 
 /**
+ * Register file contents in the working tree or object database to the git index (aka staging area).
+ *
+ * @param {object} args
+ * @param {FsClient} args.fs - a file system client
+ * @param {string} args.dir - The [working tree](dir-vs-gitdir.md) directory path
+ * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
+ * @param {string} args.filepath - File to act upon.
+ * @param {string} [args.oid] - OID of the object in the object database to add to the index with the specified filepath.
+ * @param {number} [args.mode = 100644] - The file mode to add the file to the index.
+ * @param {boolean} [args.add] - Adds the specified file to the index if it does not yet exist in the index.
+ * @param {boolean} [args.remove] - Remove the specified file from the index if it does not exist in the workspace anymore.
+ * @param {boolean} [args.force] - Remove the specified file from the index, even if it still exists in the workspace.
+ * @param {object} [args.cache] - a [cache](cache.md) object
+ *
+ * @returns {Promise<string | void>} Resolves successfully with the SHA-1 object id of the object written or updated in the index, or nothing if the file was removed.
+ *
+ * @example
+ * await git.updateIndex({
+ *   fs,
+ *   dir: '/tutorial',
+ *   filepath: 'readme.md'
+ * })
+ *
+ * @example
+ * // Manually create a blob in the object database.
+ * let oid = await git.writeBlob({
+ *   fs,
+ *   dir: '/tutorial',
+ *   blob: new Uint8Array([])
+ * })
+ *
+ * // Write the object in the object database to the index.
+ * await git.updateIndex({
+ *   fs,
+ *   dir: '/tutorial',
+ *   add: true,
+ *   filepath: 'readme.md',
+ *   oid
+ * })
+ */
+async function updateIndex({
+  fs: _fs,
+  dir,
+  gitdir = join(dir, '.git'),
+  cache = {},
+  filepath,
+  oid,
+  mode,
+  add,
+  remove,
+  force,
+}) {
+  try {
+    assertParameter('fs', _fs);
+    assertParameter('gitdir', gitdir);
+    assertParameter('filepath', filepath);
+
+    const fs = new FileSystem(_fs);
+
+    if (remove) {
+      return await GitIndexManager.acquire(
+        { fs, gitdir, cache },
+        async function(index) {
+          let fileStats;
+
+          if (!force) {
+            // Check if the file is still present in the working directory
+            fileStats = await fs.lstat(join(dir, filepath));
+
+            if (fileStats) {
+              if (fileStats.isDirectory()) {
+                // Removing directories should not work
+                throw new InvalidFilepathError('directory')
+              }
+
+              // Do nothing if we don't force and the file still exists in the workdir
+              return
+            }
+          }
+
+          // Directories are not allowed, so we make sure the provided filepath exists in the index
+          if (index.has({ filepath })) {
+            index.delete({
+              filepath,
+            });
+          }
+        }
+      )
+    }
+
+    // Test if it is a file and exists on disk if `remove` is not provided, only of no oid is provided
+    let fileStats;
+
+    if (!oid) {
+      fileStats = await fs.lstat(join(dir, filepath));
+
+      if (!fileStats) {
+        throw new NotFoundError(
+          `file at "${filepath}" on disk and "remove" not set`
+        )
+      }
+
+      if (fileStats.isDirectory()) {
+        throw new InvalidFilepathError('directory')
+      }
+    }
+
+    return await GitIndexManager.acquire({ fs, gitdir, cache }, async function(
+      index
+    ) {
+      if (!add && !index.has({ filepath })) {
+        // If the index does not contain the filepath yet and `add` is not set, we should throw
+        throw new NotFoundError(
+          `file at "${filepath}" in index and "add" not set`
+        )
+      }
+
+      // By default we use 0 for the stats of the index file
+      let stats = {
+        ctime: new Date(0),
+        mtime: new Date(0),
+        dev: 0,
+        ino: 0,
+        mode,
+        uid: 0,
+        gid: 0,
+        size: 0,
+      };
+
+      if (!oid) {
+        stats = fileStats;
+
+        // Write the file to the object database
+        const object = stats.isSymbolicLink()
+          ? await fs.readlink(join(dir, filepath))
+          : await fs.read(join(dir, filepath));
+
+        oid = await _writeObject({
+          fs,
+          gitdir,
+          type: 'blob',
+          format: 'content',
+          object,
+        });
+      }
+
+      index.insert({
+        filepath,
+        oid: oid,
+        stats,
+      });
+
+      return oid
+    })
+  } catch (err) {
+    err.caller = 'git.updateIndex';
+    throw err
+  }
+}
+
+// @ts-check
+
+/**
  * Return the version number of isomorphic-git
  *
  * I don't know why you might need this. I added it just so I could check that I was getting
@@ -66338,7 +67085,7 @@ function version() {
 /**
  * @callback WalkerMap
  * @param {string} filename
- * @param {?WalkerEntry[]} entries
+ * @param {Array<WalkerEntry | null>} entries
  * @returns {Promise<any>}
  */
 
@@ -66506,12 +67253,14 @@ function version() {
  *
  * Example 2: Return the difference between the working directory and the HEAD commit
  * ```js
- * const diff = require('diff-lines')
- * async function map(filepath, [head, workdir]) {
+ * const map = async (filepath, [head, workdir]) => {
  *   return {
  *     filepath,
- *     oid: await head.oid(),
- *     diff: diff((await head.content()).toString('utf8'), (await workdir.content()).toString('utf8'))
+ *     oid: await head?.oid(),
+ *     diff: diff(
+ *       (await head?.content())?.toString('utf8') || '',
+ *       (await workdir?.content())?.toString('utf8') || ''
+ *     )
  *   }
  * }
  * ```
@@ -67060,6 +67809,7 @@ var index = {
   indexPack,
   init,
   isDescendent,
+  isIgnored,
   listBranches,
   listFiles,
   listNotes,
@@ -67081,6 +67831,7 @@ var index = {
   removeNote,
   renameBranch,
   resetIndex,
+  updateIndex,
   resolveRef,
   status,
   statusMatrix,
@@ -67127,6 +67878,7 @@ exports.hashBlob = hashBlob;
 exports.indexPack = indexPack;
 exports.init = init;
 exports.isDescendent = isDescendent;
+exports.isIgnored = isIgnored;
 exports.listBranches = listBranches;
 exports.listFiles = listFiles;
 exports.listNotes = listNotes;
@@ -67153,6 +67905,7 @@ exports.setConfig = setConfig;
 exports.status = status;
 exports.statusMatrix = statusMatrix;
 exports.tag = tag;
+exports.updateIndex = updateIndex;
 exports.version = version;
 exports.walk = walk;
 exports.writeBlob = writeBlob;
