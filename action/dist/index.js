@@ -8,7 +8,11 @@
 
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -21,7 +25,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -38,7 +42,7 @@ const child_process_1 = __nccwpck_require__(3325);
 const config_1 = __nccwpck_require__(6816);
 const docker_1 = __nccwpck_require__(9610);
 const github_1 = __nccwpck_require__(5865);
-const exec = util_1.promisify(child_process.exec);
+const exec = (0, util_1.promisify)(child_process.exec);
 const GITHUB_ACTIONS_USER_ID = 41898282;
 const GITHUB_ACTIONS_USER_LOGIN = 'github-actions';
 const DEPENDABOT_USER_ID = 49699333;
@@ -75,10 +79,10 @@ const determineMode = (config, branch) => {
 class NoPullRequestError extends Error {
 }
 exports.NoPullRequestError = NoPullRequestError;
-exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerInit = docker_1.REAL_DOCKER, gitHubInit = github_1.REAL_GITHUB, }) => {
+const runAction = async ({ env, dir = process.cwd(), logger = console, dockerInit = docker_1.REAL_DOCKER, gitHubInit = github_1.REAL_GITHUB, }) => {
     var _a, _b;
     const info = (message) => logger.log(`##[info] ${message}`);
-    const config = await config_1.getConfig(env);
+    const config = await (0, config_1.getConfig)(env);
     // Get event information
     if (!env.GITHUB_EVENT_NAME)
         throw new Error('Expected GITHUB_EVENT_NAME');
@@ -135,7 +139,11 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
                     json = JSON.parse(new TextDecoder("utf-8").decode(pkg.blob));
                 }
                 catch (err) {
-                    throw new Error(`Unable to read version from package.json: Invalid JSON: ${err.message}`);
+                    let errMsg = 'Unable to read version from package.json: Invalid JSON';
+                    if (err instanceof Error) {
+                        errMsg += `: ${err.message}`;
+                    }
+                    throw new Error(errMsg);
                 }
                 const version = json.version;
                 if (typeof version !== 'string') {
@@ -322,7 +330,7 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
             info(`Running CI Checks`);
             for (const command of config.ci || []) {
                 info(`Running: ${command}`);
-                await child_process_1.execAndPipeOutput({ command, cwd: dir, logger });
+                await (0, child_process_1.execAndPipeOutput)({ command, cwd: dir, logger });
             }
             ;
             info(`CI Checks Complete`);
@@ -711,6 +719,7 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
         }
     }
 };
+exports.runAction = runAction;
 
 
 /***/ }),
@@ -722,7 +731,11 @@ exports.runAction = async ({ env, dir = process.cwd(), logger = console, dockerI
 
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -735,7 +748,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -868,7 +881,7 @@ const CONFIG = t.intersection([
         })
     })
 ]);
-exports.getConfig = async (env) => {
+const getConfig = async (env) => {
     if (!env.CONFIG_FILE) {
         throw new Error('Environment Variable CONFIG_FILE is required');
     }
@@ -887,7 +900,11 @@ exports.getConfig = async (env) => {
         json = JSON.parse(data.toString());
     }
     catch (err) {
-        throw new Error(`The configuration file at "${env.CONFIG_FILE}" is not valid JSON: ${err.message}`);
+        let errMsg = `The configuration file at "${env.CONFIG_FILE}" is not valid JSON`;
+        if (err instanceof Error) {
+            errMsg += `: ${err.message}`;
+        }
+        throw new Error(errMsg);
     }
     const config = CONFIG.decode(json);
     if (fp_ts_1.either.isLeft(config)) {
@@ -906,6 +923,7 @@ exports.getConfig = async (env) => {
     }
     return config.right;
 };
+exports.getConfig = getConfig;
 
 
 /***/ }),
@@ -917,7 +935,11 @@ exports.getConfig = async (env) => {
 
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -930,7 +952,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -948,10 +970,10 @@ const IMAGE_DETAILS = t.array(t.type({
         Env: t.array(t.string)
     })
 }));
-exports.REAL_DOCKER = config => ({
+const REAL_DOCKER = config => ({
     login: async ({ user, pass }) => {
         // Login to docker
-        await child_process_1.execAndPipeOutput({
+        await (0, child_process_1.execAndPipeOutput)({
             command: `docker login ${config.registry || ''} -u ${user}  --password-stdin`,
             cwd: __dirname,
             // Drop all console output (it's mostly warning about storing credentials)
@@ -959,16 +981,16 @@ exports.REAL_DOCKER = config => ({
             data: pass
         });
     },
-    pullImage: (tag, logger) => child_process_1.execAndPipeOutput({
+    pullImage: (tag, logger) => (0, child_process_1.execAndPipeOutput)({
         command: `docker pull ${config.repository}:${tag}`,
         cwd: __dirname,
         logger
     }).then(() => true).catch(() => false),
     getMetadata: async (tag) => {
-        const res = await child_process_1.exec(`docker inspect ${config.repository}:${tag}`);
+        const res = await (0, child_process_1.exec)(`docker inspect ${config.repository}:${tag}`);
         const data = JSON.parse(res.stdout);
         const check = IMAGE_DETAILS.decode(data);
-        if (Either_1.isLeft(check)) {
+        if ((0, Either_1.isLeft)(check)) {
             throw new Error('Unexpected output from docker inspect: \n* ' +
                 PathReporter_1.PathReporter.report(check).join('\n* '));
         }
@@ -997,7 +1019,7 @@ exports.REAL_DOCKER = config => ({
         };
     },
     runBuild: async ({ cwd, tag, meta, logger }) => {
-        await child_process_1.execAndPipeOutput({
+        await (0, child_process_1.execAndPipeOutput)({
             command: (`docker build ${config.path} ` +
                 `--build-arg ${config.args.commitSha}=${meta.commitSha} ` +
                 `--build-arg ${config.args.treeSha}=${meta.treeSha} ` +
@@ -1006,9 +1028,10 @@ exports.REAL_DOCKER = config => ({
             cwd
         });
     },
-    retagImage: (originalTag, newTag) => child_process_1.exec(`docker tag ${config.repository}:${originalTag} ${config.repository}:${newTag}`).then(() => { }),
-    pushImage: tag => child_process_1.exec(`docker push ${config.repository}:${tag}`).then(() => { }),
+    retagImage: (originalTag, newTag) => (0, child_process_1.exec)(`docker tag ${config.repository}:${originalTag} ${config.repository}:${newTag}`).then(() => { }),
+    pushImage: tag => (0, child_process_1.exec)(`docker push ${config.repository}:${tag}`).then(() => { }),
 });
+exports.REAL_DOCKER = REAL_DOCKER;
 
 
 /***/ }),
@@ -1021,7 +1044,7 @@ exports.REAL_DOCKER = config => ({
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.REAL_GITHUB = void 0;
 const rest_1 = __nccwpck_require__(5375);
-exports.REAL_GITHUB = ({ token, githubRepo }) => {
+const REAL_GITHUB = ({ token, githubRepo }) => {
     const octokit = new rest_1.Octokit({
         auth: token
     });
@@ -1074,6 +1097,7 @@ exports.REAL_GITHUB = ({ token, githubRepo }) => {
         }).then(() => { }),
     };
 };
+exports.REAL_GITHUB = REAL_GITHUB;
 
 
 /***/ }),
@@ -1085,7 +1109,11 @@ exports.REAL_GITHUB = ({ token, githubRepo }) => {
 
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -1098,7 +1126,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -1112,7 +1140,7 @@ const util_1 = __nccwpck_require__(3837);
  *
  * Optionally, send data to the stdin of the child process
  */
-exports.execAndPipeOutput = (opts) => {
+const execAndPipeOutput = (opts) => {
     var _a;
     const { command, cwd, logger } = opts;
     const p = child_process.execFile('sh', ['-c', command], { cwd });
@@ -1148,14 +1176,15 @@ exports.execAndPipeOutput = (opts) => {
             }
         }
         if (code === 0) {
-            resolve();
+            resolve(code);
         }
         else {
             reject(new Error(`Command "${command}" exited with exit code ${code}`));
         }
     }));
 };
-exports.exec = util_1.promisify(child_process.exec);
+exports.execAndPipeOutput = execAndPipeOutput;
+exports.exec = (0, util_1.promisify)(child_process.exec);
 
 
 /***/ }),
@@ -49554,7 +49583,7 @@ var exports = __webpack_exports__;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const action_1 = __nccwpck_require__(3767);
-action_1.runAction({
+(0, action_1.runAction)({
     env: process.env
 }).catch(async (err) => {
     console.log(`##[error] ${err.message}`);
