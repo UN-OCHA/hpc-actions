@@ -20,8 +20,8 @@
   },
   "dependencies": {
     "@octokit/rest": "^19.0.4",
-    "fp-ts": "^2.6.5",
-    "io-ts": "^2.2.5",
+    "fp-ts": "^2.12.2",
+    "io-ts": "^2.2.17",
     "isomorphic-git": "^1.8.2"
   }
 }
