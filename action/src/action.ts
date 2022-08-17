@@ -169,9 +169,11 @@ export const runAction = async (
         try {
           json = JSON.parse(new TextDecoder("utf-8").decode(pkg.blob));
         } catch (err) {
-          throw new Error(
-            `Unable to read version from package.json: Invalid JSON: ${err.message}`
-          );
+          let errMsg = 'Unable to read version from package.json: Invalid JSON';
+          if (err instanceof Error) {
+            errMsg += `: ${err.message}`;
+          }
+          throw new Error(errMsg);
         }
         const version = json.version;
         if (typeof version !== 'string') {

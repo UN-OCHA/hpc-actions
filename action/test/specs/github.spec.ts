@@ -19,7 +19,7 @@ describe('github', () => {
       });
       throw new Error('Expected error to be thrown');
     } catch (err) {
-      expect(err.message).toEqual(
+      expect((err as { message: string }).message).toEqual(
         'Invalid value for repo: oooorrrr'
       );
     }

@@ -55,7 +55,7 @@ export const execAndPipeOutput = (
         }
       }
       if (code === 0) {
-        resolve();
+        resolve(code);
       } else {
         reject(new Error(`Command "${command}" exited with exit code ${code}`));
       }
