@@ -2,6 +2,7 @@
   "name": "hpc-actions",
   "scripts": {
     "build": "tsc && ncc build lib/src",
+    "check-formatting": "prettier -c \"./**/*.{ts,md,yml,json}\"",
     "test": "jest --projects test/jest.config.js --runInBand --verbose"
   },
   "engines": {
