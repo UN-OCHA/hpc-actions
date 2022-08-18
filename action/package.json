@@ -4,6 +4,7 @@
     "build": "tsc && ncc build lib/src",
     "check-formatting": "prettier -c \"./**/*.{ts,md,yml,json}\"",
     "check-types": "tsc --noEmit",
+    "lint": "eslint --quiet --ext .ts ./",
     "reinstall": "rm -rf node_modules/ && npm install",
     "test": "jest --projects test/jest.config.js --runInBand --verbose"
   },
