@@ -30,6 +30,33 @@ jobs:
           npm run build
       - name: Check no files have changes
         run: git diff --exit-code
+  checks:
+    name: Check file formatting, linting and Typescript types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Use Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+      - name: Install NPM Packages
+        run: |
+          cd action
+          npm install
+      - name: Check Typescript types
+        run: |
+          cd action
+          npm run check-types
+      - name: Check formatting
+        if: success() || failure()
+        run: |
+          cd action
+          npm run check-formatting
+      - name: Linting
+        if: success() || failure()
+        run: |
+          cd action
+          npm run lint
   unit-tests:
     name: Run Unit Tests
     runs-on: ubuntu-latest
