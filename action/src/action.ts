@@ -98,18 +98,30 @@ export const runAction = async ({
 
   // Get event information
 
-  if (!env.GITHUB_EVENT_NAME) throw new Error('Expected GITHUB_EVENT_NAME');
-  if (!env.GITHUB_EVENT_PATH) throw new Error('Expected GITHUB_EVENT_PATH');
-  if (!env.GITHUB_REPOSITORY) throw new Error('Expected GITHUB_REPOSITORY');
+  if (!env.GITHUB_EVENT_NAME) {
+    throw new Error('Expected GITHUB_EVENT_NAME');
+  }
+  if (!env.GITHUB_EVENT_PATH) {
+    throw new Error('Expected GITHUB_EVENT_PATH');
+  }
+  if (!env.GITHUB_REPOSITORY) {
+    throw new Error('Expected GITHUB_REPOSITORY');
+  }
 
   // Get docker credentials
   if (!config.docker.skipLogin) {
-    if (!env.DOCKER_USERNAME) throw new Error('Expected DOCKER_USERNAME');
-    if (!env.DOCKER_PASSWORD) throw new Error('Expected DOCKER_PASSWORD');
+    if (!env.DOCKER_USERNAME) {
+      throw new Error('Expected DOCKER_USERNAME');
+    }
+    if (!env.DOCKER_PASSWORD) {
+      throw new Error('Expected DOCKER_PASSWORD');
+    }
   }
 
   // Get GitHub credentials
-  if (!env.GITHUB_TOKEN) throw new Error('Expected GITHUB_TOKEN');
+  if (!env.GITHUB_TOKEN) {
+    throw new Error('Expected GITHUB_TOKEN');
+  }
 
   let event: GitHubEvent;
 
