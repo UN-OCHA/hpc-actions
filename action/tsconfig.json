@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "target": "es2019",                       /* Compatible with node 12 */
-    "module": "commonjs",                     /* Specify module code generation: 'none', 'commonjs', 'amd', 'system', 'umd', 'es2015', or 'ESNext'. */
+    "target": "es2019",
+    "module": "commonjs",
     "outDir": "./lib",
-    "rootDir": "./",    
+    "rootDir": "./",
     "strict": true,
     "moduleResolution": "node",
     "esModuleInterop": true

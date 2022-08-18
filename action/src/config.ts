@@ -185,7 +185,11 @@ export const getConfig = async (env: Env): Promise<Config> => {
   try {
     json = JSON.parse(data.toString())
   } catch (err) {
-    throw new Error(`The configuration file at "${env.CONFIG_FILE}" is not valid JSON: ${err.message}`);
+    let errMsg = `The configuration file at "${env.CONFIG_FILE}" is not valid JSON`;
+    if (err instanceof Error) {
+      errMsg += `: ${err.message}`;
+    }
+    throw new Error(errMsg);
   }
   const config = CONFIG.decode(json);
   if (either.isLeft(config)) {

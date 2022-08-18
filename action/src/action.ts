@@ -3,7 +3,7 @@ import * as child_process from 'child_process';
 import fs from 'fs';
 import git from 'isomorphic-git';
 import { promisify } from 'util';
-import { Webhooks } from '@octokit/webhooks';
+import type { PushEvent } from '@octokit/webhooks-types';
 
 import { execAndPipeOutput } from './util/child_process';
 
@@ -47,7 +47,7 @@ interface Params {
 
 type GitHubEvent = {
   name: 'push',
-  payload: Webhooks.WebhookPayloadPush
+  payload: PushEvent
 }
 
 const BRANCH_EXTRACT = /^refs\/heads\/(.*)$/;
@@ -169,9 +169,11 @@ export const runAction = async (
         try {
           json = JSON.parse(new TextDecoder("utf-8").decode(pkg.blob));
         } catch (err) {
-          throw new Error(
-            `Unable to read version from package.json: Invalid JSON: ${err.message}`
-          );
+          let errMsg = 'Unable to read version from package.json: Invalid JSON';
+          if (err instanceof Error) {
+            errMsg += `: ${err.message}`;
+          }
+          throw new Error(errMsg);
         }
         const version = json.version;
         if (typeof version !== 'string') {
