@@ -569,7 +569,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                             mode: 'non-existant',
                             gitTag: tag,
                         },
-                        // if an image is retagged, and we know about an existing git tag
+                        // If an image is retagged, and we know about an existing git tag
                         // then ensure that the git tag is still the same,
                         // otherwise require that it doesn't exist
                         retagged: tagSha
@@ -703,7 +703,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
         }
         else if (mode === 'other') {
             const pullRequest = await getUniquePullRequest();
-            // check that the base branch is NOT env/<stage|staging> or env/prod
+            // Check that the base branch is NOT env/<stage|staging> or env/prod
             const baseBranch = pullRequest.base.ref;
             if (baseBranch === config.stagingEnvironmentBranch &&
                 !branch.startsWith('mergeback/')) {
