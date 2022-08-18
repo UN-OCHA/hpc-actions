@@ -261,7 +261,7 @@ export const runAction = async ({
           mode: 'non-existant';
           gitTag: string;
           /**
-           * run this callback when the constraint is not met.
+           * Run this callback when the constraint is not met.
            *
            * This allows for a custom error message to be posted to GitHub
            */
@@ -728,7 +728,7 @@ export const runAction = async ({
               mode: 'non-existant',
               gitTag: tag,
             },
-            // if an image is retagged, and we know about an existing git tag
+            // If an image is retagged, and we know about an existing git tag
             // then ensure that the git tag is still the same,
             // otherwise require that it doesn't exist
             retagged: tagSha
@@ -891,7 +891,7 @@ export const runAction = async ({
     } else if (mode === 'other') {
       const pullRequest = await getUniquePullRequest();
 
-      // check that the base branch is NOT env/<stage|staging> or env/prod
+      // Check that the base branch is NOT env/<stage|staging> or env/prod
 
       const baseBranch = pullRequest.base.ref;
       if (
