@@ -458,7 +458,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 },
             });
         };
-        const commentOnPullRequestWithDockerInfo = async (params) => {
+        const commentOnPullRequestWithDockerInfo = (params) => {
             const { pullRequest, tag } = params;
             // Post about successful
             const body = `Docker image has been successfully built and pushed as: ` +
@@ -1057,8 +1057,12 @@ const REAL_DOCKER = (config) => ({
             cwd,
         });
     },
-    retagImage: (originalTag, newTag) => (0, child_process_1.exec)(`docker tag ${config.repository}:${originalTag} ${config.repository}:${newTag}`).then(() => { }),
-    pushImage: (tag) => (0, child_process_1.exec)(`docker push ${config.repository}:${tag}`).then(() => { }),
+    retagImage: async (originalTag, newTag) => {
+        await (0, child_process_1.exec)(`docker tag ${config.repository}:${originalTag} ${config.repository}:${newTag}`);
+    },
+    pushImage: async (tag) => {
+        await (0, child_process_1.exec)(`docker push ${config.repository}:${tag}`);
+    },
 });
 exports.REAL_DOCKER = REAL_DOCKER;
 
@@ -1100,40 +1104,40 @@ const REAL_GITHUB = ({ token, githubRepo }) => {
                 });
             }
         },
-        getOpenPullRequests: async ({ branch }) => octokit.pulls.list({
+        getOpenPullRequests: async ({ branch }) => await octokit.pulls.list({
             owner,
             repo,
             state: 'open',
             head: `${owner}:${branch}`,
         }),
-        reviewPullRequest: async ({ pullRequestNumber, body, state }) => octokit.pulls
-            .createReview({
-            owner,
-            repo,
-            pull_number: pullRequestNumber,
-            body,
-            event: state === 'approve'
-                ? 'APPROVE'
-                : state === 'comment-only'
-                    ? 'COMMENT'
-                    : 'REQUEST_CHANGES',
-        })
-            .then(() => { }),
-        commentOnPullRequest: async ({ pullRequestNumber, body }) => octokit.issues
-            .createComment({
-            owner,
-            repo,
-            issue_number: pullRequestNumber,
-            body,
-        })
-            .then(() => { }),
-        createDeployment: async (params) => octokit.repos
-            .createDeployment({
-            owner,
-            repo,
-            ...params,
-        })
-            .then(() => { }),
+        reviewPullRequest: async ({ pullRequestNumber, body, state }) => {
+            await octokit.pulls.createReview({
+                owner,
+                repo,
+                pull_number: pullRequestNumber,
+                body,
+                event: state === 'approve'
+                    ? 'APPROVE'
+                    : state === 'comment-only'
+                        ? 'COMMENT'
+                        : 'REQUEST_CHANGES',
+            });
+        },
+        commentOnPullRequest: async ({ pullRequestNumber, body }) => {
+            await octokit.issues.createComment({
+                owner,
+                repo,
+                issue_number: pullRequestNumber,
+                body,
+            });
+        },
+        createDeployment: async (params) => {
+            await octokit.repos.createDeployment({
+                owner,
+                repo,
+                ...params,
+            });
+        },
     };
 };
 exports.REAL_GITHUB = REAL_GITHUB;
@@ -68019,7 +68023,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const action_1 = __nccwpck_require__(3767);
 (0, action_1.runAction)({
     env: process.env,
-}).catch(async (err) => {
+}).catch((err) => {
     console.log(`##[error] ${err.message}`);
     setTimeout(() => {
         console.error(err);
