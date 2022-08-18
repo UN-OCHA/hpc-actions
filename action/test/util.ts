@@ -8,17 +8,20 @@ const ROOT_TMP_DIR = path.join(tmpdir(), Math.random().toString(36).substr(2));
 
 export const rootTmpDir = () => ROOT_TMP_DIR;
 
-export const tmpConfigFilePath = (filename: string) => 
+export const tmpConfigFilePath = (filename: string) =>
   path.join(ROOT_TMP_DIR, path.basename(filename) + '.config.json');
 
 export const tmpEventFilePath = (filename: string) =>
   path.join(ROOT_TMP_DIR, path.basename(filename) + '.event.json');
 
 export const createTmpDir = async () => {
-  const dir = path.join(ROOT_TMP_DIR, 'hpc-actions-test-' + Math.random().toString(36).substr(2));
+  const dir = path.join(
+    ROOT_TMP_DIR,
+    'hpc-actions-test-' + Math.random().toString(36).substr(2)
+  );
   await fs.mkdir(dir);
   return dir;
-}
+};
 
 export const newLogger = () => ({
   log: jest.fn(),
@@ -32,4 +35,4 @@ export const newInterleavedLogger = () => {
     log: (...args: any[]) => fn('[stdout]', ...args),
     error: (...args: any[]) => fn('[stderr]', ...args),
   };
-}
+};

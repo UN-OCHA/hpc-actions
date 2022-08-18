@@ -20,8 +20,8 @@ interface PullRequestParameters {
 export interface GitHubController {
   openPullRequest: (params: PullRequestParameters) => Promise<void>;
   getOpenPullRequests: (params: {
-    branch: string
-  }) => Promise<RestEndpointMethodTypes["pulls"]["list"]["response"]>;
+    branch: string;
+  }) => Promise<RestEndpointMethodTypes['pulls']['list']['response']>;
   reviewPullRequest: (params: {
     pullRequestNumber: number;
     state: 'approve' | 'reject' | 'comment-only';
@@ -31,23 +31,24 @@ export interface GitHubController {
     pullRequestNumber: number;
     body: string;
   }) => Promise<void>;
-  createDeployment: ( params: {
-    ref: string,
-    task: string,
-    auto_merge: boolean,
-    required_contexts: [],
-    payload: any,
-    environment: string,
-    transient_environment: boolean,
-    production_environment: boolean,
+  createDeployment: (params: {
+    ref: string;
+    task: string;
+    auto_merge: boolean;
+    required_contexts: [];
+    payload: any;
+    environment: string;
+    transient_environment: boolean;
+    production_environment: boolean;
   }) => Promise<void>;
 }
 
-export type PullRequest = RestEndpointMethodTypes["pulls"]["list"]["response"]["data"][number];
+export type PullRequest =
+  RestEndpointMethodTypes['pulls']['list']['response']['data'][number];
 
 export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
   const octokit = new Octokit({
-    auth: token
+    auth: token,
   });
 
   const repoSplit = githubRepo.split('/');
@@ -70,33 +71,48 @@ export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
           owner,
           repo,
           issue_number: pull.data.number,
-          labels
+          labels,
         });
       }
     },
-    getOpenPullRequests: async ({ branch }) => octokit.pulls.list({
-      owner,
-      repo,
-      state: 'open',
-      head: `${owner}:${branch}`,
-    }),
-    reviewPullRequest: async ({ pullRequestNumber, body, state }) => octokit.pulls.createReview({
-      owner,
-      repo,
-      pull_number: pullRequestNumber,
-      body,
-      event: state === 'approve' ? 'APPROVE' : state === 'comment-only' ? 'COMMENT': 'REQUEST_CHANGES'
-    }).then(() => { }),
-    commentOnPullRequest: async ({ pullRequestNumber, body }) => octokit.issues.createComment({
-      owner,
-      repo,
-      issue_number: pullRequestNumber,
-      body,
-    }).then(() => { }),
-    createDeployment: async (params) => octokit.repos.createDeployment({
-      owner,
-      repo,
-      ...params,
-    }).then(() => { }),
+    getOpenPullRequests: async ({ branch }) =>
+      octokit.pulls.list({
+        owner,
+        repo,
+        state: 'open',
+        head: `${owner}:${branch}`,
+      }),
+    reviewPullRequest: async ({ pullRequestNumber, body, state }) =>
+      octokit.pulls
+        .createReview({
+          owner,
+          repo,
+          pull_number: pullRequestNumber,
+          body,
+          event:
+            state === 'approve'
+              ? 'APPROVE'
+              : state === 'comment-only'
+              ? 'COMMENT'
+              : 'REQUEST_CHANGES',
+        })
+        .then(() => {}),
+    commentOnPullRequest: async ({ pullRequestNumber, body }) =>
+      octokit.issues
+        .createComment({
+          owner,
+          repo,
+          issue_number: pullRequestNumber,
+          body,
+        })
+        .then(() => {}),
+    createDeployment: async (params) =>
+      octokit.repos
+        .createDeployment({
+          owner,
+          repo,
+          ...params,
+        })
+        .then(() => {}),
   };
-}
+};

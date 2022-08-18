@@ -1,4 +1,4 @@
-import {promises as fs} from 'fs';
+import { promises as fs } from 'fs';
 
 import * as util from './util';
 

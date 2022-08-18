@@ -15,10 +15,7 @@ export interface DockerImageMetadata {
 }
 
 export interface DockerController {
-  login: (opts: {
-    user: string;
-    pass: string;
-  }) => Promise<void>;
+  login: (opts: { user: string; pass: string }) => Promise<void>;
   /**
    * Get the metadata for a docker image that is tagged locally
    */
@@ -50,22 +47,25 @@ export interface DockerController {
 /**
  * Codec to consume environment variables from a docker image
  */
-const IMAGE_DETAILS = t.array(t.type({
-  Config: t.type({
-    Env: t.array(t.string)
+const IMAGE_DETAILS = t.array(
+  t.type({
+    Config: t.type({
+      Env: t.array(t.string),
+    }),
   })
-}));
+);
 
-export const REAL_DOCKER: DockerInit = config => ({
-
-  login: async ({user, pass}) => {
+export const REAL_DOCKER: DockerInit = (config) => ({
+  login: async ({ user, pass }) => {
     // Login to docker
     await execAndPipeOutput({
-      command: `docker login ${config.registry || ''} -u ${user}  --password-stdin`,
+      command: `docker login ${
+        config.registry || ''
+      } -u ${user}  --password-stdin`,
       cwd: __dirname,
       // Drop all console output (it's mostly warning about storing credentials)
       logger: console,
-      data: pass
+      data: pass,
     });
   },
 
@@ -73,21 +73,25 @@ export const REAL_DOCKER: DockerInit = config => ({
     execAndPipeOutput({
       command: `docker pull ${config.repository}:${tag}`,
       cwd: __dirname,
-      logger
-    }).then(() => true).catch(() => false),
+      logger,
+    })
+      .then(() => true)
+      .catch(() => false),
 
-  getMetadata: async tag => {
+  getMetadata: async (tag) => {
     const res = await exec(`docker inspect ${config.repository}:${tag}`);
     const data = JSON.parse(res.stdout);
     const check = IMAGE_DETAILS.decode(data);
     if (isLeft(check)) {
       throw new Error(
         'Unexpected output from docker inspect: \n* ' +
-        PathReporter.report(check).join('\n* ')
+          PathReporter.report(check).join('\n* ')
       );
     }
     if (check.right.length !== 1) {
-      throw new Error('Unexpected output from docker inspect: multiple objects');
+      throw new Error(
+        'Unexpected output from docker inspect: multiple objects'
+      );
     }
     const image = check.right[0];
     // Able to parse output
@@ -115,21 +119,21 @@ export const REAL_DOCKER: DockerInit = config => ({
 
   runBuild: async ({ cwd, tag, meta, logger }) => {
     await execAndPipeOutput({
-      command: (
+      command:
         `docker build ${config.path} ` +
         `--build-arg ${config.args.commitSha}=${meta.commitSha} ` +
         `--build-arg ${config.args.treeSha}=${meta.treeSha} ` +
-        `-t ${config.repository}:${tag}`
-      ),
+        `-t ${config.repository}:${tag}`,
       logger,
-      cwd
-    })
+      cwd,
+    });
   },
 
   retagImage: (originalTag, newTag) =>
-    exec(`docker tag ${config.repository}:${originalTag} ${config.repository}:${newTag}`).then(() => { }),
+    exec(
+      `docker tag ${config.repository}:${originalTag} ${config.repository}:${newTag}`
+    ).then(() => {}),
 
-  pushImage: tag =>
+  pushImage: (tag) =>
     exec(`docker push ${config.repository}:${tag}`).then(() => {}),
-
 });
