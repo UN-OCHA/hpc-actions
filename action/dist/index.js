@@ -139,7 +139,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                     oid: sha,
                     filepath: versionFilePath(config.repoType),
                 })
-                    .catch((err) => {
+                    .catch(() => {
                     throw new Error(`Unable to read version from package.json: File not found in commit ${sha}`);
                 });
                 let json;
@@ -169,7 +169,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
             fs: fs_1.default,
             dir,
         })
-            .catch((err) => {
+            .catch(() => {
             // Assume that not in git repository
             throw new Error('Action not run within git repository');
         });
