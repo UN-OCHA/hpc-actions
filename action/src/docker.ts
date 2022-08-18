@@ -129,11 +129,13 @@ export const REAL_DOCKER: DockerInit = (config) => ({
     });
   },
 
-  retagImage: (originalTag, newTag) =>
-    exec(
+  retagImage: async (originalTag, newTag) => {
+    await exec(
       `docker tag ${config.repository}:${originalTag} ${config.repository}:${newTag}`
-    ).then(() => {}),
+    );
+  },
 
-  pushImage: (tag) =>
-    exec(`docker push ${config.repository}:${tag}`).then(() => {}),
+  pushImage: async (tag) => {
+    await exec(`docker push ${config.repository}:${tag}`);
+  },
 });

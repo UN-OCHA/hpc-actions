@@ -607,7 +607,7 @@ export const runAction = async ({
       });
     };
 
-    const commentOnPullRequestWithDockerInfo = async (params: {
+    const commentOnPullRequestWithDockerInfo = (params: {
       pullRequest: PullRequest;
       tag: string;
     }) => {

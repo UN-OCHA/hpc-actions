@@ -445,7 +445,7 @@ describe('action', () => {
               const pullImage = jest.fn().mockResolvedValue(true);
               const getMetadata = jest
                 .fn()
-                .mockImplementation(async (tag: string) =>
+                .mockImplementation((tag: string) =>
                   tag === 'v1.2.0' ? meta : null
                 );
               const retagImage = jest.fn().mockResolvedValue(true);
@@ -520,7 +520,7 @@ describe('action', () => {
               const pullImage = jest.fn().mockResolvedValue(true);
               const getMetadata = jest
                 .fn()
-                .mockImplementation(async (tag: string) =>
+                .mockImplementation((tag: string) =>
                   tag === 'v1.2.0' ? meta : null
                 );
               const retagImage = jest.fn().mockResolvedValue(true);
@@ -586,7 +586,7 @@ describe('action', () => {
               const pullImage = jest.fn().mockResolvedValue(true);
               const getMetadata = jest
                 .fn()
-                .mockImplementation(async (tag: string) =>
+                .mockImplementation((tag: string) =>
                   tag === 'v1.2.0' ? meta : null
                 );
               await action
@@ -658,7 +658,7 @@ describe('action', () => {
               const pullImage = jest.fn().mockResolvedValue(true);
               const getMetadata = jest
                 .fn()
-                .mockImplementation(async (tag: string) =>
+                .mockImplementation((tag: string) =>
                   tag === 'v1.2.0-pre' ? meta : null
                 );
               await action
@@ -721,7 +721,7 @@ describe('action', () => {
               const pullImage = jest.fn().mockResolvedValue(true);
               const getMetadata = jest
                 .fn()
-                .mockImplementation(async (tag: string) =>
+                .mockImplementation((tag: string) =>
                   tag === 'v1.2.0-pre' ? meta : null
                 );
               await action

@@ -4,7 +4,7 @@ import * as github from '../../src/github';
 jest.mock('@octokit/rest');
 
 describe('github', () => {
-  it('Invalid Repo', async () => {
+  it('Invalid Repo', () => {
     const mock = octokit.Octokit as any as jest.Mock;
 
     mock.mockClear();

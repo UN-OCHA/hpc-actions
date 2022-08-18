@@ -76,43 +76,40 @@ export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
       }
     },
     getOpenPullRequests: async ({ branch }) =>
-      octokit.pulls.list({
+      await octokit.pulls.list({
         owner,
         repo,
         state: 'open',
         head: `${owner}:${branch}`,
       }),
-    reviewPullRequest: async ({ pullRequestNumber, body, state }) =>
-      octokit.pulls
-        .createReview({
-          owner,
-          repo,
-          pull_number: pullRequestNumber,
-          body,
-          event:
-            state === 'approve'
-              ? 'APPROVE'
-              : state === 'comment-only'
-              ? 'COMMENT'
-              : 'REQUEST_CHANGES',
-        })
-        .then(() => {}),
-    commentOnPullRequest: async ({ pullRequestNumber, body }) =>
-      octokit.issues
-        .createComment({
-          owner,
-          repo,
-          issue_number: pullRequestNumber,
-          body,
-        })
-        .then(() => {}),
-    createDeployment: async (params) =>
-      octokit.repos
-        .createDeployment({
-          owner,
-          repo,
-          ...params,
-        })
-        .then(() => {}),
+    reviewPullRequest: async ({ pullRequestNumber, body, state }) => {
+      await octokit.pulls.createReview({
+        owner,
+        repo,
+        pull_number: pullRequestNumber,
+        body,
+        event:
+          state === 'approve'
+            ? 'APPROVE'
+            : state === 'comment-only'
+            ? 'COMMENT'
+            : 'REQUEST_CHANGES',
+      });
+    },
+    commentOnPullRequest: async ({ pullRequestNumber, body }) => {
+      await octokit.issues.createComment({
+        owner,
+        repo,
+        issue_number: pullRequestNumber,
+        body,
+      });
+    },
+    createDeployment: async (params) => {
+      await octokit.repos.createDeployment({
+        owner,
+        repo,
+        ...params,
+      });
+    },
   };
 };
