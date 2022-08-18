@@ -31,8 +31,8 @@ interface Params {
    * Custom logger to use instead of console
    */
   logger?: {
-    log: (...args: any[]) => void;
-    error: (...args: any[]) => void;
+    log: (...args: unknown[]) => void;
+    error: (...args: unknown[]) => void;
   };
   /**
    * Interface to interact with docker
@@ -152,6 +152,11 @@ export const runAction = async ({
     const versionFilePath = (repoType: 'node') =>
       repoType === 'node' ? 'package.json' : 'UNKNOWN';
 
+    type PackageJson = {
+      name: string;
+      version: string;
+    };
+
     const readRefShaAndVersion = async (
       ref?: string
     ): Promise<{
@@ -172,7 +177,7 @@ export const runAction = async ({
               `Unable to read version from package.json: File not found in commit ${sha}`
             );
           });
-        let json: any;
+        let json: PackageJson;
         try {
           json = JSON.parse(new TextDecoder('utf-8').decode(pkg.blob));
         } catch (err) {

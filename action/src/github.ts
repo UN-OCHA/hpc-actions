@@ -36,7 +36,7 @@ export interface GitHubController {
     task: string;
     auto_merge: boolean;
     required_contexts: [];
-    payload: any;
+    payload: string | { [key: string]: unknown };
     environment: string;
     transient_environment: boolean;
     production_environment: boolean;

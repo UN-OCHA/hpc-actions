@@ -30,7 +30,7 @@ export const newInterleavedLogger = () => {
   const fn = jest.fn();
   return {
     fn,
-    log: (...args: any[]) => fn('[stdout]', ...args),
-    error: (...args: any[]) => fn('[stderr]', ...args),
+    log: (...args: unknown[]) => fn('[stdout]', ...args),
+    error: (...args: unknown[]) => fn('[stderr]', ...args),
   };
 };

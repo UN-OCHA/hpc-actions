@@ -5,7 +5,7 @@ jest.mock('@octokit/rest');
 
 describe('github', () => {
   it('Invalid Repo', () => {
-    const mock = octokit.Octokit as any as jest.Mock;
+    const mock = octokit.Octokit as unknown as jest.Mock;
 
     mock.mockClear();
     mock.mockReturnValue(null);
@@ -28,7 +28,7 @@ describe('github', () => {
   });
 
   it('Open a pull request', async () => {
-    const mock = octokit.Octokit as any as jest.Mock;
+    const mock = octokit.Octokit as unknown as jest.Mock;
 
     const api = {
       pulls: {
@@ -66,7 +66,7 @@ describe('github', () => {
   });
 
   it('Check existing pull requests', async () => {
-    const mock = octokit.Octokit as any as jest.Mock;
+    const mock = octokit.Octokit as unknown as jest.Mock;
 
     const api = {
       pulls: {
@@ -93,7 +93,7 @@ describe('github', () => {
   });
 
   it('Submit a PR rejection', async () => {
-    const mock = octokit.Octokit as any as jest.Mock;
+    const mock = octokit.Octokit as unknown as jest.Mock;
 
     const api = {
       pulls: {
