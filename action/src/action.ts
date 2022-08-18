@@ -1,4 +1,3 @@
-
 import * as child_process from 'child_process';
 import fs from 'fs';
 import git from 'isomorphic-git';
@@ -32,9 +31,9 @@ interface Params {
    * Custom logger to use instead of console
    */
   logger?: {
-    log: (...args: any[]) => void;
-    error: (...args: any[]) => void;
-  }
+    log: (...args: unknown[]) => void;
+    error: (...args: unknown[]) => void;
+  };
   /**
    * Interface to interact with docker
    */
@@ -46,9 +45,9 @@ interface Params {
 }
 
 type GitHubEvent = {
-  name: 'push',
-  payload: PushEvent
-}
+  name: 'push';
+  payload: PushEvent;
+};
 
 const BRANCH_EXTRACT = /^refs\/heads\/(.*)$/;
 
@@ -71,7 +70,7 @@ const determineMode = (config: Config, branch: string): Mode => {
   } else if (branch.startsWith('env/')) {
     throw new Error(
       `Invalid development branch: ${branch}, ` +
-      `must be one of: ${config.developmentEnvironmentBranches.join(', ')}`
+        `must be one of: ${config.developmentEnvironmentBranches.join(', ')}`
     );
   } else if (branch.startsWith('hotfix/')) {
     return 'hotfix';
@@ -82,51 +81,56 @@ const determineMode = (config: Config, branch: string): Mode => {
   } else {
     return 'other';
   }
-}
+};
 
 export class NoPullRequestError extends Error {}
 
-export const runAction = async (
-  {
-    env,
-    dir = process.cwd(),
-    logger = console,
-    dockerInit = REAL_DOCKER,
-    gitHubInit = REAL_GITHUB,
-  }: Params
-) => {
-
+export const runAction = async ({
+  env,
+  dir = process.cwd(),
+  logger = console,
+  dockerInit = REAL_DOCKER,
+  gitHubInit = REAL_GITHUB,
+}: Params) => {
   const info = (message: string) => logger.log(`##[info] ${message}`);
 
   const config = await getConfig(env);
 
   // Get event information
 
-  if (!env.GITHUB_EVENT_NAME)
+  if (!env.GITHUB_EVENT_NAME) {
     throw new Error('Expected GITHUB_EVENT_NAME');
-  if (!env.GITHUB_EVENT_PATH)
+  }
+  if (!env.GITHUB_EVENT_PATH) {
     throw new Error('Expected GITHUB_EVENT_PATH');
-  if (!env.GITHUB_REPOSITORY)
+  }
+  if (!env.GITHUB_REPOSITORY) {
     throw new Error('Expected GITHUB_REPOSITORY');
+  }
 
   // Get docker credentials
   if (!config.docker.skipLogin) {
-    if (!env.DOCKER_USERNAME)
+    if (!env.DOCKER_USERNAME) {
       throw new Error('Expected DOCKER_USERNAME');
-    if (!env.DOCKER_PASSWORD)
+    }
+    if (!env.DOCKER_PASSWORD) {
       throw new Error('Expected DOCKER_PASSWORD');
+    }
   }
 
   // Get GitHub credentials
-  if (!env.GITHUB_TOKEN)
+  if (!env.GITHUB_TOKEN) {
     throw new Error('Expected GITHUB_TOKEN');
+  }
 
   let event: GitHubEvent;
-  
+
   if (env.GITHUB_EVENT_NAME === 'push') {
     event = {
       name: 'push',
-      payload: JSON.parse((await fs.promises.readFile(env.GITHUB_EVENT_PATH)).toString())
+      payload: JSON.parse(
+        (await fs.promises.readFile(env.GITHUB_EVENT_PATH)).toString()
+      ),
     };
     if (event?.payload?.ref?.startsWith('refs/tags/')) {
       info(`Push is for tag, skipping action`);
@@ -142,32 +146,40 @@ export const runAction = async (
   });
 
   if (event.name === 'push') {
-
     /**
      * What is the path of the file that specifies the version?
      */
     const versionFilePath = (repoType: 'node') =>
       repoType === 'node' ? 'package.json' : 'UNKNOWN';
 
-    const readRefShaAndVersion = async (ref?: string): Promise<{
+    type PackageJson = {
+      name: string;
+      version: string;
+    };
+
+    const readRefShaAndVersion = async (
+      ref?: string
+    ): Promise<{
       sha: string;
       version: string;
     }> => {
       const sha = await git.resolveRef({ fs, dir, ref: ref || 'HEAD' });
       if (config.repoType === 'node') {
-        const pkg = await git.readBlob({
-          fs,
-          dir,
-          oid: sha,
-          filepath: versionFilePath(config.repoType)
-        }).catch(err => {
-          throw new Error(
-            `Unable to read version from package.json: File not found in commit ${sha}`
-          );
-        });
-        let json: any;
+        const pkg = await git
+          .readBlob({
+            fs,
+            dir,
+            oid: sha,
+            filepath: versionFilePath(config.repoType),
+          })
+          .catch(() => {
+            throw new Error(
+              `Unable to read version from package.json: File not found in commit ${sha}`
+            );
+          });
+        let json: PackageJson;
         try {
-          json = JSON.parse(new TextDecoder("utf-8").decode(pkg.blob));
+          json = JSON.parse(new TextDecoder('utf-8').decode(pkg.blob));
         } catch (err) {
           let errMsg = 'Unable to read version from package.json: Invalid JSON';
           if (err instanceof Error) {
@@ -179,21 +191,23 @@ export const runAction = async (
         if (typeof version !== 'string') {
           throw new Error(`Invalid version in package.json`);
         }
-        return {sha, version};
+        return { sha, version };
       } else {
         throw new Error('Unsupported repo type: ' + config.repoType);
       }
-    }
+    };
 
     // Get remote information
 
-    const remotes = await git.listRemotes({
-      fs,
-      dir
-    }).catch(err => {
-      // Assume that not in git repository
-      throw new Error('Action not run within git repository');
-    });
+    const remotes = await git
+      .listRemotes({
+        fs,
+        dir,
+      })
+      .catch(() => {
+        // Assume that not in git repository
+        throw new Error('Action not run within git repository');
+      });
     if (remotes.length !== 1) {
       throw new Error('Exactly 1 remote expected in repository');
     }
@@ -217,97 +231,92 @@ export const runAction = async (
 
     // Check that the correct branch is checked out,
     // and get the current commit info
-    const currentBranch = await git.currentBranch({fs, dir});
+    const currentBranch = await git.currentBranch({ fs, dir });
     if (!currentBranch) {
       throw new Error('no branch is currently checked out');
     } else if (currentBranch !== branch) {
       throw new Error('incorrect branch currently checked-out');
     }
-    const head = await git.readCommit({ fs, dir, oid: headShaAndVersion.sha});
+    const head = await git.readCommit({ fs, dir, oid: headShaAndVersion.sha });
 
     /**
      * Return true if this is a pull request created by the GitHub Actions user,
      * or dependabot, and so attempting to review the PR with the GitHub Actions
      * token will fail, and commenting is required instead.
      */
-    const commentMode = (pr: PullRequest): 'review' | 'comment' | 'none' => (
+    const commentMode = (pr: PullRequest): 'review' | 'comment' | 'none' =>
       pr.user?.id === UNOCHA_HPC_USER_ID ||
       pr.user?.id === GITHUB_ACTIONS_USER_ID ||
-      (
-        pr.user?.login.startsWith(GITHUB_ACTIONS_USER_LOGIN) &&
-        pr.user?.type.toLowerCase() === 'bot'
-      ) ? 'comment' :
-      pr.user?.id === DEPENDABOT_USER_ID ||
-      (
-        pr.user?.login.startsWith(DEPENDABOT_USER_LOGIN) &&
-        pr.user?.type.toLowerCase() === 'bot'
-      ) ? 'none' : 'review'
-    );
+      (pr.user?.login.startsWith(GITHUB_ACTIONS_USER_LOGIN) &&
+        pr.user?.type.toLowerCase() === 'bot')
+        ? 'comment'
+        : pr.user?.id === DEPENDABOT_USER_ID ||
+          (pr.user?.login.startsWith(DEPENDABOT_USER_LOGIN) &&
+            pr.user?.type.toLowerCase() === 'bot')
+        ? 'none'
+        : 'review';
 
     type BuildAndPushDockerImageCheckTagCondition =
       | {
-        mode: 'match';
-        gitTag: string;
-        sha: string;
-      }
+          mode: 'match';
+          gitTag: string;
+          sha: string;
+        }
       | {
-        mode: 'non-existant';
-        gitTag: string;
-        /**
-         * run this callback when the constraint is not met.
-         *
-         * This allows for a custom error message to be posted to GitHub
-         */
-        onError?: () => Promise<void>;
-      };
+          mode: 'non-existant';
+          gitTag: string;
+          /**
+           * Run this callback when the constraint is not met.
+           *
+           * This allows for a custom error message to be posted to GitHub
+           */
+          onError?: () => Promise<void>;
+        };
 
-    const buildAndPushDockerImage = async (
-      opts: {
+    const buildAndPushDockerImage = async (opts: {
+      /**
+       * How should the registry be checked for existing images with the
+       * same tag before building a new one?
+       *
+       * * `check-tree`: if the image doesn't yet exist, build it, if it does,
+       *   check to see that it was built with the same git tree sha. If it
+       *   was, finish, if not, throw an error.
+       * * `overwrite`: Don't check the registry, just build and push a new
+       *   image.
+       */
+      checkBehaviour: null | {
         /**
-         * How should the registry be checked for existing images with the
-         * same tag before building a new one?
-         *
-         * * `check-tree`: if the image doesn't yet exist, build it, if it does,
-         *   check to see that it was built with the same git tree sha. If it
-         *   was, finish, if not, throw an error.
-         * * `overwrite`: Don't check the registry, just build and push a new
-         *   image.
+         * If checkStrict is true,
+         * check whether an image with the same tag already exists,
+         * and if it does,
+         * check to see that it was built with the same git tree sha.
+         * If it was not, throw an error, otherwise continue to checking
+         * any other tags, or building the image.
          */
-        checkBehaviour:
-          | null
-          | {
-            /**
-             * If checkStrict is true,
-             * check whether an image with the same tag already exists,
-             * and if it does,
-             * check to see that it was built with the same git tree sha.
-             * If it was not, throw an error, otherwise continue to checking
-             * any other tags, or building the image.
-             */
-            checkStrict: boolean;
-            /**
-             * For each tag in this list,
-             * attempt to pull down the docker image, and check the tree hash
-             * that it was built with.
-             * If it was built using the same tree hash,
-             * then simply push this existing image using the new tag.
-             */
-            alsoCheck: string[];
-          },
+        checkStrict: boolean;
         /**
-         * Tag to use when building and pushing the docker image
+         * For each tag in this list,
+         * attempt to pull down the docker image, and check the tree hash
+         * that it was built with.
+         * If it was built using the same tree hash,
+         * then simply push this existing image using the new tag.
          */
-        tag: string,
-        /**
-         * If defined,
-         * check the state of the given tag in the upstream repo before pushing
-         * the image, and throw an error if the constraint isn't met.
-         *
-         * This is a safeguard against pushing different images with the same tag
-         */
-        checkTag?:
-          | BuildAndPushDockerImageCheckTagCondition
-          | {
+        alsoCheck: string[];
+      };
+      /**
+       * Tag to use when building and pushing the docker image
+       */
+      tag: string;
+      /**
+       * If defined,
+       * check the state of the given tag in the upstream repo before pushing
+       * the image, and throw an error if the constraint isn't met.
+       *
+       * This is a safeguard against pushing different images with the same tag
+       */
+      checkTag?:
+        | BuildAndPushDockerImageCheckTagCondition
+        | {
             mode: 'conditional';
             /**
              * What condition needs to be met before pushing a retagged image
@@ -317,10 +326,8 @@ export const runAction = async (
              * What condition needs to be met before pushing a build image
              */
             built: BuildAndPushDockerImageCheckTagCondition;
-          },
-
-      }
-    ) => {
+          };
+    }) => {
       const { tag, checkBehaviour } = opts;
       info(`Logging in to docker`);
       const docker = dockerInit(config.docker);
@@ -330,7 +337,7 @@ export const runAction = async (
         }
         await docker.login({
           user: env.DOCKER_USERNAME,
-          pass: env.DOCKER_PASSWORD
+          pass: env.DOCKER_PASSWORD,
         });
       }
 
@@ -341,17 +348,21 @@ export const runAction = async (
       let existingMatchingImage: string | null = null;
       if (checkBehaviour) {
         info(`Checking for existing docker image with tag ${tag}`);
-        const imagePulled = await docker.pullImage(tag, logger);
-        const image = imagePulled && await docker.getMetadata(tag);
+        const isImagePulled = await docker.pullImage(tag, logger);
+        const image = isImagePulled && (await docker.getMetadata(tag));
 
         if (image) {
           // An image already exists, make sure it was built using the same files
-          info(`Image already exists, checking it was built with same git tree`);
+          info(
+            `Image already exists, checking it was built with same git tree`
+          );
           if (image.treeSha !== head.commit.tree) {
             if (checkBehaviour.checkStrict) {
               throw new Error(`Image was built with different tree, aborting`);
             } else {
-              info(`This image was built with a different tree, we can't use it`);
+              info(
+                `This image was built with a different tree, we can't use it`
+              );
             }
           } else {
             info(`Image was built with same tree, no need to run build again`);
@@ -362,14 +373,20 @@ export const runAction = async (
         }
         for (const tag of checkBehaviour.alsoCheck) {
           info(`Checking for existing docker image with tag ${tag}`);
-          const imagePulled = await docker.pullImage(tag, logger);
-          const image = imagePulled && await docker.getMetadata(tag);
+          const isImagePulled = await docker.pullImage(tag, logger);
+          const image = isImagePulled && (await docker.getMetadata(tag));
           if (image) {
-            info(`Image already exists, checking it was built with same git tree`);
+            info(
+              `Image already exists, checking it was built with same git tree`
+            );
             if (image.treeSha !== head.commit.tree) {
-              info(`This image was built with a different tree, we can't use it`);
+              info(
+                `This image was built with a different tree, we can't use it`
+              );
             } else {
-              info(`Image was built with same tree, no need to run build again`);
+              info(
+                `Image was built with same tree, no need to run build again`
+              );
               existingMatchingImage = tag;
               continue;
             }
@@ -381,7 +398,9 @@ export const runAction = async (
           info(`Building new image`);
         }
       } else if (!checkBehaviour) {
-        info(`Skipping check for existing image with tag ${tag}, building new image`);
+        info(
+          `Skipping check for existing image with tag ${tag}, building new image`
+        );
       }
 
       if (existingMatchingImage) {
@@ -396,31 +415,42 @@ export const runAction = async (
             treeSha: head.commit.tree,
           },
           cwd: dir,
-          logger
+          logger,
         });
       }
-      const checkTag = opts.checkTag?.mode === 'conditional' ? (
-        existingMatchingImage ? opts.checkTag.retagged : opts.checkTag.built
-      ) : opts.checkTag;
+      const checkTag =
+        opts.checkTag?.mode === 'conditional'
+          ? existingMatchingImage
+            ? opts.checkTag.retagged
+            : opts.checkTag.built
+          : opts.checkTag;
       if (checkTag?.mode === 'match') {
         const tag = checkTag.gitTag;
         info(`Image built, checking tag ${tag} is unchanged`);
         await git.deleteRef({ fs, dir, ref: `refs/tags/${tag}` });
         await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir });
-        const newTagSha = await git.resolveRef({ fs, dir, ref: `refs/tags/${tag}` });
+        const newTagSha = await git.resolveRef({
+          fs,
+          dir,
+          ref: `refs/tags/${tag}`,
+        });
         if (newTagSha !== checkTag.sha) {
           throw new Error('Tag has changed, aborting');
         } else {
           info(`Tag is unchanged, okay to continue`);
         }
-      } else if(checkTag?.mode === 'non-existant') {
+      } else if (checkTag?.mode === 'non-existant') {
         const tag = checkTag.gitTag;
         info(`Image built, checking tag ${tag} still does not exist`);
-        const exists =
-          await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })
+        const doesExist = await exec(
+          `git fetch ${remote.remote} ${tag}:${tag}`,
+          {
+            cwd: dir,
+          }
+        )
           .then(() => true)
           .catch(() => false);
-        if (exists) {
+        if (doesExist) {
           if (checkTag.onError) {
             await checkTag.onError();
           } else {
@@ -435,7 +465,7 @@ export const runAction = async (
       info(`Pushing image to docker repository`);
       await docker.pushImage(tag);
       info(`Image Pushed`);
-    }
+    };
 
     const runCICommands = async () => {
       info(`Running CI Checks`);
@@ -443,34 +473,34 @@ export const runAction = async (
       for (const command of config.ci || []) {
         info(`Running: ${command}`);
         await execAndPipeOutput({ command, cwd: dir, logger });
-      };
+      }
 
       info(`CI Checks Complete`);
-    }
+    };
 
     const getUniquePullRequest = async () => {
       const prs = await github.getOpenPullRequests({ branch });
       if (prs.data.length === 0) {
         throw new NoPullRequestError(
           `The branch ${branch} has no pull requests open yet, ` +
-          `so it is not possible to run this workflow.`
+            `so it is not possible to run this workflow.`
         );
       } else if (prs.data.length > 1) {
         throw new Error(
           `Multiple pull requests for branch ${branch} are open, ` +
-          `so it is not possible to run this workflow.`
+            `so it is not possible to run this workflow.`
         );
       } else {
         return prs.data[0];
       }
-    }
+    };
 
     const failWithPRComment = async (opts: {
-      pullRequest: PullRequest
-      comment: string,
-      error: string,
+      pullRequest: PullRequest;
+      comment: string;
+      error: string;
     }) => {
-      const { pullRequest, comment, error} = opts;
+      const { pullRequest, comment, error } = opts;
       const cMode = commentMode(pullRequest);
       if (cMode === 'comment') {
         await github.commentOnPullRequest({
@@ -485,7 +515,7 @@ export const runAction = async (
         });
       }
       throw new Error(error);
-    }
+    };
 
     /**
      * Try and fetch a specific tag from the remote,
@@ -494,36 +524,35 @@ export const runAction = async (
     const fetchTag = (tag: string) =>
       exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })
         .then(() => true)
-        .catch(err => {
+        .catch((err) => {
           if (err.stderr.indexOf(`fatal: couldn't find remote ref`) > -1) {
             return false;
           } else {
             throw err;
           }
         });
-    
+
     const checkTagNotUsed = async (tag: string, pullRequest: PullRequest) => {
       info(`Checking if there is an existing tag for ${tag}`);
-      const existing = await fetchTag(tag);
-      if (existing) {
+      const doesExist = await fetchTag(tag);
+      if (doesExist) {
         const file = versionFilePath(config.repoType);
         await failWithPRComment({
           error: `Tag already exists for version ${tag}, aborting.`,
           pullRequest,
-          comment: (
+          comment:
             `There is already a tag for version ${tag},` +
             `so we can't create another release with the same version.\n\n` +
             `Please update the version in \`${file}\`\n\n to something ` +
             `that has not yet had peen deployed to \`env/prod\` ` +
-            `or \`${config.stagingEnvironmentBranch}\`.`
-          )
+            `or \`${config.stagingEnvironmentBranch}\`.`,
         });
       }
-    }
+    };
 
     const checkDescendant = async (params: {
       baseBranch: string;
-      base: { sha: string; };
+      base: { sha: string };
       pullRequest: PullRequest;
       errorMessage: string;
     }) => {
@@ -531,20 +560,24 @@ export const runAction = async (
 
       // Before checking descendant, fetch the most recent 1000 commits of the
       // hotfix branch (as actions/checkout will have fetched with a depth of 1)
-      await exec(`git fetch --depth 1000 ${remote.remote} ${branch}`, { cwd: dir });
-      if (!await git.isDescendent({
-        fs,
-        dir,
-        ancestor: base.sha,
-        oid: head.oid
-      })) {
+      await exec(`git fetch --depth 1000 ${remote.remote} ${branch}`, {
+        cwd: dir,
+      });
+      if (
+        !(await git.isDescendent({
+          fs,
+          dir,
+          ancestor: base.sha,
+          oid: head.oid,
+        }))
+      ) {
         await failWithPRComment({
           error: `${branch} is not a descendant of target (base) branch ${baseBranch}`,
           pullRequest,
-          comment: errorMessage
+          comment: errorMessage,
         });
       }
-    }
+    };
 
     const buildAndPushDockerImageForReleaseOrHotfix = (params: {
       /**
@@ -565,37 +598,36 @@ export const runAction = async (
         checkTag: {
           mode: 'non-existant',
           gitTag,
-          onError: () => failWithPRComment({
-            error: `Tag ${gitTag} has been created, aborting`,
-            pullRequest,
-            comment: (
-              `During the build of the docker image, the tag ${dockerTag} ` +
-              `was created, and so the workflow has been aborted, ` +
-              `and the docker image has not been pushed.\n\n` +
-              `Please chose a new version and update the pull request.`
-            )
-          })
+          onError: () =>
+            failWithPRComment({
+              error: `Tag ${gitTag} has been created, aborting`,
+              pullRequest,
+              comment:
+                `During the build of the docker image, the tag ${dockerTag} ` +
+                `was created, and so the workflow has been aborted, ` +
+                `and the docker image has not been pushed.\n\n` +
+                `Please chose a new version and update the pull request.`,
+            }),
         },
       });
-    }
+    };
 
-    const commentOnPullRequestWithDockerInfo = async (params: {
+    const commentOnPullRequestWithDockerInfo = (params: {
       pullRequest: PullRequest;
       tag: string;
     }) => {
       const { pullRequest, tag } = params;
       // Post about successful
-      const body = (
+      const body =
         `Docker image has been successfully built and pushed as: ` +
         `\`${config.docker.repository}:${tag}\`\n\n` +
         `Please deploy this image to a development environment, and test ` +
-        `it is working as expected before merging this pull request.`
-      );
+        `it is working as expected before merging this pull request.`;
       const cMode = commentMode(pullRequest);
       if (cMode === 'comment') {
         return github.commentOnPullRequest({
           pullRequestNumber: pullRequest.number,
-          body
+          body,
         });
       } else if (cMode === 'review') {
         return github.reviewPullRequest({
@@ -604,11 +636,11 @@ export const runAction = async (
           state: 'approve',
         });
       }
-    }
+    };
 
     const createDeploymentIfRequired = async (params: {
-      dockerTag: string,
-      ref: string,
+      dockerTag: string;
+      ref: string;
     }) => {
       if (config.deployments) {
         for (const environment of config.deployments.environments) {
@@ -619,17 +651,17 @@ export const runAction = async (
               required_contexts: [],
               environment: environment.environment,
               payload: {
-                docker_tag: params.dockerTag
+                docker_tag: params.dockerTag,
               },
               production_environment: mode === 'env-production',
               transient_environment: false,
               ref: params.ref,
               task: 'deploy',
-            })
+            });
           }
         }
       }
-    }
+    };
 
     // Handle the push as appropriate for the given branch
 
@@ -637,26 +669,26 @@ export const runAction = async (
       const tag = `v${version}`;
       const preTag = `${tag}-pre`;
       info(`Checking if there is an existing tag for ${tag}`);
-      const existing = await fetchTag(tag);
+      const doesExist = await fetchTag(tag);
 
       /**
        * The commit sha for the tag after it's been created or checked
        */
       let tagSha: string | null = null;
-      if (existing) {
+      if (doesExist) {
         // Check that the tree hash of the existing tag matches
         // (i.e. the content hasn't changed without changing the version)
-        info(`The tag ${tag} already exists, checking that tree hasn't changed`);
+        info(
+          `The tag ${tag} already exists, checking that tree hasn't changed`
+        );
         tagSha = await git.resolveRef({ fs, dir, ref: `refs/tags/${tag}` });
         const tagHead = await git.readCommit({ fs, dir, oid: tagSha });
         if (tagHead.commit.tree !== head.commit.tree) {
           throw new Error(`New push to ${branch} without bumping version`);
+        } else if (tagHead.oid === head.oid) {
+          info(`The tag is for the current commit, okay to continue`);
         } else {
-          if (tagHead.oid === head.oid) {
-            info(`The tag is for the current commit, okay to continue`);
-          } else {
-            info(`The current tree matches the existing tag, okay to continue`);
-          }
+          info(`The current tree matches the existing tag, okay to continue`);
         }
       } else if (mode === 'env-production') {
         // Create and push the tag if production
@@ -685,8 +717,8 @@ export const runAction = async (
           checkTag: {
             mode: 'match',
             gitTag: tag,
-            sha: tagSha
-          }
+            sha: tagSha,
+          },
         });
       } else {
         await buildAndPushDockerImage({
@@ -699,20 +731,22 @@ export const runAction = async (
             mode: 'conditional',
             built: {
               mode: 'non-existant',
-              gitTag: tag
+              gitTag: tag,
             },
-            // if an image is retagged, and we know about an existing git tag
+            // If an image is retagged, and we know about an existing git tag
             // then ensure that the git tag is still the same,
             // otherwise require that it doesn't exist
-            retagged: tagSha ? {
-              mode: 'match',
-              gitTag: tag,
-              sha: tagSha
-            } : {
-              mode: 'non-existant',
-              gitTag: tag
-            }
-          }
+            retagged: tagSha
+              ? {
+                  mode: 'match',
+                  gitTag: tag,
+                  sha: tagSha,
+                }
+              : {
+                  mode: 'non-existant',
+                  gitTag: tag,
+                },
+          },
         });
         deploymentSha = head.oid;
         deploymentDockerTag = preTag;
@@ -729,21 +763,21 @@ export const runAction = async (
       await exec(`git push ${remote.remote} ${mergebackBranch}`, { cwd: dir });
 
       info(`Opening Mergeback Pull Request`);
-      const base = mode === 'env-production' ? config.stagingEnvironmentBranch : 'develop';
+      const base =
+        mode === 'env-production' ? config.stagingEnvironmentBranch : 'develop';
       await github.openPullRequest({
         base,
         head: mergebackBranch,
         title: `Update ${base} with changes from ${branch}`,
-        labels: config.mergebackLabels || []
+        labels: config.mergebackLabels || [],
       });
 
       info(`Pull Request Opened, workflow complete`);
-
     } else if (mode === 'env-development') {
       const tag = branch.replace(/\//g, '-');
       await buildAndPushDockerImage({
         checkBehaviour: null,
-        tag
+        tag,
       });
       await createDeploymentIfRequired({
         dockerTag: tag,
@@ -755,17 +789,19 @@ export const runAction = async (
       // Check that the base branch is either env/<stage|staging> or env/prod
 
       const baseBranch = pullRequest.base.ref;
-      if (baseBranch !== 'env/prod' && baseBranch !== config.stagingEnvironmentBranch) {
+      if (
+        baseBranch !== 'env/prod' &&
+        baseBranch !== config.stagingEnvironmentBranch
+      ) {
         await failWithPRComment({
           error: `Pull request from hotfix/ branch made against ${baseBranch}`,
           pullRequest,
-          comment: (
+          comment:
             `Pull requests from \`hotfix/<name>\` branches can only target ` +
             `\`env/prod\` and \`${config.stagingEnvironmentBranch}\`:\n\n` +
             `* If this is supposed to be a hotfix, please re-target this pull request.\n` +
             `* If this is not supposed to be a hotfix, ` +
-            `please use a branch name that does not begin with \`hotfix/\``
-          )
+            `please use a branch name that does not begin with \`hotfix/\``,
         });
       }
 
@@ -780,18 +816,19 @@ export const runAction = async (
       // environment).
 
       await exec(`git fetch ${remote.remote} ${baseBranch}`, { cwd: dir });
-      const base = await readRefShaAndVersion(`refs/remotes/${remote.remote}/${baseBranch}`);
+      const base = await readRefShaAndVersion(
+        `refs/remotes/${remote.remote}/${baseBranch}`
+      );
       await checkDescendant({
         base,
         baseBranch,
         pullRequest,
-        errorMessage: (
+        errorMessage:
           `\`${branch}\` (${head.oid}) is not a descendant of ` +
           `\`${baseBranch}\` (${base.sha}), which means there are new ` +
           `commits in \`${baseBranch}\` that aren't included in \`${branch}\`.\n\n` +
           `Please rebase \`${branch}\` on-top of \`${baseBranch}\` ` +
-          `(or merge \`${baseBranch}\` into \`${branch}\`).`
-        )
+          `(or merge \`${baseBranch}\` into \`${branch}\`).`,
       });
 
       const dockerTag = `${tag}-pre`;
@@ -799,13 +836,12 @@ export const runAction = async (
       await buildAndPushDockerImageForReleaseOrHotfix({
         dockerTag,
         gitTag: tag,
-        pullRequest
+        pullRequest,
       });
 
       await runCICommands();
 
       await commentOnPullRequestWithDockerInfo({ pullRequest, tag: dockerTag });
-
     } else if (mode === 'release') {
       const pullRequest = await getUniquePullRequest();
 
@@ -816,35 +852,34 @@ export const runAction = async (
         await failWithPRComment({
           error: `Pull request from release/ branch made against ${baseBranch}`,
           pullRequest,
-          comment: (
+          comment:
             `Pull requests from \`release/<name>\` branches can only target ` +
             `\`${config.stagingEnvironmentBranch}\`:\n\n` +
             `* If this is supposed to be a release, please re-target this pull request.\n` +
             `* If this is not supposed to be a release, ` +
-            `please use a branch name that does not begin with \`release/\``
-          )
+            `please use a branch name that does not begin with \`release/\``,
         });
       }
-
 
       // Check that there is no existing tag for the current version in package.json.
       const tag = `v${version}`;
       await checkTagNotUsed(tag, pullRequest);
 
       // Check that the current HEAD of the base branch is an ancestor of the
-      // HEAD of the release branch 
+      // HEAD of the release branch
       await exec(`git fetch ${remote.remote} ${baseBranch}`, { cwd: dir });
-      const base = await readRefShaAndVersion(`refs/remotes/${remote.remote}/${baseBranch}`);
+      const base = await readRefShaAndVersion(
+        `refs/remotes/${remote.remote}/${baseBranch}`
+      );
       await checkDescendant({
         base,
         baseBranch,
         pullRequest,
-        errorMessage: (
+        errorMessage:
           `\`${branch}\` (${head.oid}) is not a descendant of ` +
           `\`${baseBranch}\` (${base.sha}), which means there are new ` +
           `commits in \`${baseBranch}\` that aren't included in \`${branch}\`.\n\n` +
-          `Please merge \`${baseBranch}\` into \`${branch}\`.`
-        )
+          `Please merge \`${baseBranch}\` into \`${branch}\`.`,
       });
 
       const dockerTag = `${tag}-pre`;
@@ -852,41 +887,41 @@ export const runAction = async (
       await buildAndPushDockerImageForReleaseOrHotfix({
         dockerTag,
         gitTag: tag,
-        pullRequest
+        pullRequest,
       });
 
       await runCICommands();
 
       await commentOnPullRequestWithDockerInfo({ pullRequest, tag: dockerTag });
-
     } else if (mode === 'other') {
       const pullRequest = await getUniquePullRequest();
 
-      // check that the base branch is NOT env/<stage|staging> or env/prod
+      // Check that the base branch is NOT env/<stage|staging> or env/prod
 
       const baseBranch = pullRequest.base.ref;
-      if (baseBranch === config.stagingEnvironmentBranch && !branch.startsWith('mergeback/')) {
+      if (
+        baseBranch === config.stagingEnvironmentBranch &&
+        !branch.startsWith('mergeback/')
+      ) {
         await failWithPRComment({
           error: `Pull request from ${branch} made against ${baseBranch}`,
           pullRequest,
-          comment: (
+          comment:
             `Pull requests that modify \`${config.stagingEnvironmentBranch}\` must be either:\n\n` +
             `* a release, merging \`release/<version>\` into \`${config.stagingEnvironmentBranch}\`, or\n` +
             `* a hotfix, merging \`hotfix/<name>\` into \`${config.stagingEnvironmentBranch}\`\n` +
             `* an automated mergeback pull request, merging \`mergeback/<name>\` into \`${config.stagingEnvironmentBranch}\`\n\n` +
-            `For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)`
-          )
+            `For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)`,
         });
       } else if (baseBranch === 'env/prod') {
         await failWithPRComment({
           error: `Pull request from ${branch} made against ${baseBranch}`,
           pullRequest,
-          comment: (
+          comment:
             `Pull requests that modify \`env/prod\` must be either:\n\n` +
             `* an update, merging \`${config.stagingEnvironmentBranch}\` into \`env/prod\`, or\n` +
             `* a hotfix, merging \`hotfix/<name>\` into \`env/prod\`\n\n` +
-            `For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)`
-          )
+            `For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)`,
         });
       }
 
@@ -896,21 +931,15 @@ export const runAction = async (
       if (cMode === 'comment') {
         return github.commentOnPullRequest({
           pullRequestNumber: pullRequest.number,
-          body: (
-            `Checks have passed and this pull request is ready for manual review`
-          ),
+          body: `Checks have passed and this pull request is ready for manual review`,
         });
       } else if (cMode === 'review') {
         return github.reviewPullRequest({
           pullRequestNumber: pullRequest.number,
-          body: (
-            `Checks have passed and this pull request is ready for manual review`
-          ),
+          body: `Checks have passed and this pull request is ready for manual review`,
           state: 'approve',
         });
       }
-
     }
-
   }
-}
+};

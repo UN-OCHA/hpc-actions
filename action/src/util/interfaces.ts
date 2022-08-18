@@ -1,4 +1,4 @@
 export interface Logger {
-  log: (...args: any[]) => void;
-  error: (...args: any[]) => void;
+  log: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
 }

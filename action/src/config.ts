@@ -1,6 +1,6 @@
 /**
  * Configuration for this action.
- * 
+ *
  * Rather than provide all configuration options via environment variables,
  * we've opted to use json configuration files instead to allow for more
  * extensibility. This configuration file will be used for all options,
@@ -99,7 +99,7 @@ const DOCKER_CONFIG = t.intersection([
      * and assume that this has already been done before this action.
      */
     skipLogin: t.boolean,
-  })
+  }),
 ]);
 
 const CONFIG = t.intersection([
@@ -118,14 +118,14 @@ const CONFIG = t.intersection([
     developmentEnvironmentBranches: t.array(t.string),
     /**
      * What type of repository is this?
-     * 
+     *
      * This is used to work out how to calculate the current version
      */
     repoType: t.keyof({
       /**
        * Calculate the current version by reading the version from package.json
        */
-      'node': null,
+      node: null,
     }),
     /**
      * Configuration for the docker image build and publication
@@ -146,17 +146,19 @@ const CONFIG = t.intersection([
      * If provided, automatically create GitHub deployments
      */
     deployments: t.type({
-      environments: t.array(t.type({
-        branch: t.string,
-        /**
-         * String to pass to the GitHub API as the `environment` parameter
-         * 
-         * @see https://docs.github.com/en/rest/reference/repos#create-a-deployment
-         */
-        environment: t.string,
-      }))
-    })
-  })
+      environments: t.array(
+        t.type({
+          branch: t.string,
+          /**
+           * String to pass to the GitHub API as the `environment` parameter
+           *
+           * @see https://docs.github.com/en/rest/reference/repos#create-a-deployment
+           */
+          environment: t.string,
+        })
+      ),
+    }),
+  }),
 ]);
 
 /**
@@ -173,17 +175,18 @@ export const getConfig = async (env: Env): Promise<Config> => {
   if (!env.CONFIG_FILE) {
     throw new Error('Environment Variable CONFIG_FILE is required');
   }
-  const data = await fs.readFile(env.CONFIG_FILE)
-    .catch(err => {
-      if (err.message?.startsWith('ENOENT: no such file or directory')) {
-        throw new Error(`Could not find configuration file "${env.CONFIG_FILE}" specified in CONFIG_FILE`);
-      } else {
-        throw err;
-      }
-    });
+  const data = await fs.readFile(env.CONFIG_FILE).catch((err) => {
+    if (err.message?.startsWith('ENOENT: no such file or directory')) {
+      throw new Error(
+        `Could not find configuration file "${env.CONFIG_FILE}" specified in CONFIG_FILE`
+      );
+    } else {
+      throw err;
+    }
+  });
   let json: string;
   try {
-    json = JSON.parse(data.toString())
+    json = JSON.parse(data.toString());
   } catch (err) {
     let errMsg = `The configuration file at "${env.CONFIG_FILE}" is not valid JSON`;
     if (err instanceof Error) {
@@ -193,21 +196,27 @@ export const getConfig = async (env: Env): Promise<Config> => {
   }
   const config = CONFIG.decode(json);
   if (either.isLeft(config)) {
-    throw new Error('Invalid Configuration: \n* ' + PathReporter.report(config).join('\n* '));
+    throw new Error(
+      'Invalid Configuration: \n* ' + PathReporter.report(config).join('\n* ')
+    );
   }
   // Check that development environments all start with `env/`
   for (const env of config.right.developmentEnvironmentBranches) {
     if (!env.startsWith('env/')) {
-      throw new Error('Invalid Configuration: All development environment branches must start with env/');
+      throw new Error(
+        'Invalid Configuration: All development environment branches must start with env/'
+      );
     }
   }
   if (
     config.right.docker.registry &&
-    !config.right.docker.repository.startsWith(`${config.right.docker.registry}/`)
+    !config.right.docker.repository.startsWith(
+      `${config.right.docker.registry}/`
+    )
   ) {
     throw new Error(
       'Invalid Configuration: Docker repository must start with: ' +
-      `${config.right.docker.registry}/`
+        `${config.right.docker.registry}/`
     );
   }
   return config.right;

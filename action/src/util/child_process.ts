@@ -6,25 +6,23 @@ import { Logger } from './interfaces';
 /**
  * Like child_process.exec,
  * but pipe all stdout and stderr to the given logger.
- * 
+ *
  * Optionally, send data to the stdin of the child process
  */
-export const execAndPipeOutput = (
-  opts: {
-    command: string,
-    cwd: string,
-    logger: Logger,
-    /**
-     * If set, pipe the given data to the child process
-     */
-    data?: string,
-  }
-) => {
-  const {command, cwd, logger} = opts;
+export const execAndPipeOutput = (opts: {
+  command: string;
+  cwd: string;
+  logger: Logger;
+  /**
+   * If set, pipe the given data to the child process
+   */
+  data?: string;
+}) => {
+  const { command, cwd, logger } = opts;
   const p = child_process.execFile('sh', ['-c', command], { cwd });
   const buffer = {
     stderr: '',
-    stdout: ''
+    stdout: '',
   };
   for (const stream of ['stdout', 'stderr'] as const) {
     const handle = (data: string) => {
@@ -35,7 +33,7 @@ export const execAndPipeOutput = (
         buffer[stream] = buffer[stream].substr(nextBreak + 1);
         logger[stream === 'stdout' ? 'log' : 'error'](ready);
       }
-    }
+    };
     p[stream]?.on('data', handle);
   }
   if (opts.data) {
@@ -47,7 +45,7 @@ export const execAndPipeOutput = (
     p.stdin.end();
   }
   return new Promise((resolve, reject) =>
-    p.on('exit', code => {
+    p.on('exit', (code) => {
       // Print any remaining data
       for (const stream of ['stdout', 'stderr'] as const) {
         if (buffer[stream] !== '') {
@@ -61,6 +59,6 @@ export const execAndPipeOutput = (
       }
     })
   );
-}
+};
 
 export const exec = promisify(child_process.exec);
