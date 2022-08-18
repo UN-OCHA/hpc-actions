@@ -237,8 +237,8 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
             let existingMatchingImage = null;
             if (checkBehaviour) {
                 info(`Checking for existing docker image with tag ${tag}`);
-                const imagePulled = await docker.pullImage(tag, logger);
-                const image = imagePulled && (await docker.getMetadata(tag));
+                const isImagePulled = await docker.pullImage(tag, logger);
+                const image = isImagePulled && (await docker.getMetadata(tag));
                 if (image) {
                     // An image already exists, make sure it was built using the same files
                     info(`Image already exists, checking it was built with same git tree`);
@@ -260,8 +260,8 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 }
                 for (const tag of checkBehaviour.alsoCheck) {
                     info(`Checking for existing docker image with tag ${tag}`);
-                    const imagePulled = await docker.pullImage(tag, logger);
-                    const image = imagePulled && (await docker.getMetadata(tag));
+                    const isImagePulled = await docker.pullImage(tag, logger);
+                    const image = isImagePulled && (await docker.getMetadata(tag));
                     if (image) {
                         info(`Image already exists, checking it was built with same git tree`);
                         if (image.treeSha !== head.commit.tree) {
@@ -325,12 +325,12 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
             else if ((checkTag === null || checkTag === void 0 ? void 0 : checkTag.mode) === 'non-existant') {
                 const tag = checkTag.gitTag;
                 info(`Image built, checking tag ${tag} still does not exist`);
-                const exists = await exec(`git fetch ${remote.remote} ${tag}:${tag}`, {
+                const doesExist = await exec(`git fetch ${remote.remote} ${tag}:${tag}`, {
                     cwd: dir,
                 })
                     .then(() => true)
                     .catch(() => false);
-                if (exists) {
+                if (doesExist) {
                     if (checkTag.onError) {
                         await checkTag.onError();
                     }
@@ -405,8 +405,8 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
         });
         const checkTagNotUsed = async (tag, pullRequest) => {
             info(`Checking if there is an existing tag for ${tag}`);
-            const existing = await fetchTag(tag);
-            if (existing) {
+            const doesExist = await fetchTag(tag);
+            if (doesExist) {
                 const file = versionFilePath(config.repoType);
                 await failWithPRComment({
                     error: `Tag already exists for version ${tag}, aborting.`,
@@ -506,12 +506,12 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
             const tag = `v${version}`;
             const preTag = `${tag}-pre`;
             info(`Checking if there is an existing tag for ${tag}`);
-            const existing = await fetchTag(tag);
+            const doesExist = await fetchTag(tag);
             /**
              * The commit sha for the tag after it's been created or checked
              */
             let tagSha = null;
-            if (existing) {
+            if (doesExist) {
                 // Check that the tree hash of the existing tag matches
                 // (i.e. the content hasn't changed without changing the version)
                 info(`The tag ${tag} already exists, checking that tree hasn't changed`);
