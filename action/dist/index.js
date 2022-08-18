@@ -520,13 +520,11 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 if (tagHead.commit.tree !== head.commit.tree) {
                     throw new Error(`New push to ${branch} without bumping version`);
                 }
+                else if (tagHead.oid === head.oid) {
+                    info(`The tag is for the current commit, okay to continue`);
+                }
                 else {
-                    if (tagHead.oid === head.oid) {
-                        info(`The tag is for the current commit, okay to continue`);
-                    }
-                    else {
-                        info(`The current tree matches the existing tag, okay to continue`);
-                    }
+                    info(`The current tree matches the existing tag, okay to continue`);
                 }
             }
             else if (mode === 'env-production') {
