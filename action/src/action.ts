@@ -167,7 +167,7 @@ export const runAction = async ({
             oid: sha,
             filepath: versionFilePath(config.repoType),
           })
-          .catch((err) => {
+          .catch(() => {
             throw new Error(
               `Unable to read version from package.json: File not found in commit ${sha}`
             );
@@ -199,7 +199,7 @@ export const runAction = async ({
         fs,
         dir,
       })
-      .catch((err) => {
+      .catch(() => {
         // Assume that not in git repository
         throw new Error('Action not run within git repository');
       });
