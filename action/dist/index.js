@@ -54240,8 +54240,8 @@ var AsyncLock = _interopDefault(__nccwpck_require__(1542));
 var Hash = _interopDefault(__nccwpck_require__(2398));
 var crc32 = _interopDefault(__nccwpck_require__(3201));
 var pako = _interopDefault(__nccwpck_require__(1726));
-var ignore = _interopDefault(__nccwpck_require__(1230));
 var pify = _interopDefault(__nccwpck_require__(4810));
+var ignore = _interopDefault(__nccwpck_require__(1230));
 var cleanGitRef = _interopDefault(__nccwpck_require__(3268));
 var diff3Merge = _interopDefault(__nccwpck_require__(5211));
 
@@ -54574,6 +54574,21 @@ class BaseError extends Error {
   }
 }
 
+class UnmergedPathsError extends BaseError {
+  /**
+   * @param {Array<string>} filepaths
+   */
+  constructor(filepaths) {
+    super(
+      `Modifying the index is not possible because you have unmerged files: ${filepaths.toString}. Fix them up in the work tree, and then use 'git add/rm as appropriate to mark resolution and make a commit.`
+    );
+    this.code = this.name = UnmergedPathsError.code;
+    this.data = { filepaths };
+  }
+}
+/** @type {'UnmergedPathsError'} */
+UnmergedPathsError.code = 'UnmergedPathsError';
+
 class InternalError extends BaseError {
   /**
    * @param {string} message
@@ -54859,9 +54874,26 @@ class GitIndex {
    _entries: Map<string, CacheEntry>
    _dirty: boolean // Used to determine if index needs to be saved to filesystem
    */
-  constructor(entries) {
+  constructor(entries, unmergedPaths) {
     this._dirty = false;
+    this._unmergedPaths = unmergedPaths || new Set();
     this._entries = entries || new Map();
+  }
+
+  _addEntry(entry) {
+    if (entry.flags.stage === 0) {
+      entry.stages = [entry];
+      this._entries.set(entry.path, entry);
+      this._unmergedPaths.delete(entry.path);
+    } else {
+      let existingEntry = this._entries.get(entry.path);
+      if (!existingEntry) {
+        this._entries.set(entry.path, entry);
+        existingEntry = entry;
+      }
+      existingEntry.stages[entry.flags.stage] = entry;
+      this._unmergedPaths.add(entry.path);
+    }
   }
 
   static async from(buffer) {
@@ -54883,8 +54915,8 @@ class GitIndex {
         `Invalid checksum in GitIndex buffer: expected ${shaClaimed} but saw ${shaComputed}`
       )
     }
+    const index = new GitIndex();
     const reader = new BufferCursor(buffer);
-    const _entries = new Map();
     const magic = reader.toString('utf8', 4);
     if (magic !== 'DIRC') {
       throw new InternalError(`Inavlid dircache magic file number: ${magic}`)
@@ -54939,10 +54971,17 @@ class GitIndex {
         }
       }
       // end of awkward part
-      _entries.set(entry.path, entry);
+      entry.stages = [];
+
+      index._addEntry(entry);
+
       i++;
     }
-    return new GitIndex(_entries)
+    return index
+  }
+
+  get unmergedPaths() {
+    return [...this._unmergedPaths]
   }
 
   get entries() {
@@ -54953,13 +54992,33 @@ class GitIndex {
     return this._entries
   }
 
+  get entriesFlat() {
+    return [...this.entries].flatMap(entry => {
+      return entry.stages.length > 1 ? entry.stages.filter(x => x) : entry
+    })
+  }
+
   *[Symbol.iterator]() {
     for (const entry of this.entries) {
       yield entry;
     }
   }
 
-  insert({ filepath, stats, oid }) {
+  insert({ filepath, stats, oid, stage = 0 }) {
+    if (!stats) {
+      stats = {
+        ctimeSeconds: 0,
+        ctimeNanoseconds: 0,
+        mtimeSeconds: 0,
+        mtimeNanoseconds: 0,
+        dev: 0,
+        ino: 0,
+        mode: 0,
+        uid: 0,
+        gid: 0,
+        size: 0,
+      };
+    }
     stats = normalizeStats(stats);
     const bfilepath = Buffer.from(filepath);
     const entry = {
@@ -54981,11 +55040,14 @@ class GitIndex {
       flags: {
         assumeValid: false,
         extended: false,
-        stage: 0,
+        stage,
         nameLength: bfilepath.length < 0xfff ? bfilepath.length : 0xfff,
       },
+      stages: [],
     };
-    this._entries.set(entry.path, entry);
+
+    this._addEntry(entry);
+
     this._dirty = true;
   }
 
@@ -54998,6 +55060,10 @@ class GitIndex {
           this._entries.delete(key);
         }
       }
+    }
+
+    if (this._unmergedPaths.has(filepath)) {
+      this._unmergedPaths.delete(filepath);
     }
     this._dirty = true;
   }
@@ -55017,36 +55083,50 @@ class GitIndex {
       .join('\n')
   }
 
+  static async _entryToBuffer(entry) {
+    const bpath = Buffer.from(entry.path);
+    // the fixed length + the filename + at least one null char => align by 8
+    const length = Math.ceil((62 + bpath.length + 1) / 8) * 8;
+    const written = Buffer.alloc(length);
+    const writer = new BufferCursor(written);
+    const stat = normalizeStats(entry);
+    writer.writeUInt32BE(stat.ctimeSeconds);
+    writer.writeUInt32BE(stat.ctimeNanoseconds);
+    writer.writeUInt32BE(stat.mtimeSeconds);
+    writer.writeUInt32BE(stat.mtimeNanoseconds);
+    writer.writeUInt32BE(stat.dev);
+    writer.writeUInt32BE(stat.ino);
+    writer.writeUInt32BE(stat.mode);
+    writer.writeUInt32BE(stat.uid);
+    writer.writeUInt32BE(stat.gid);
+    writer.writeUInt32BE(stat.size);
+    writer.write(entry.oid, 20, 'hex');
+    writer.writeUInt16BE(renderCacheEntryFlags(entry));
+    writer.write(entry.path, bpath.length, 'utf8');
+    return written
+  }
+
   async toObject() {
     const header = Buffer.alloc(12);
     const writer = new BufferCursor(header);
     writer.write('DIRC', 4, 'utf8');
     writer.writeUInt32BE(2);
-    writer.writeUInt32BE(this.entries.length);
-    const body = Buffer.concat(
-      this.entries.map(entry => {
-        const bpath = Buffer.from(entry.path);
-        // the fixed length + the filename + at least one null char => align by 8
-        const length = Math.ceil((62 + bpath.length + 1) / 8) * 8;
-        const written = Buffer.alloc(length);
-        const writer = new BufferCursor(written);
-        const stat = normalizeStats(entry);
-        writer.writeUInt32BE(stat.ctimeSeconds);
-        writer.writeUInt32BE(stat.ctimeNanoseconds);
-        writer.writeUInt32BE(stat.mtimeSeconds);
-        writer.writeUInt32BE(stat.mtimeNanoseconds);
-        writer.writeUInt32BE(stat.dev);
-        writer.writeUInt32BE(stat.ino);
-        writer.writeUInt32BE(stat.mode);
-        writer.writeUInt32BE(stat.uid);
-        writer.writeUInt32BE(stat.gid);
-        writer.writeUInt32BE(stat.size);
-        writer.write(entry.oid, 20, 'hex');
-        writer.writeUInt16BE(renderCacheEntryFlags(entry));
-        writer.write(entry.path, bpath.length, 'utf8');
-        return written
-      })
-    );
+    writer.writeUInt32BE(this.entriesFlat.length);
+
+    let entryBuffers = [];
+    for (const entry of this.entries) {
+      entryBuffers.push(GitIndex._entryToBuffer(entry));
+      if (entry.stages.length > 1) {
+        for (const stage of entry.stages) {
+          if (stage && stage !== entry) {
+            entryBuffers.push(GitIndex._entryToBuffer(stage));
+          }
+        }
+      }
+    }
+    entryBuffers = await Promise.all(entryBuffers);
+
+    const body = Buffer.concat(entryBuffers);
     const main = Buffer.concat([header, body]);
     const sum = await shasum(main);
     return Buffer.concat([main, Buffer.from(sum, 'hex')])
@@ -55112,14 +55192,16 @@ class GitIndexManager {
    * @param {import('../models/FileSystem.js').FileSystem} opts.fs
    * @param {string} opts.gitdir
    * @param {object} opts.cache
+   * @param {bool} opts.allowUnmerged
    * @param {function(GitIndex): any} closure
    */
-  static async acquire({ fs, gitdir, cache }, closure) {
+  static async acquire({ fs, gitdir, cache, allowUnmerged = true }, closure) {
     if (!cache[IndexCache]) cache[IndexCache] = createCache();
 
     const filepath = `${gitdir}/index`;
     if (lock === null) lock = new AsyncLock({ maxPending: Infinity });
     let result;
+    let unmergedPaths = [];
     await lock.acquire(filepath, async () => {
       // Acquire a file lock while we're reading the index
       // to make sure other processes aren't writing to it
@@ -55129,6 +55211,11 @@ class GitIndexManager {
         await updateCachedIndexFile(fs, filepath, cache[IndexCache]);
       }
       const index = cache[IndexCache].map.get(filepath);
+      unmergedPaths = index.unmergedPaths;
+
+      if (unmergedPaths.length && !allowUnmerged)
+        throw new UnmergedPathsError(unmergedPaths)
+
       result = await closure(index);
       if (index._dirty) {
         // Acquire a file lock while we're writing the index file
@@ -57615,6 +57702,21 @@ class UserCanceledError extends BaseError {
 /** @type {'UserCanceledError'} */
 UserCanceledError.code = 'UserCanceledError';
 
+class IndexResetError extends BaseError {
+  /**
+   * @param {Array<string>} filepaths
+   */
+  constructor(filepath) {
+    super(
+      `Could not merge index: Entry for '${filepath}' is not up to date. Either reset the index entry to HEAD, or stage your unstaged chages.`
+    );
+    this.code = this.name = IndexResetError.code;
+    this.data = { filepath };
+  }
+}
+/** @type {'IndexResetError'} */
+IndexResetError.code = 'IndexResetError';
+
 
 
 var Errors = /*#__PURE__*/Object.freeze({
@@ -57647,7 +57749,9 @@ var Errors = /*#__PURE__*/Object.freeze({
   UnknownTransportError: UnknownTransportError,
   UnsafeFilepathError: UnsafeFilepathError,
   UrlParseError: UrlParseError,
-  UserCanceledError: UserCanceledError
+  UserCanceledError: UserCanceledError,
+  UnmergedPathsError: UnmergedPathsError,
+  IndexResetError: IndexResetError
 });
 
 function formatAuthor({ name, email, timestamp, timezoneOffset }) {
@@ -58331,60 +58435,168 @@ function WORKDIR() {
 
 // @ts-check
 
-// I'm putting this in a Manager because I reckon it could benefit
-// from a LOT of cacheing.
-class GitIgnoreManager {
-  static async isIgnored({ fs, dir, gitdir = join(dir, '.git'), filepath }) {
-    // ALWAYS ignore ".git" folders.
-    if (basename(filepath) === '.git') return true
-    // '.' is not a valid gitignore entry, so '.' is never ignored
-    if (filepath === '.') return false
-    // Check and load exclusion rules from project exclude file (.git/info/exclude)
-    let excludes = '';
-    const excludesFile = join(gitdir, 'info', 'exclude');
-    if (await fs.exists(excludesFile)) {
-      excludes = await fs.read(excludesFile, 'utf8');
-    }
-    // Find all the .gitignore files that could affect this file
-    const pairs = [
-      {
-        gitignore: join(dir, '.gitignore'),
-        filepath,
-      },
-    ];
-    const pieces = filepath.split('/').filter(Boolean);
-    for (let i = 1; i < pieces.length; i++) {
-      const folder = pieces.slice(0, i).join('/');
-      const file = pieces.slice(i).join('/');
-      pairs.push({
-        gitignore: join(dir, folder, '.gitignore'),
-        filepath: file,
-      });
-    }
-    let ignoredStatus = false;
-    for (const p of pairs) {
-      let file;
-      try {
-        file = await fs.read(p.gitignore, 'utf8');
-      } catch (err) {
-        if (err.code === 'NOENT') continue
-      }
-      const ign = ignore().add(excludes);
-      ign.add(file);
-      // If the parent directory is excluded, we are done.
-      // "It is not possible to re-include a file if a parent directory of that file is excluded. Git doesn’t list excluded directories for performance reasons, so any patterns on contained files have no effect, no matter where they are defined."
-      // source: https://git-scm.com/docs/gitignore
-      const parentdir = dirname(p.filepath);
-      if (parentdir !== '.' && ign.ignores(parentdir)) return true
-      // If the file is currently ignored, test for UNignoring.
-      if (ignoredStatus) {
-        ignoredStatus = !ign.test(p.filepath).unignored;
-      } else {
-        ignoredStatus = ign.test(p.filepath).ignored;
-      }
-    }
-    return ignoredStatus
+// https://dev.to/namirsab/comment/2050
+function arrayRange(start, end) {
+  const length = end - start;
+  return Array.from({ length }, (_, i) => start + i)
+}
+
+// TODO: Should I just polyfill Array.flat?
+const flat =
+  typeof Array.prototype.flat === 'undefined'
+    ? entries => entries.reduce((acc, x) => acc.concat(x), [])
+    : entries => entries.flat();
+
+// This is convenient for computing unions/joins of sorted lists.
+class RunningMinimum {
+  constructor() {
+    // Using a getter for 'value' would just bloat the code.
+    // You know better than to set it directly right?
+    this.value = null;
   }
+
+  consider(value) {
+    if (value === null || value === undefined) return
+    if (this.value === null) {
+      this.value = value;
+    } else if (value < this.value) {
+      this.value = value;
+    }
+  }
+
+  reset() {
+    this.value = null;
+  }
+}
+
+// Take an array of length N of
+//   iterators of length Q_n
+//     of strings
+// and return an iterator of length max(Q_n) for all n
+//   of arrays of length N
+//     of string|null who all have the same string value
+function* unionOfIterators(sets) {
+  /* NOTE: We can assume all arrays are sorted.
+   * Indexes are sorted because they are defined that way:
+   *
+   * > Index entries are sorted in ascending order on the name field,
+   * > interpreted as a string of unsigned bytes (i.e. memcmp() order, no
+   * > localization, no special casing of directory separator '/'). Entries
+   * > with the same name are sorted by their stage field.
+   *
+   * Trees should be sorted because they are created directly from indexes.
+   * They definitely should be sorted, or else they wouldn't have a unique SHA1.
+   * So that would be very naughty on the part of the tree-creator.
+   *
+   * Lastly, the working dir entries are sorted because I choose to sort them
+   * in my FileSystem.readdir() implementation.
+   */
+
+  // Init
+  const min = new RunningMinimum();
+  let minimum;
+  const heads = [];
+  const numsets = sets.length;
+  for (let i = 0; i < numsets; i++) {
+    // Abuse the fact that iterators continue to return 'undefined' for value
+    // once they are done
+    heads[i] = sets[i].next().value;
+    if (heads[i] !== undefined) {
+      min.consider(heads[i]);
+    }
+  }
+  if (min.value === null) return
+  // Iterate
+  while (true) {
+    const result = [];
+    minimum = min.value;
+    min.reset();
+    for (let i = 0; i < numsets; i++) {
+      if (heads[i] !== undefined && heads[i] === minimum) {
+        result[i] = heads[i];
+        heads[i] = sets[i].next().value;
+      } else {
+        // A little hacky, but eh
+        result[i] = null;
+      }
+      if (heads[i] !== undefined) {
+        min.consider(heads[i]);
+      }
+    }
+    yield result;
+    if (min.value === null) return
+  }
+}
+
+// @ts-check
+
+/**
+ * @param {object} args
+ * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {object} args.cache
+ * @param {string} [args.dir]
+ * @param {string} [args.gitdir=join(dir,'.git')]
+ * @param {Walker[]} args.trees
+ * @param {WalkerMap} [args.map]
+ * @param {WalkerReduce} [args.reduce]
+ * @param {WalkerIterate} [args.iterate]
+ *
+ * @returns {Promise<any>} The finished tree-walking result
+ *
+ * @see {WalkerMap}
+ *
+ */
+async function _walk({
+  fs,
+  cache,
+  dir,
+  gitdir,
+  trees,
+  // @ts-ignore
+  map = async (_, entry) => entry,
+  // The default reducer is a flatmap that filters out undefineds.
+  reduce = async (parent, children) => {
+    const flatten = flat(children);
+    if (parent !== undefined) flatten.unshift(parent);
+    return flatten
+  },
+  // The default iterate function walks all children concurrently
+  iterate = (walk, children) => Promise.all([...children].map(walk)),
+}) {
+  const walkers = trees.map(proxy =>
+    proxy[GitWalkSymbol]({ fs, dir, gitdir, cache })
+  );
+
+  const root = new Array(walkers.length).fill('.');
+  const range = arrayRange(0, walkers.length);
+  const unionWalkerFromReaddir = async entries => {
+    range.map(i => {
+      entries[i] = entries[i] && new walkers[i].ConstructEntry(entries[i]);
+    });
+    const subdirs = await Promise.all(
+      range.map(i => (entries[i] ? walkers[i].readdir(entries[i]) : []))
+    );
+    // Now process child directories
+    const iterators = subdirs
+      .map(array => (array === null ? [] : array))
+      .map(array => array[Symbol.iterator]());
+    return {
+      entries,
+      children: unionOfIterators(iterators),
+    }
+  };
+
+  const walk = async root => {
+    const { entries, children } = await unionWalkerFromReaddir(root);
+    const fullpath = entries.find(entry => entry && entry._fullpath)._fullpath;
+    const parent = await map(fullpath, entries);
+    if (parent !== null) {
+      let walkedChildren = await iterate(walk, children);
+      walkedChildren = walkedChildren.filter(x => x !== undefined);
+      return reduce(parent, walkedChildren)
+    }
+  };
+  return walk(root)
 }
 
 /**
@@ -58648,6 +58860,197 @@ class FileSystem {
   }
 }
 
+function assertParameter(name, value) {
+  if (value === undefined) {
+    throw new MissingParameterError(name)
+  }
+}
+
+// @ts-check
+/**
+ *
+ * @param {WalkerEntry} entry
+ * @param {WalkerEntry} base
+ *
+ */
+async function modified(entry, base) {
+  if (!entry && !base) return false
+  if (entry && !base) return true
+  if (!entry && base) return true
+  if ((await entry.type()) === 'tree' && (await base.type()) === 'tree') {
+    return false
+  }
+  if (
+    (await entry.type()) === (await base.type()) &&
+    (await entry.mode()) === (await base.mode()) &&
+    (await entry.oid()) === (await base.oid())
+  ) {
+    return false
+  }
+  return true
+}
+
+// @ts-check
+
+/**
+ * Abort a merge in progress.
+ *
+ * Based on the behavior of git reset --merge, i.e.  "Resets the index and updates the files in the working tree that are different between <commit> and HEAD, but keeps those which are different between the index and working tree (i.e. which have changes which have not been added). If a file that is different between <commit> and the index has unstaged changes, reset is aborted."
+ *
+ * Essentially, abortMerge will reset any files affected by merge conflicts to their last known good version at HEAD.
+ * Any unstaged changes are saved and any staged changes are reset as well.
+ *
+ * NOTE: The behavior of this command differs slightly from canonical git in that an error will be thrown if a file exists in the index and nowhere else.
+ * Canonical git will reset the file and continue aborting the merge in this case.
+ *
+ * **WARNING:** Running git merge with non-trivial uncommitted changes is discouraged: while possible, it may leave you in a state that is hard to back out of in the case of a conflict.
+ * If there were uncommitted changes when the merge started (and especially if those changes were further modified after the merge was started), `git.abortMerge` will in some cases be unable to reconstruct the original (pre-merge) changes.
+ *
+ * @param {object} args
+ * @param {FsClient} args.fs - a file system implementation
+ * @param {string} args.dir - The [working tree](dir-vs-gitdir.md) directory path
+ * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
+ * @param {string} [args.commit='HEAD'] - commit to reset the index and worktree to, defaults to HEAD
+ * @param {object} [args.cache] - a [cache](cache.md) object
+ *
+ * @returns {Promise<void>} Resolves successfully once the git index has been updated
+ *
+ */
+async function abortMerge({
+  fs: _fs,
+  dir,
+  gitdir = join(dir, '.git'),
+  commit = 'HEAD',
+  cache = {},
+}) {
+  try {
+    assertParameter('fs', _fs);
+    assertParameter('dir', dir);
+    assertParameter('gitdir', gitdir);
+
+    const fs = new FileSystem(_fs);
+    const trees = [TREE({ ref: commit }), WORKDIR(), STAGE()];
+    let unmergedPaths = [];
+
+    await GitIndexManager.acquire({ fs, gitdir, cache }, async function(index) {
+      unmergedPaths = index.unmergedPaths;
+    });
+
+    const results = await _walk({
+      fs,
+      cache,
+      dir,
+      gitdir,
+      trees,
+      map: async function(path, [head, workdir, index]) {
+        const staged = !(await modified(workdir, index));
+        const unmerged = unmergedPaths.includes(path);
+        const unmodified = !(await modified(index, head));
+
+        if (staged || unmerged) {
+          return head
+            ? {
+                path,
+                mode: await head.mode(),
+                oid: await head.oid(),
+                type: await head.type(),
+                content: await head.content(),
+              }
+            : undefined
+        }
+
+        if (unmodified) return false
+        else throw new IndexResetError(path)
+      },
+    });
+
+    await GitIndexManager.acquire({ fs, gitdir, cache }, async function(index) {
+      // Reset paths in index and worktree, this can't be done in _walk because the
+      // STAGE walker acquires its own index lock.
+
+      for (const entry of results) {
+        if (entry === false) continue
+
+        // entry is not false, so from here we can assume index = workdir
+        if (!entry) {
+          await fs.rmdir(`${dir}/${entry.path}`, { recursive: true });
+          index.delete({ filepath: entry.path });
+          continue
+        }
+
+        if (entry.type === 'blob') {
+          const content = new TextDecoder().decode(entry.content);
+          await fs.write(`${dir}/${entry.path}`, content, { mode: entry.mode });
+          index.insert({
+            filepath: entry.path,
+            oid: entry.oid,
+            stage: 0,
+          });
+        }
+      }
+    });
+  } catch (err) {
+    err.caller = 'git.abortMerge';
+    throw err
+  }
+}
+
+// I'm putting this in a Manager because I reckon it could benefit
+// from a LOT of cacheing.
+class GitIgnoreManager {
+  static async isIgnored({ fs, dir, gitdir = join(dir, '.git'), filepath }) {
+    // ALWAYS ignore ".git" folders.
+    if (basename(filepath) === '.git') return true
+    // '.' is not a valid gitignore entry, so '.' is never ignored
+    if (filepath === '.') return false
+    // Check and load exclusion rules from project exclude file (.git/info/exclude)
+    let excludes = '';
+    const excludesFile = join(gitdir, 'info', 'exclude');
+    if (await fs.exists(excludesFile)) {
+      excludes = await fs.read(excludesFile, 'utf8');
+    }
+    // Find all the .gitignore files that could affect this file
+    const pairs = [
+      {
+        gitignore: join(dir, '.gitignore'),
+        filepath,
+      },
+    ];
+    const pieces = filepath.split('/').filter(Boolean);
+    for (let i = 1; i < pieces.length; i++) {
+      const folder = pieces.slice(0, i).join('/');
+      const file = pieces.slice(i).join('/');
+      pairs.push({
+        gitignore: join(dir, folder, '.gitignore'),
+        filepath: file,
+      });
+    }
+    let ignoredStatus = false;
+    for (const p of pairs) {
+      let file;
+      try {
+        file = await fs.read(p.gitignore, 'utf8');
+      } catch (err) {
+        if (err.code === 'NOENT') continue
+      }
+      const ign = ignore().add(excludes);
+      ign.add(file);
+      // If the parent directory is excluded, we are done.
+      // "It is not possible to re-include a file if a parent directory of that file is excluded. Git doesn’t list excluded directories for performance reasons, so any patterns on contained files have no effect, no matter where they are defined."
+      // source: https://git-scm.com/docs/gitignore
+      const parentdir = dirname(p.filepath);
+      if (parentdir !== '.' && ign.ignores(parentdir)) return true
+      // If the file is currently ignored, test for UNignoring.
+      if (ignoredStatus) {
+        ignoredStatus = !ign.test(p.filepath).unignored;
+      } else {
+        ignoredStatus = ign.test(p.filepath).ignored;
+      }
+    }
+    return ignoredStatus
+  }
+}
+
 async function writeObjectLoose({ fs, gitdir, object, format, oid }) {
   if (format !== 'deflated') {
     throw new InternalError(
@@ -58713,12 +59116,6 @@ async function _writeObject({
     await writeObjectLoose({ fs, gitdir, object, format: 'deflated', oid });
   }
   return oid
-}
-
-function assertParameter(name, value) {
-  if (value === undefined) {
-    throw new MissingParameterError(name)
-  }
 }
 
 function posixifyPathBuffer(buffer) {
@@ -58882,62 +59279,65 @@ async function _commit({
     });
   }
 
-  return GitIndexManager.acquire({ fs, gitdir, cache }, async function(index) {
-    const inodes = flatFileListToDirectoryStructure(index.entries);
-    const inode = inodes.get('.');
-    if (!tree) {
-      tree = await constructTree({ fs, gitdir, inode, dryRun });
-    }
-    if (!parent) {
-      try {
-        parent = [
-          await GitRefManager.resolve({
-            fs,
-            gitdir,
-            ref,
-          }),
-        ];
-      } catch (err) {
-        // Probably an initial commit
-        parent = [];
+  return GitIndexManager.acquire(
+    { fs, gitdir, cache, allowUnmerged: false },
+    async function(index) {
+      const inodes = flatFileListToDirectoryStructure(index.entries);
+      const inode = inodes.get('.');
+      if (!tree) {
+        tree = await constructTree({ fs, gitdir, inode, dryRun });
       }
-    } else {
-      // ensure that the parents are oids, not refs
-      parent = await Promise.all(
-        parent.map(p => {
-          return GitRefManager.resolve({ fs, gitdir, ref: p })
-        })
-      );
-    }
+      if (!parent) {
+        try {
+          parent = [
+            await GitRefManager.resolve({
+              fs,
+              gitdir,
+              ref,
+            }),
+          ];
+        } catch (err) {
+          // Probably an initial commit
+          parent = [];
+        }
+      } else {
+        // ensure that the parents are oids, not refs
+        parent = await Promise.all(
+          parent.map(p => {
+            return GitRefManager.resolve({ fs, gitdir, ref: p })
+          })
+        );
+      }
 
-    let comm = GitCommit.from({
-      tree,
-      parent,
-      author,
-      committer,
-      message,
-    });
-    if (signingKey) {
-      comm = await GitCommit.sign(comm, onSign, signingKey);
-    }
-    const oid = await _writeObject({
-      fs,
-      gitdir,
-      type: 'commit',
-      object: comm.toObject(),
-      dryRun,
-    });
-    if (!noUpdateBranch && !dryRun) {
-      // Update branch pointer
-      await GitRefManager.writeRef({
+      let comm = GitCommit.from({
+        tree,
+        parent,
+        author,
+        committer,
+        message,
+      });
+      if (signingKey) {
+        comm = await GitCommit.sign(comm, onSign, signingKey);
+      }
+      const oid = await _writeObject({
         fs,
         gitdir,
-        ref,
-        value: oid,
+        type: 'commit',
+        object: comm.toObject(),
+        dryRun,
       });
+      if (!noUpdateBranch && !dryRun) {
+        // Update branch pointer
+        await GitRefManager.writeRef({
+          fs,
+          gitdir,
+          ref,
+          value: oid,
+        });
+      }
+      return oid
     }
-    return oid
-  })
+  )
 }
 
 async function constructTree({ fs, gitdir, inode, dryRun }) {
@@ -59020,7 +59420,7 @@ async function _resolveFilepath({
           oid: entry.oid,
         });
         if (type !== 'tree') {
-          throw new ObjectTypeError(oid, type, 'blob', filepath)
+          throw new ObjectTypeError(oid, type, 'tree', filepath)
         }
         tree = GitTree.from(object);
         return _resolveFilepath({
@@ -59623,7 +60023,9 @@ async function annotatedTag({
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
  * @param {string} args.gitdir
  * @param {string} args.ref
+ * @param {string} [args.object = 'HEAD']
  * @param {boolean} [args.checkout = false]
+ * @param {boolean} [args.force = false]
  *
  * @returns {Promise<void>} Resolves successfully when filesystem operations are complete
  *
@@ -59632,22 +60034,31 @@ async function annotatedTag({
  * console.log('done')
  *
  */
-async function _branch({ fs, gitdir, ref, checkout = false }) {
+async function _branch({
+  fs,
+  gitdir,
+  ref,
+  object,
+  checkout = false,
+  force = false,
+}) {
   if (ref !== cleanGitRef.clean(ref)) {
     throw new InvalidRefNameError(ref, cleanGitRef.clean(ref))
   }
 
   const fullref = `refs/heads/${ref}`;
 
-  const exist = await GitRefManager.exists({ fs, gitdir, ref: fullref });
-  if (exist) {
-    throw new AlreadyExistsError('branch', ref, false)
+  if (!force) {
+    const exist = await GitRefManager.exists({ fs, gitdir, ref: fullref });
+    if (exist) {
+      throw new AlreadyExistsError('branch', ref, false)
+    }
   }
 
   // Get current HEAD tree oid
   let oid;
   try {
-    oid = await GitRefManager.resolve({ fs, gitdir, ref: 'HEAD' });
+    oid = await GitRefManager.resolve({ fs, gitdir, ref: object || 'HEAD' });
   } catch (e) {
     // Probably an empty repo
   }
@@ -59678,7 +60089,9 @@ async function _branch({ fs, gitdir, ref, checkout = false }) {
  * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
  * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
  * @param {string} args.ref - What to name the branch
+ * @param {string} [args.object = 'HEAD'] - What oid to use as the start point. Accepts a symbolic ref.
  * @param {boolean} [args.checkout = false] - Update `HEAD` to point at the newly created branch
+ * @param {boolean} [args.force = false] - Instead of throwing an error if a branched named `ref` already exists, overwrite the existing branch.
  *
  * @returns {Promise<void>} Resolves successfully when filesystem operations are complete
  *
@@ -59692,7 +60105,9 @@ async function branch({
   dir,
   gitdir = join(dir, '.git'),
   ref,
+  object,
   checkout = false,
+  force = false,
 }) {
   try {
     assertParameter('fs', fs);
@@ -59702,176 +60117,14 @@ async function branch({
       fs: new FileSystem(fs),
       gitdir,
       ref,
+      object,
       checkout,
+      force,
     })
   } catch (err) {
     err.caller = 'git.branch';
     throw err
   }
-}
-
-// https://dev.to/namirsab/comment/2050
-function arrayRange(start, end) {
-  const length = end - start;
-  return Array.from({ length }, (_, i) => start + i)
-}
-
-// TODO: Should I just polyfill Array.flat?
-const flat =
-  typeof Array.prototype.flat === 'undefined'
-    ? entries => entries.reduce((acc, x) => acc.concat(x), [])
-    : entries => entries.flat();
-
-// This is convenient for computing unions/joins of sorted lists.
-class RunningMinimum {
-  constructor() {
-    // Using a getter for 'value' would just bloat the code.
-    // You know better than to set it directly right?
-    this.value = null;
-  }
-
-  consider(value) {
-    if (value === null || value === undefined) return
-    if (this.value === null) {
-      this.value = value;
-    } else if (value < this.value) {
-      this.value = value;
-    }
-  }
-
-  reset() {
-    this.value = null;
-  }
-}
-
-// Take an array of length N of
-//   iterators of length Q_n
-//     of strings
-// and return an iterator of length max(Q_n) for all n
-//   of arrays of length N
-//     of string|null who all have the same string value
-function* unionOfIterators(sets) {
-  /* NOTE: We can assume all arrays are sorted.
-   * Indexes are sorted because they are defined that way:
-   *
-   * > Index entries are sorted in ascending order on the name field,
-   * > interpreted as a string of unsigned bytes (i.e. memcmp() order, no
-   * > localization, no special casing of directory separator '/'). Entries
-   * > with the same name are sorted by their stage field.
-   *
-   * Trees should be sorted because they are created directly from indexes.
-   * They definitely should be sorted, or else they wouldn't have a unique SHA1.
-   * So that would be very naughty on the part of the tree-creator.
-   *
-   * Lastly, the working dir entries are sorted because I choose to sort them
-   * in my FileSystem.readdir() implementation.
-   */
-
-  // Init
-  const min = new RunningMinimum();
-  let minimum;
-  const heads = [];
-  const numsets = sets.length;
-  for (let i = 0; i < numsets; i++) {
-    // Abuse the fact that iterators continue to return 'undefined' for value
-    // once they are done
-    heads[i] = sets[i].next().value;
-    if (heads[i] !== undefined) {
-      min.consider(heads[i]);
-    }
-  }
-  if (min.value === null) return
-  // Iterate
-  while (true) {
-    const result = [];
-    minimum = min.value;
-    min.reset();
-    for (let i = 0; i < numsets; i++) {
-      if (heads[i] !== undefined && heads[i] === minimum) {
-        result[i] = heads[i];
-        heads[i] = sets[i].next().value;
-      } else {
-        // A little hacky, but eh
-        result[i] = null;
-      }
-      if (heads[i] !== undefined) {
-        min.consider(heads[i]);
-      }
-    }
-    yield result;
-    if (min.value === null) return
-  }
-}
-
-// @ts-check
-
-/**
- * @param {object} args
- * @param {import('../models/FileSystem.js').FileSystem} args.fs
- * @param {object} args.cache
- * @param {string} [args.dir]
- * @param {string} [args.gitdir=join(dir,'.git')]
- * @param {Walker[]} args.trees
- * @param {WalkerMap} [args.map]
- * @param {WalkerReduce} [args.reduce]
- * @param {WalkerIterate} [args.iterate]
- *
- * @returns {Promise<any>} The finished tree-walking result
- *
- * @see {WalkerMap}
- *
- */
-async function _walk({
-  fs,
-  cache,
-  dir,
-  gitdir,
-  trees,
-  // @ts-ignore
-  map = async (_, entry) => entry,
-  // The default reducer is a flatmap that filters out undefineds.
-  reduce = async (parent, children) => {
-    const flatten = flat(children);
-    if (parent !== undefined) flatten.unshift(parent);
-    return flatten
-  },
-  // The default iterate function walks all children concurrently
-  iterate = (walk, children) => Promise.all([...children].map(walk)),
-}) {
-  const walkers = trees.map(proxy =>
-    proxy[GitWalkSymbol]({ fs, dir, gitdir, cache })
-  );
-
-  const root = new Array(walkers.length).fill('.');
-  const range = arrayRange(0, walkers.length);
-  const unionWalkerFromReaddir = async entries => {
-    range.map(i => {
-      entries[i] = entries[i] && new walkers[i].ConstructEntry(entries[i]);
-    });
-    const subdirs = await Promise.all(
-      range.map(i => (entries[i] ? walkers[i].readdir(entries[i]) : []))
-    );
-    // Now process child directories
-    const iterators = subdirs
-      .map(array => (array === null ? [] : array))
-      .map(array => array[Symbol.iterator]());
-    return {
-      entries,
-      children: unionOfIterators(iterators),
-    }
-  };
-
-  const walk = async root => {
-    const { entries, children } = await unionWalkerFromReaddir(root);
-    const fullpath = entries.find(entry => entry && entry._fullpath)._fullpath;
-    const parent = await map(fullpath, entries);
-    if (parent !== null) {
-      let walkedChildren = await iterate(walk, children);
-      walkedChildren = walkedChildren.filter(x => x !== undefined);
-      return reduce(parent, walkedChildren)
-    }
-  };
-  return walk(root)
 }
 
 const worthWalking = (filepath, root) => {
@@ -61222,8 +61475,8 @@ function filterCapabilities(server, client) {
 
 const pkg = {
   name: 'isomorphic-git',
-  version: '1.19.2',
-  agent: 'git/isomorphic-git@1.19.2',
+  version: '1.23.0',
+  agent: 'git/isomorphic-git@1.23.0',
 };
 
 class FIFO {
@@ -62765,6 +63018,7 @@ async function mergeTree({
   cache,
   dir,
   gitdir = join(dir, '.git'),
+  index,
   ourOid,
   baseOid,
   theirOid,
@@ -62780,8 +63034,6 @@ async function mergeTree({
   const theirTree = TREE({ ref: theirOid });
 
   const unmergedFiles = [];
-
-  let cleanMerge = true;
 
   const results = await _walk({
     fs,
@@ -62844,13 +63096,28 @@ async function mergeTree({
               baseName,
               theirName,
               mergeDriver,
-            }).then(r => {
-              cleanMerge = cleanMerge && r.cleanMerge;
-              unmergedFiles.push(filepath);
+            }).then(async r => {
+              if (!r.cleanMerge) {
+                unmergedFiles.push(filepath);
+                if (!abortOnConflict) {
+                  const baseOid = await base.oid();
+                  const ourOid = await ours.oid();
+                  const theirOid = await theirs.oid();
+
+                  index.delete({ filepath });
+
+                  index.insert({ filepath, oid: baseOid, stage: 1 });
+                  index.insert({ filepath, oid: ourOid, stage: 2 });
+                  index.insert({ filepath, oid: theirOid, stage: 3 });
+                }
+              } else if (!abortOnConflict) {
+                index.insert({ filepath, oid: r.mergeResult.oid, stage: 0 });
+              }
               return r.mergeResult
             })
           }
           // all other types of conflicts fail
+          // TODO: Merge conflicts involving deletions/additions
           throw new MergeNotSupportedError()
         }
       }
@@ -62859,32 +63126,35 @@ async function mergeTree({
      * @param {TreeEntry} [parent]
      * @param {Array<TreeEntry>} children
      */
-    reduce: async (parent, children) => {
-      const entries = children.filter(Boolean); // remove undefineds
+    reduce:
+      unmergedFiles.length !== 0 && (!dir || abortOnConflict)
+        ? undefined
+        : async (parent, children) => {
+            const entries = children.filter(Boolean); // remove undefineds
 
-      // if the parent was deleted, the children have to go
-      if (!parent) return
+            // if the parent was deleted, the children have to go
+            if (!parent) return
 
-      // automatically delete directories if they have been emptied
-      if (parent && parent.type === 'tree' && entries.length === 0) return
+            // automatically delete directories if they have been emptied
+            if (parent && parent.type === 'tree' && entries.length === 0) return
 
-      if (entries.length > 0) {
-        const tree = new GitTree(entries);
-        const object = tree.toObject();
-        const oid = await _writeObject({
-          fs,
-          gitdir,
-          type: 'tree',
-          object,
-          dryRun,
-        });
-        parent.oid = oid;
-      }
-      return parent
-    },
+            if (entries.length > 0) {
+              const tree = new GitTree(entries);
+              const object = tree.toObject();
+              const oid = await _writeObject({
+                fs,
+                gitdir,
+                type: 'tree',
+                object,
+                dryRun,
+              });
+              parent.oid = oid;
+            }
+            return parent
+          },
   });
 
-  if (!cleanMerge) {
+  if (unmergedFiles.length !== 0) {
     if (dir && !abortOnConflict) {
       await _walk({
         fs,
@@ -62903,33 +63173,10 @@ async function mergeTree({
         },
       });
     }
-    throw new MergeConflictError(unmergedFiles)
+    return new MergeConflictError(unmergedFiles)
   }
 
   return results.oid
-}
-
-/**
- *
- * @param {WalkerEntry} entry
- * @param {WalkerEntry} base
- *
- */
-async function modified(entry, base) {
-  if (!entry && !base) return false
-  if (entry && !base) return true
-  if (!entry && base) return true
-  if ((await entry.type()) === 'tree' && (await base.type()) === 'tree') {
-    return false
-  }
-  if (
-    (await entry.type()) === (await base.type()) &&
-    (await entry.mode()) === (await base.mode()) &&
-    (await entry.oid()) === (await base.oid())
-  ) {
-    return false
-  }
-  return true
 }
 
 /**
@@ -63102,6 +63349,7 @@ async function _merge({
     oids: [ourOid, theirOid],
   });
   if (baseOids.length !== 1) {
+    // TODO: Recursive Merge strategy
     throw new MergeNotSupportedError()
   }
   const baseOid = baseOids[0];
@@ -63126,21 +63374,32 @@ async function _merge({
       throw new FastForwardError()
     }
     // try a fancier merge
-    const tree = await mergeTree({
-      fs,
-      cache,
-      dir,
-      gitdir,
-      ourOid,
-      theirOid,
-      baseOid,
-      ourName: abbreviateRef(ours),
-      baseName: 'base',
-      theirName: abbreviateRef(theirs),
-      dryRun,
-      abortOnConflict,
-      mergeDriver,
-    });
+    const tree = await GitIndexManager.acquire(
+      { fs, gitdir, cache, allowUnmerged: false },
+      async index => {
+        return mergeTree({
+          fs,
+          cache,
+          dir,
+          gitdir,
+          index,
+          ourOid,
+          theirOid,
+          baseOid,
+          ourName: abbreviateRef(ours),
+          baseName: 'base',
+          theirName: abbreviateRef(theirs),
+          dryRun,
+          abortOnConflict,
+          mergeDriver,
+        })
+      }
+    );
+
+    // Defer throwing error until the index lock is relinquished and index is
+    // written to filsesystem
+    if (tree instanceof MergeConflictError) throw tree
+
     if (!message) {
       message = `Merge branch '${abbreviateRef(theirs)}' into ${abbreviateRef(
         ours
@@ -68800,6 +69059,7 @@ var index = {
   TREE,
   WORKDIR,
   add,
+  abortMerge,
   addNote,
   addRemote,
   annotatedTag,
@@ -68868,6 +69128,7 @@ exports.Errors = Errors;
 exports.STAGE = STAGE;
 exports.TREE = TREE;
 exports.WORKDIR = WORKDIR;
+exports.abortMerge = abortMerge;
 exports.add = add;
 exports.addNote = addNote;
 exports.addRemote = addRemote;
