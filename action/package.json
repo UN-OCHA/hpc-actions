@@ -14,7 +14,7 @@
     "npm": ">=8.10.0"
   },
   "devDependencies": {
-    "@octokit/webhooks-types": "^6.3.5",
+    "@octokit/webhooks-types": "^6.11.0",
     "@types/jest": "^28.1.7",
     "@types/node": "^18.7.6",
     "@unocha/hpc-repo-tools": "^1.2.0",
