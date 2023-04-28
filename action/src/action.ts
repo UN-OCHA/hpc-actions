@@ -757,7 +757,7 @@ export const runAction = async ({
         ref: deploymentSha,
       });
 
-      const mergebackBranch = `mergeback/${branch.substr(4)}/${version}`;
+      const mergebackBranch = `mergeback/${branch.substring(4)}/${version}`;
       info(`Creating and pushing mergeback Branch: ${mergebackBranch}`);
       await git.branch({ fs, dir, ref: mergebackBranch });
       await exec(`git push ${remote.remote} ${mergebackBranch}`, { cwd: dir });

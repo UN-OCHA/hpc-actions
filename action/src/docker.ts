@@ -100,10 +100,10 @@ export const REAL_DOCKER: DockerInit = (config) => ({
     const varConfig = config.environmentVariables;
     for (const envVar of image.Config.Env) {
       if (envVar.startsWith(`${varConfig.commitSha}=`)) {
-        commitSha = envVar.substr(varConfig.commitSha.length + 1);
+        commitSha = envVar.substring(varConfig.commitSha.length + 1);
       }
       if (envVar.startsWith(`${varConfig.treeSha}=`)) {
-        treeSha = envVar.substr(varConfig.treeSha.length + 1);
+        treeSha = envVar.substring(varConfig.treeSha.length + 1);
       }
     }
     if (!commitSha || !treeSha) {
