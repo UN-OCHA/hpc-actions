@@ -1,17 +1,17 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`github Check existing pull requests 1`] = `
-Object {
-  "octokit": Array [
-    Array [
-      Object {
+{
+  "octokit": [
+    [
+      {
         "auth": "asdf",
       },
     ],
   ],
-  "pulls.list": Array [
-    Array [
-      Object {
+  "pulls.list": [
+    [
+      {
         "head": "oooo:env/foo",
         "owner": "oooo",
         "repo": "rrrr",
@@ -23,10 +23,10 @@ Object {
 `;
 
 exports[`github Invalid Repo 1`] = `
-Object {
-  "octokit": Array [
-    Array [
-      Object {
+{
+  "octokit": [
+    [
+      {
         "auth": "asdf",
       },
     ],
@@ -35,12 +35,12 @@ Object {
 `;
 
 exports[`github Open a pull request 1`] = `
-Object {
-  "issues.update": Array [
-    Array [
-      Object {
+{
+  "issues.update": [
+    [
+      {
         "issue_number": 123,
-        "labels": Array [
+        "labels": [
           "mergeback",
         ],
         "owner": "oooo",
@@ -48,16 +48,16 @@ Object {
       },
     ],
   ],
-  "octokit": Array [
-    Array [
-      Object {
+  "octokit": [
+    [
+      {
         "auth": "asdf",
       },
     ],
   ],
-  "pulls.create": Array [
-    Array [
-      Object {
+  "pulls.create": [
+    [
+      {
         "base": "some-base",
         "head": "some-head",
         "owner": "oooo",
@@ -70,27 +70,27 @@ Object {
 `;
 
 exports[`github Submit a PR rejection 1`] = `
-Object {
-  "octokit": Array [
-    Array [
-      Object {
+{
+  "octokit": [
+    [
+      {
         "auth": "asdf",
       },
     ],
-    Array [
-      Object {
+    [
+      {
         "auth": "asdf",
       },
     ],
-    Array [
-      Object {
+    [
+      {
         "auth": "asdf",
       },
     ],
   ],
-  "pulls.createReview": Array [
-    Array [
-      Object {
+  "pulls.createReview": [
+    [
+      {
         "body": "fooo",
         "event": "APPROVE",
         "owner": "oooo",
@@ -98,8 +98,8 @@ Object {
         "repo": "rrrr",
       },
     ],
-    Array [
-      Object {
+    [
+      {
         "body": "fooo",
         "event": "REQUEST_CHANGES",
         "owner": "oooo",
@@ -107,8 +107,8 @@ Object {
         "repo": "rrrr",
       },
     ],
-    Array [
-      Object {
+    [
+      {
         "body": "fooo",
         "event": "COMMENT",
         "owner": "oooo",

@@ -29,8 +29,8 @@ export const execAndPipeOutput = (opts: {
       buffer[stream] += data;
       let nextBreak: number;
       while ((nextBreak = buffer[stream].indexOf('\n')) > -1) {
-        const ready = buffer[stream].substr(0, nextBreak);
-        buffer[stream] = buffer[stream].substr(nextBreak + 1);
+        const ready = buffer[stream].substring(0, nextBreak);
+        buffer[stream] = buffer[stream].substring(nextBreak + 1);
         logger[stream === 'stdout' ? 'log' : 'error'](ready);
       }
     };
