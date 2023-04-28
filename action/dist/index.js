@@ -591,7 +591,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 dockerTag: deploymentDockerTag,
                 ref: deploymentSha,
             });
-            const mergebackBranch = `mergeback/${branch.substr(4)}/${version}`;
+            const mergebackBranch = `mergeback/${branch.substring(4)}/${version}`;
             info(`Creating and pushing mergeback Branch: ${mergebackBranch}`);
             await isomorphic_git_1.default.branch({ fs: fs_1.default, dir, ref: mergebackBranch });
             await exec(`git push ${remote.remote} ${mergebackBranch}`, { cwd: dir });
@@ -1031,10 +1031,10 @@ const REAL_DOCKER = (config) => ({
         const varConfig = config.environmentVariables;
         for (const envVar of image.Config.Env) {
             if (envVar.startsWith(`${varConfig.commitSha}=`)) {
-                commitSha = envVar.substr(varConfig.commitSha.length + 1);
+                commitSha = envVar.substring(varConfig.commitSha.length + 1);
             }
             if (envVar.startsWith(`${varConfig.treeSha}=`)) {
-                treeSha = envVar.substr(varConfig.treeSha.length + 1);
+                treeSha = envVar.substring(varConfig.treeSha.length + 1);
             }
         }
         if (!commitSha || !treeSha) {
@@ -1194,8 +1194,8 @@ const execAndPipeOutput = (opts) => {
             buffer[stream] += data;
             let nextBreak;
             while ((nextBreak = buffer[stream].indexOf('\n')) > -1) {
-                const ready = buffer[stream].substr(0, nextBreak);
-                buffer[stream] = buffer[stream].substr(nextBreak + 1);
+                const ready = buffer[stream].substring(0, nextBreak);
+                buffer[stream] = buffer[stream].substring(nextBreak + 1);
                 logger[stream === 'stdout' ? 'log' : 'error'](ready);
             }
         };
