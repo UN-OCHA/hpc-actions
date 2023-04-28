@@ -7,7 +7,7 @@
     "lint": "eslint --quiet --ext .ts ./",
     "prepare": "git config blame.ignoreRevsFile action/.git-blame-ignore-revs && cd .. && husky install action/.husky",
     "reinstall": "rm -rf node_modules/ && npm install",
-    "test": "jest --projects test/jest.config.js --runInBand --verbose"
+    "test": "jest --config test/jest.config.js --runInBand --verbose"
   },
   "engines": {
     "node": ">=16.15.0",
