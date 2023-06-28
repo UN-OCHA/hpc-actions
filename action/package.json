@@ -10,8 +10,8 @@
     "test": "jest --config test/jest.config.js --runInBand --verbose"
   },
   "engines": {
-    "node": ">=16.15.0",
-    "npm": ">=8.10.0"
+    "node": ">=18.16.1",
+    "npm": ">=9.5.1"
   },
   "devDependencies": {
     "@octokit/webhooks-types": "^6.11.0",
