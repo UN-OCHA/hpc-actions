@@ -127,7 +127,7 @@ describe('action', () => {
       await fs.promises.writeFile(path.join(dir, 'foo'), 'bar');
       await git.add({ fs, dir, filepath: 'foo' });
       await setAuthor(dir);
-      await exec(`git commit -m package`, { cwd: dir });
+      await exec('git commit -m package', { cwd: dir });
       await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
       await fs.promises.writeFile(EVENT_FILE, JSON.stringify(DEFAULT_PUSH_ENV));
       await action
@@ -154,7 +154,7 @@ describe('action', () => {
       await fs.promises.writeFile(path.join(dir, 'package.json'), '{');
       await git.add({ fs, dir, filepath: 'package.json' });
       await setAuthor(dir);
-      await exec(`git commit -m package`, { cwd: dir });
+      await exec('git commit -m package', { cwd: dir });
       await action
         .runAction({
           env: DEFAULT_ENV,
@@ -184,7 +184,7 @@ describe('action', () => {
       );
       await git.add({ fs, dir, filepath: 'package.json' });
       await setAuthor(dir);
-      await exec(`git commit -m package`, { cwd: dir });
+      await exec('git commit -m package', { cwd: dir });
       await action
         .runAction({
           env: DEFAULT_ENV,
@@ -233,7 +233,7 @@ describe('action', () => {
               );
               await git.add({ fs, dir: upstream, filepath: 'package.json' });
               await setAuthor(upstream);
-              await exec(`git commit -m package`, { cwd: upstream });
+              await exec('git commit -m package', { cwd: upstream });
               await git.branch({ fs, dir: upstream, ref: `env/${env}` });
               // Clone into repo we'll run in, and create appropriate branch
               await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
@@ -276,8 +276,8 @@ describe('action', () => {
               );
               await git.add({ fs, dir: upstream, filepath: 'package.json' });
               await setAuthor(upstream);
-              await exec(`git commit -m package`, { cwd: upstream });
-              await git.tag({ fs, dir: upstream, ref: `v1.2.0` });
+              await exec('git commit -m package', { cwd: upstream });
+              await git.tag({ fs, dir: upstream, ref: 'v1.2.0' });
               await git.branch({ fs, dir: upstream, ref: `env/${env}` });
               // Clone into repo we'll run in, and create appropriate branch
               await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
@@ -320,9 +320,9 @@ describe('action', () => {
               );
               await git.add({ fs, dir: upstream, filepath: 'package.json' });
               await setAuthor(upstream);
-              await exec(`git commit -m package`, { cwd: upstream });
-              await git.tag({ fs, dir: upstream, ref: `v1.2.0` });
-              await exec(`git commit -m followup --allow-empty`, {
+              await exec('git commit -m package', { cwd: upstream });
+              await git.tag({ fs, dir: upstream, ref: 'v1.2.0' });
+              await exec('git commit -m followup --allow-empty', {
                 cwd: upstream,
               });
               await git.branch({ fs, dir: upstream, ref: `env/${env}` });
@@ -367,11 +367,11 @@ describe('action', () => {
               );
               await git.add({ fs, dir: upstream, filepath: 'package.json' });
               await setAuthor(upstream);
-              await exec(`git commit -m package`, { cwd: upstream });
-              await git.tag({ fs, dir: upstream, ref: `v1.2.0` });
+              await exec('git commit -m package', { cwd: upstream });
+              await git.tag({ fs, dir: upstream, ref: 'v1.2.0' });
               await fs.promises.writeFile(path.join(upstream, 'foo'), 'bar');
               await git.add({ fs, dir: upstream, filepath: 'foo' });
-              await exec(`git commit -m followup`, { cwd: upstream });
+              await exec('git commit -m followup', { cwd: upstream });
               await git.branch({ fs, dir: upstream, ref: `env/${env}` });
               // Clone into repo we'll run in, and create appropriate branch
               await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
@@ -419,7 +419,7 @@ describe('action', () => {
               );
               await git.add({ fs, dir: upstream, filepath: 'package.json' });
               await setAuthor(upstream);
-              await exec(`git commit -m package`, { cwd: upstream });
+              await exec('git commit -m package', { cwd: upstream });
               await git.branch({ fs, dir: upstream, ref: `env/${env}` });
               // Clone into repo we'll run in, and create appropriate branch
               await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
@@ -493,8 +493,8 @@ describe('action', () => {
               );
               await git.add({ fs, dir: upstream, filepath: 'package.json' });
               await setAuthor(upstream);
-              await exec(`git commit -m package`, { cwd: upstream });
-              await git.tag({ fs, dir: upstream, ref: `v1.2.0` });
+              await exec('git commit -m package', { cwd: upstream });
+              await git.tag({ fs, dir: upstream, ref: 'v1.2.0' });
               await git.branch({ fs, dir: upstream, ref: `env/${env}` });
               // Clone into repo we'll run in, and create appropriate branch
               await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
@@ -562,7 +562,7 @@ describe('action', () => {
               );
               await git.add({ fs, dir: upstream, filepath: 'package.json' });
               await setAuthor(upstream);
-              await exec(`git commit -m package`, { cwd: upstream });
+              await exec('git commit -m package', { cwd: upstream });
               await git.branch({ fs, dir: upstream, ref: `env/${env}` });
               // Clone into repo we'll run in, and create appropriate branch
               await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
@@ -632,7 +632,7 @@ describe('action', () => {
               );
               await git.add({ fs, dir: upstream, filepath: 'package.json' });
               await setAuthor(upstream);
-              await exec(`git commit -m package`, { cwd: upstream });
+              await exec('git commit -m package', { cwd: upstream });
               await git.branch({ fs, dir: upstream, ref: `env/${env}` });
               // Clone into repo we'll run in, and create appropriate branch
               await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
@@ -697,7 +697,7 @@ describe('action', () => {
               );
               await git.add({ fs, dir: upstream, filepath: 'package.json' });
               await setAuthor(upstream);
-              await exec(`git commit -m package`, { cwd: upstream });
+              await exec('git commit -m package', { cwd: upstream });
               await git.branch({ fs, dir: upstream, ref: `env/${env}` });
               // Clone into repo we'll run in, and create appropriate branch
               await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
@@ -760,7 +760,7 @@ describe('action', () => {
               );
               await git.add({ fs, dir: upstream, filepath: 'package.json' });
               await setAuthor(upstream);
-              await exec(`git commit -m package`, { cwd: upstream });
+              await exec('git commit -m package', { cwd: upstream });
               await git.branch({ fs, dir: upstream, ref: `env/${env}` });
               // Clone into repo we'll run in, and create appropriate branch
               await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
@@ -839,7 +839,7 @@ describe('action', () => {
               );
               await git.add({ fs, dir: upstream, filepath: 'package.json' });
               await setAuthor(upstream);
-              await exec(`git commit -m package`, { cwd: upstream });
+              await exec('git commit -m package', { cwd: upstream });
               await git.branch({ fs, dir: upstream, ref: `env/${env}` });
               // Clone into repo we'll run in, and create appropriate branch
               await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
@@ -863,11 +863,11 @@ describe('action', () => {
                 // in upstream branch when the build is run
                 await fs.promises.writeFile(path.join(upstream, 'foo'), 'bar');
                 await git.add({ fs, dir: upstream, filepath: 'foo' });
-                await exec(`git commit -m followup`, { cwd: upstream });
+                await exec('git commit -m followup', { cwd: upstream });
                 await git.tag({
                   fs,
                   dir: upstream,
-                  ref: `v1.2.0`,
+                  ref: 'v1.2.0',
                   force: true,
                 });
               });
@@ -937,7 +937,7 @@ describe('action', () => {
               );
               await git.add({ fs, dir: upstream, filepath: 'package.json' });
               await setAuthor(upstream);
-              await exec(`git commit -m package`, { cwd: upstream });
+              await exec('git commit -m package', { cwd: upstream });
               await git.branch({ fs, dir: upstream, ref: `env/${env}` });
               // Clone into repo we'll run in, and create appropriate branch
               await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
@@ -1029,7 +1029,7 @@ describe('action', () => {
               );
               await git.add({ fs, dir: upstream, filepath: 'package.json' });
               await setAuthor(upstream);
-              await exec(`git commit -m package`, { cwd: upstream });
+              await exec('git commit -m package', { cwd: upstream });
               await git.branch({ fs, dir: upstream, ref: `env/${env}` });
               // Clone into repo we'll run in, and create appropriate branch
               await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
@@ -1039,7 +1039,7 @@ describe('action', () => {
                 deployments: {
                   environments: [
                     {
-                      branch: `another-branch`,
+                      branch: 'another-branch',
                       environment: env,
                     },
                   ],
@@ -1105,7 +1105,7 @@ describe('action', () => {
             );
             await git.add({ fs, dir: upstream, filepath: 'package.json' });
             await setAuthor(upstream);
-            await exec(`git commit -m package`, { cwd: upstream });
+            await exec('git commit -m package', { cwd: upstream });
             await git.branch({ fs, dir: upstream, ref: `env/${env}` });
             // Clone into repo we'll run in, and create appropriate branch
             await exec(`git clone --branch env/${env} ${upstream} ${dir}`);
@@ -1173,8 +1173,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `env/dev2` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'env/dev2' });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch env/dev2 ${upstream} ${dir}`);
         // Run action
@@ -1185,7 +1185,7 @@ describe('action', () => {
         await fs.promises.writeFile(
           EVENT_FILE,
           JSON.stringify({
-            ref: `refs/heads/env/dev2`,
+            ref: 'refs/heads/env/dev2',
           })
         );
         const logger = util.newLogger();
@@ -1199,7 +1199,7 @@ describe('action', () => {
           .then(() => Promise.reject(new Error('Expected error to be thrown')))
           .catch((err) =>
             expect(err.message).toEqual(
-              `Invalid development branch: env/dev2, must be one of: env/dev`
+              'Invalid development branch: env/dev2, must be one of: env/dev'
             )
           );
         expect(logger.log.mock.calls).toMatchSnapshot();
@@ -1218,8 +1218,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `env/dev` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'env/dev' });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch env/dev ${upstream} ${dir}`);
         // Run action
@@ -1230,7 +1230,7 @@ describe('action', () => {
         await fs.promises.writeFile(
           EVENT_FILE,
           JSON.stringify({
-            ref: `refs/heads/env/dev`,
+            ref: 'refs/heads/env/dev',
           })
         );
         const logger = util.newLogger();
@@ -1292,8 +1292,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'hotfix/foo' });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
         // Prepare github mock
@@ -1308,7 +1308,7 @@ describe('action', () => {
         await fs.promises.writeFile(
           EVENT_FILE,
           JSON.stringify({
-            ref: `refs/heads/hotfix/foo`,
+            ref: 'refs/heads/hotfix/foo',
           })
         );
         const logger = util.newLogger();
@@ -1326,7 +1326,7 @@ describe('action', () => {
           .then(() => Promise.reject(new Error('Expected error to be thrown')))
           .catch((err) => {
             expect(err.message).toEqual(
-              `The branch hotfix/foo has no pull requests open yet, so it is not possible to run this workflow.`
+              'The branch hotfix/foo has no pull requests open yet, so it is not possible to run this workflow.'
             );
             expect(err).toBeInstanceOf(action.NoPullRequestError);
           });
@@ -1347,8 +1347,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'hotfix/foo' });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
         // Prepare github mock
@@ -1363,7 +1363,7 @@ describe('action', () => {
         await fs.promises.writeFile(
           EVENT_FILE,
           JSON.stringify({
-            ref: `refs/heads/hotfix/foo`,
+            ref: 'refs/heads/hotfix/foo',
           })
         );
         const logger = util.newLogger();
@@ -1381,7 +1381,7 @@ describe('action', () => {
           .then(() => Promise.reject(new Error('Expected error to be thrown')))
           .catch((err) => {
             expect(err.message).toEqual(
-              `Multiple pull requests for branch hotfix/foo are open, so it is not possible to run this workflow.`
+              'Multiple pull requests for branch hotfix/foo are open, so it is not possible to run this workflow.'
             );
           });
         expect(logger.log.mock.calls).toMatchSnapshot();
@@ -1401,8 +1401,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'hotfix/foo' });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
         // Prepare github mock
@@ -1423,7 +1423,7 @@ describe('action', () => {
         await fs.promises.writeFile(
           EVENT_FILE,
           JSON.stringify({
-            ref: `refs/heads/hotfix/foo`,
+            ref: 'refs/heads/hotfix/foo',
           })
         );
         const logger = util.newLogger();
@@ -1442,7 +1442,7 @@ describe('action', () => {
           .then(() => Promise.reject(new Error('Expected error to be thrown')))
           .catch((err) => {
             expect(err.message).toEqual(
-              `Pull request from hotfix/ branch made against develop`
+              'Pull request from hotfix/ branch made against develop'
             );
           });
         expect(logger.log.mock.calls).toMatchSnapshot();
@@ -1463,8 +1463,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `env/prod` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'env/prod' });
         await fs.promises.writeFile(
           path.join(upstream, 'package.json'),
           JSON.stringify({
@@ -1473,8 +1473,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'hotfix/foo' });
         await git.tag({ fs, dir: upstream, ref: 'v1.2.1' });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
@@ -1496,7 +1496,7 @@ describe('action', () => {
         await fs.promises.writeFile(
           EVENT_FILE,
           JSON.stringify({
-            ref: `refs/heads/hotfix/foo`,
+            ref: 'refs/heads/hotfix/foo',
           })
         );
         const logger = util.newLogger();
@@ -1515,7 +1515,7 @@ describe('action', () => {
           .then(() => Promise.reject(new Error('Expected error to be thrown')))
           .catch((err) => {
             expect(err.message).toEqual(
-              `Tag already exists for version v1.2.1, aborting.`
+              'Tag already exists for version v1.2.1, aborting.'
             );
           });
         expect(logger.log.mock.calls).toMatchSnapshot();
@@ -1536,8 +1536,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `env/prod` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'env/prod' });
         await fs.promises.writeFile(
           path.join(upstream, 'package.json'),
           JSON.stringify({
@@ -1546,10 +1546,10 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
-        await git.checkout({ fs, dir: upstream, ref: `env/prod` });
-        await exec(`git commit --allow-empty -m another`, { cwd: upstream });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'hotfix/foo' });
+        await git.checkout({ fs, dir: upstream, ref: 'env/prod' });
+        await exec('git commit --allow-empty -m another', { cwd: upstream });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
         // Prepare github mock
@@ -1570,7 +1570,7 @@ describe('action', () => {
         await fs.promises.writeFile(
           EVENT_FILE,
           JSON.stringify({
-            ref: `refs/heads/hotfix/foo`,
+            ref: 'refs/heads/hotfix/foo',
           })
         );
         const logger = util.newLogger();
@@ -1589,7 +1589,7 @@ describe('action', () => {
           .then(() => Promise.reject(new Error('Expected error to be thrown')))
           .catch((err) => {
             expect(err.message).toEqual(
-              `hotfix/foo is not a descendant of target (base) branch env/prod`
+              'hotfix/foo is not a descendant of target (base) branch env/prod'
             );
           });
         expect(logger.log.mock.calls).toMatchSnapshot();
@@ -1618,8 +1618,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `env/prod` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'env/prod' });
         await fs.promises.writeFile(
           path.join(upstream, 'package.json'),
           JSON.stringify({
@@ -1628,8 +1628,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'hotfix/foo' });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
         // Prepare github mock
@@ -1648,7 +1648,7 @@ describe('action', () => {
         const runBuild = jest.fn().mockImplementation(async () => {
           // Simulate the tag changing by explicitly changing the tag
           // in upstream branch when the build is run
-          await git.tag({ fs, dir: upstream, ref: `v1.2.1`, force: true });
+          await git.tag({ fs, dir: upstream, ref: 'v1.2.1', force: true });
         });
         const retagImage = jest.fn().mockResolvedValue(null);
         const pushImage = jest.fn().mockResolvedValue(null);
@@ -1660,7 +1660,7 @@ describe('action', () => {
         await fs.promises.writeFile(
           EVENT_FILE,
           JSON.stringify({
-            ref: `refs/heads/hotfix/foo`,
+            ref: 'refs/heads/hotfix/foo',
           })
         );
         const logger = util.newLogger();
@@ -1686,7 +1686,7 @@ describe('action', () => {
           .then(() => Promise.reject(new Error('Expected error to be thrown')))
           .catch((err) => {
             expect(err.message).toEqual(
-              `Tag v1.2.1 has been created, aborting`
+              'Tag v1.2.1 has been created, aborting'
             );
           });
         expect(logger.log.mock.calls).toMatchSnapshot();
@@ -1729,8 +1729,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `env/prod` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'env/prod' });
         await fs.promises.writeFile(
           path.join(upstream, 'package.json'),
           JSON.stringify({
@@ -1739,11 +1739,11 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
-        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
-        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        await exec('git commit -m package', { cwd: upstream });
+        await exec('git commit --allow-empty -m followup', { cwd: upstream });
+        await exec('git commit --allow-empty -m followup', { cwd: upstream });
+        await exec('git commit --allow-empty -m followup', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'hotfix/foo' });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
         // Prepare github mock
@@ -1770,7 +1770,7 @@ describe('action', () => {
         await fs.promises.writeFile(
           EVENT_FILE,
           JSON.stringify({
-            ref: `refs/heads/hotfix/foo`,
+            ref: 'refs/heads/hotfix/foo',
           })
         );
         const logger = util.newLogger();
@@ -1832,8 +1832,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `env/prod` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'env/prod' });
         await fs.promises.writeFile(
           path.join(upstream, 'package.json'),
           JSON.stringify({
@@ -1842,11 +1842,11 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
-        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
-        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `hotfix/foo` });
+        await exec('git commit -m package', { cwd: upstream });
+        await exec('git commit --allow-empty -m followup', { cwd: upstream });
+        await exec('git commit --allow-empty -m followup', { cwd: upstream });
+        await exec('git commit --allow-empty -m followup', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'hotfix/foo' });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch hotfix/foo ${upstream} ${dir}`);
         // Prepare github mock
@@ -1875,7 +1875,7 @@ describe('action', () => {
         await fs.promises.writeFile(
           EVENT_FILE,
           JSON.stringify({
-            ref: `refs/heads/hotfix/foo`,
+            ref: 'refs/heads/hotfix/foo',
           })
         );
         const logger = util.newLogger();
@@ -1941,8 +1941,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `release/foo` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'release/foo' });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch release/foo ${upstream} ${dir}`);
         // Prepare github mock
@@ -1963,7 +1963,7 @@ describe('action', () => {
         await fs.promises.writeFile(
           EVENT_FILE,
           JSON.stringify({
-            ref: `refs/heads/release/foo`,
+            ref: 'refs/heads/release/foo',
           })
         );
         const logger = util.newLogger();
@@ -1982,7 +1982,7 @@ describe('action', () => {
           .then(() => Promise.reject(new Error('Expected error to be thrown')))
           .catch((err) => {
             expect(err.message).toEqual(
-              `Pull request from release/ branch made against develop`
+              'Pull request from release/ branch made against develop'
             );
           });
         expect(logger.log.mock.calls).toMatchSnapshot();
@@ -2003,8 +2003,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `env/staging` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'env/staging' });
         await fs.promises.writeFile(
           path.join(upstream, 'package.json'),
           JSON.stringify({
@@ -2013,11 +2013,11 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
-        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
-        await exec(`git commit --allow-empty -m followup`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `release/foo` });
+        await exec('git commit -m package', { cwd: upstream });
+        await exec('git commit --allow-empty -m followup', { cwd: upstream });
+        await exec('git commit --allow-empty -m followup', { cwd: upstream });
+        await exec('git commit --allow-empty -m followup', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'release/foo' });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch release/foo ${upstream} ${dir}`);
         // Prepare github mock
@@ -2044,7 +2044,7 @@ describe('action', () => {
         await fs.promises.writeFile(
           EVENT_FILE,
           JSON.stringify({
-            ref: `refs/heads/release/foo`,
+            ref: 'refs/heads/release/foo',
           })
         );
         const logger = util.newLogger();
@@ -2107,8 +2107,8 @@ describe('action', () => {
       );
       await git.add({ fs, dir: upstream, filepath: 'package.json' });
       await setAuthor(upstream);
-      await exec(`git commit -m package`, { cwd: upstream });
-      await git.branch({ fs, dir: upstream, ref: `develop` });
+      await exec('git commit -m package', { cwd: upstream });
+      await git.branch({ fs, dir: upstream, ref: 'develop' });
       // Clone into repo we'll run in, and create appropriate branch
       await exec(`git clone --branch develop ${upstream} ${dir}`);
       // Run action
@@ -2116,7 +2116,7 @@ describe('action', () => {
       await fs.promises.writeFile(
         EVENT_FILE,
         JSON.stringify({
-          ref: `refs/heads/develop`,
+          ref: 'refs/heads/develop',
         })
       );
       const logger = util.newLogger();
@@ -2142,8 +2142,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `some-feature-branch` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'some-feature-branch' });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch some-feature-branch ${upstream} ${dir}`);
         // Prepare github mock
@@ -2164,7 +2164,7 @@ describe('action', () => {
         await fs.promises.writeFile(
           EVENT_FILE,
           JSON.stringify({
-            ref: `refs/heads/some-feature-branch`,
+            ref: 'refs/heads/some-feature-branch',
           })
         );
         const logger = util.newLogger();
@@ -2183,7 +2183,7 @@ describe('action', () => {
           .then(() => Promise.reject(new Error('Expected error to be thrown')))
           .catch((err) => {
             expect(err.message).toEqual(
-              `Pull request from some-feature-branch made against env/staging`
+              'Pull request from some-feature-branch made against env/staging'
             );
           });
         expect(logger.log.mock.calls).toMatchSnapshot();
@@ -2204,8 +2204,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `some-feature-branch` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'some-feature-branch' });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch some-feature-branch ${upstream} ${dir}`);
         // Prepare github mock
@@ -2226,7 +2226,7 @@ describe('action', () => {
         await fs.promises.writeFile(
           EVENT_FILE,
           JSON.stringify({
-            ref: `refs/heads/some-feature-branch`,
+            ref: 'refs/heads/some-feature-branch',
           })
         );
         const logger = util.newLogger();
@@ -2245,7 +2245,7 @@ describe('action', () => {
           .then(() => Promise.reject(new Error('Expected error to be thrown')))
           .catch((err) => {
             expect(err.message).toEqual(
-              `Pull request from some-feature-branch made against env/prod`
+              'Pull request from some-feature-branch made against env/prod'
             );
           });
         expect(logger.log.mock.calls).toMatchSnapshot();
@@ -2266,8 +2266,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `some-feature-branch` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'some-feature-branch' });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch some-feature-branch ${upstream} ${dir}`);
         // Prepare github mock
@@ -2294,7 +2294,7 @@ describe('action', () => {
         await fs.promises.writeFile(
           EVENT_FILE,
           JSON.stringify({
-            ref: `refs/heads/some-feature-branch`,
+            ref: 'refs/heads/some-feature-branch',
           })
         );
         const logger = util.newLogger();
@@ -2314,7 +2314,7 @@ describe('action', () => {
           .then(() => Promise.reject(new Error('Expected error to be thrown')))
           .catch((err) => {
             expect(err.message).toEqual(
-              `Pull request from some-feature-branch made against env/prod`
+              'Pull request from some-feature-branch made against env/prod'
             );
           });
         expect(logger.log.mock.calls).toMatchSnapshot();
@@ -2336,8 +2336,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `some-feature-branch` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'some-feature-branch' });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch some-feature-branch ${upstream} ${dir}`);
         // Prepare github mock
@@ -2358,7 +2358,7 @@ describe('action', () => {
         await fs.promises.writeFile(
           EVENT_FILE,
           JSON.stringify({
-            ref: `refs/heads/some-feature-branch`,
+            ref: 'refs/heads/some-feature-branch',
           })
         );
         const logger = util.newLogger();
@@ -2395,8 +2395,8 @@ describe('action', () => {
         );
         await git.add({ fs, dir: upstream, filepath: 'package.json' });
         await setAuthor(upstream);
-        await exec(`git commit -m package`, { cwd: upstream });
-        await git.branch({ fs, dir: upstream, ref: `some-feature-branch` });
+        await exec('git commit -m package', { cwd: upstream });
+        await git.branch({ fs, dir: upstream, ref: 'some-feature-branch' });
         // Clone into repo we'll run in, and create appropriate branch
         await exec(`git clone --branch some-feature-branch ${upstream} ${dir}`);
         // Prepare github mock
@@ -2421,7 +2421,7 @@ describe('action', () => {
         await fs.promises.writeFile(
           EVENT_FILE,
           JSON.stringify({
-            ref: `refs/heads/some-feature-branch`,
+            ref: 'refs/heads/some-feature-branch',
           })
         );
         const logger = util.newLogger();
@@ -2457,8 +2457,8 @@ describe('action', () => {
           );
           await git.add({ fs, dir: upstream, filepath: 'package.json' });
           await setAuthor(upstream);
-          await exec(`git commit -m package`, { cwd: upstream });
-          await git.branch({ fs, dir: upstream, ref: `some-feature-branch` });
+          await exec('git commit -m package', { cwd: upstream });
+          await git.branch({ fs, dir: upstream, ref: 'some-feature-branch' });
           // Clone into repo we'll run in, and create appropriate branch
           await exec(
             `git clone --branch some-feature-branch ${upstream} ${dir}`
@@ -2477,14 +2477,14 @@ describe('action', () => {
           const config: Config = {
             ...DEFAULT_CONFIG,
             ci: [
-              `echo && echo foo && sleep 0.1s && echo bar 1>&2 && sleep 0.1s && echo baz`,
+              'echo && echo foo && sleep 0.1s && echo bar 1>&2 && sleep 0.1s && echo baz',
             ],
           };
           await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(config));
           await fs.promises.writeFile(
             EVENT_FILE,
             JSON.stringify({
-              ref: `refs/heads/some-feature-branch`,
+              ref: 'refs/heads/some-feature-branch',
             })
           );
           const logger = util.newInterleavedLogger();
@@ -2517,8 +2517,8 @@ describe('action', () => {
           );
           await git.add({ fs, dir: upstream, filepath: 'package.json' });
           await setAuthor(upstream);
-          await exec(`git commit -m package`, { cwd: upstream });
-          await git.branch({ fs, dir: upstream, ref: `some-feature-branch` });
+          await exec('git commit -m package', { cwd: upstream });
+          await git.branch({ fs, dir: upstream, ref: 'some-feature-branch' });
           // Clone into repo we'll run in, and create appropriate branch
           await exec(
             `git clone --branch some-feature-branch ${upstream} ${dir}`
@@ -2536,13 +2536,13 @@ describe('action', () => {
           // Run action
           const config: Config = {
             ...DEFAULT_CONFIG,
-            ci: [`exit 123`],
+            ci: ['exit 123'],
           };
           await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(config));
           await fs.promises.writeFile(
             EVENT_FILE,
             JSON.stringify({
-              ref: `refs/heads/some-feature-branch`,
+              ref: 'refs/heads/some-feature-branch',
             })
           );
           const logger = util.newInterleavedLogger();
@@ -2584,8 +2584,8 @@ describe('action', () => {
           );
           await git.add({ fs, dir: upstream, filepath: 'package.json' });
           await setAuthor(upstream);
-          await exec(`git commit -m package`, { cwd: upstream });
-          await git.branch({ fs, dir: upstream, ref: `some-feature-branch` });
+          await exec('git commit -m package', { cwd: upstream });
+          await git.branch({ fs, dir: upstream, ref: 'some-feature-branch' });
           // Clone into repo we'll run in, and create appropriate branch
           await exec(
             `git clone --branch some-feature-branch ${upstream} ${dir}`
@@ -2603,13 +2603,13 @@ describe('action', () => {
           // Run action
           const config: Config = {
             ...DEFAULT_CONFIG,
-            ci: [`cat package.json`],
+            ci: ['cat package.json'],
           };
           await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(config));
           await fs.promises.writeFile(
             EVENT_FILE,
             JSON.stringify({
-              ref: `refs/heads/some-feature-branch`,
+              ref: 'refs/heads/some-feature-branch',
             })
           );
           const logger = util.newInterleavedLogger();

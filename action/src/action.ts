@@ -133,7 +133,7 @@ export const runAction = async ({
       ),
     };
     if (event?.payload?.ref?.startsWith('refs/tags/')) {
-      info(`Push is for tag, skipping action`);
+      info('Push is for tag, skipping action');
       return;
     }
   } else {
@@ -189,7 +189,7 @@ export const runAction = async ({
         }
         const version = json.version;
         if (typeof version !== 'string') {
-          throw new Error(`Invalid version in package.json`);
+          throw new Error('Invalid version in package.json');
         }
         return { sha, version };
       } else {
@@ -329,7 +329,7 @@ export const runAction = async ({
           };
     }) => {
       const { tag, checkBehaviour } = opts;
-      info(`Logging in to docker`);
+      info('Logging in to docker');
       const docker = dockerInit(config.docker);
       if (!config.docker.skipLogin) {
         if (!env.DOCKER_USERNAME || !env.DOCKER_PASSWORD) {
@@ -354,18 +354,18 @@ export const runAction = async ({
         if (image) {
           // An image already exists, make sure it was built using the same files
           info(
-            `Image already exists, checking it was built with same git tree`
+            'Image already exists, checking it was built with same git tree'
           );
           if (image.treeSha !== head.commit.tree) {
             if (checkBehaviour.checkStrict) {
-              throw new Error(`Image was built with different tree, aborting`);
+              throw new Error('Image was built with different tree, aborting');
             } else {
               info(
-                `This image was built with a different tree, we can't use it`
+                "This image was built with a different tree, we can't use it"
               );
             }
           } else {
-            info(`Image was built with same tree, no need to run build again`);
+            info('Image was built with same tree, no need to run build again');
             return;
           }
         } else {
@@ -377,25 +377,25 @@ export const runAction = async ({
           const image = isImagePulled && (await docker.getMetadata(tag));
           if (image) {
             info(
-              `Image already exists, checking it was built with same git tree`
+              'Image already exists, checking it was built with same git tree'
             );
             if (image.treeSha !== head.commit.tree) {
               info(
-                `This image was built with a different tree, we can't use it`
+                "This image was built with a different tree, we can't use it"
               );
             } else {
               info(
-                `Image was built with same tree, no need to run build again`
+                'Image was built with same tree, no need to run build again'
               );
               existingMatchingImage = tag;
               continue;
             }
           } else {
-            info(`No image exists with this tag`);
+            info('No image exists with this tag');
           }
         }
         if (!existingMatchingImage) {
-          info(`Building new image`);
+          info('Building new image');
         }
       } else if (!checkBehaviour) {
         info(
@@ -437,7 +437,7 @@ export const runAction = async ({
         if (newTagSha !== checkTag.sha) {
           throw new Error('Tag has changed, aborting');
         } else {
-          info(`Tag is unchanged, okay to continue`);
+          info('Tag is unchanged, okay to continue');
         }
       } else if (checkTag?.mode === 'non-existant') {
         const tag = checkTag.gitTag;
@@ -457,25 +457,25 @@ export const runAction = async ({
             throw new Error(`Tag ${tag} now exists, aborting`);
           }
         } else {
-          info(`Tag has not been created, okay to continue`);
+          info('Tag has not been created, okay to continue');
         }
       } else {
-        info(`Image built`);
+        info('Image built');
       }
-      info(`Pushing image to docker repository`);
+      info('Pushing image to docker repository');
       await docker.pushImage(tag);
-      info(`Image Pushed`);
+      info('Image Pushed');
     };
 
     const runCICommands = async () => {
-      info(`Running CI Checks`);
+      info('Running CI Checks');
 
       for (const command of config.ci || []) {
         info(`Running: ${command}`);
         await execAndPipeOutput({ command, cwd: dir, logger });
       }
 
-      info(`CI Checks Complete`);
+      info('CI Checks Complete');
     };
 
     const getUniquePullRequest = async () => {
@@ -483,12 +483,12 @@ export const runAction = async ({
       if (prs.data.length === 0) {
         throw new NoPullRequestError(
           `The branch ${branch} has no pull requests open yet, ` +
-            `so it is not possible to run this workflow.`
+            'so it is not possible to run this workflow.'
         );
       } else if (prs.data.length > 1) {
         throw new Error(
           `Multiple pull requests for branch ${branch} are open, ` +
-            `so it is not possible to run this workflow.`
+            'so it is not possible to run this workflow.'
         );
       } else {
         return prs.data[0];
@@ -525,7 +525,7 @@ export const runAction = async ({
       exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })
         .then(() => true)
         .catch((err) => {
-          if (err.stderr.indexOf(`fatal: couldn't find remote ref`) > -1) {
+          if (err.stderr.indexOf("fatal: couldn't find remote ref") > -1) {
             return false;
           } else {
             throw err;
@@ -542,9 +542,9 @@ export const runAction = async ({
           pullRequest,
           comment:
             `There is already a tag for version ${tag},` +
-            `so we can't create another release with the same version.\n\n` +
+            "so we can't create another release with the same version.\n\n" +
             `Please update the version in \`${file}\`\n\n to something ` +
-            `that has not yet had peen deployed to \`env/prod\` ` +
+            'that has not yet had peen deployed to `env/prod` ' +
             `or \`${config.stagingEnvironmentBranch}\`.`,
         });
       }
@@ -604,9 +604,9 @@ export const runAction = async ({
               pullRequest,
               comment:
                 `During the build of the docker image, the tag ${dockerTag} ` +
-                `was created, and so the workflow has been aborted, ` +
-                `and the docker image has not been pushed.\n\n` +
-                `Please chose a new version and update the pull request.`,
+                'was created, and so the workflow has been aborted, ' +
+                'and the docker image has not been pushed.\n\n' +
+                'Please chose a new version and update the pull request.',
             }),
         },
       });
@@ -619,10 +619,10 @@ export const runAction = async ({
       const { pullRequest, tag } = params;
       // Post about successful
       const body =
-        `Docker image has been successfully built and pushed as: ` +
+        'Docker image has been successfully built and pushed as: ' +
         `\`${config.docker.repository}:${tag}\`\n\n` +
-        `Please deploy this image to a development environment, and test ` +
-        `it is working as expected before merging this pull request.`;
+        'Please deploy this image to a development environment, and test ' +
+        'it is working as expected before merging this pull request.';
       const cMode = commentMode(pullRequest);
       if (cMode === 'comment') {
         return github.commentOnPullRequest({
@@ -686,9 +686,9 @@ export const runAction = async ({
         if (tagHead.commit.tree !== head.commit.tree) {
           throw new Error(`New push to ${branch} without bumping version`);
         } else if (tagHead.oid === head.oid) {
-          info(`The tag is for the current commit, okay to continue`);
+          info('The tag is for the current commit, okay to continue');
         } else {
-          info(`The current tree matches the existing tag, okay to continue`);
+          info('The current tree matches the existing tag, okay to continue');
         }
       } else if (mode === 'env-production') {
         // Create and push the tag if production
@@ -762,7 +762,7 @@ export const runAction = async ({
       await git.branch({ fs, dir, ref: mergebackBranch });
       await exec(`git push ${remote.remote} ${mergebackBranch}`, { cwd: dir });
 
-      info(`Opening Mergeback Pull Request`);
+      info('Opening Mergeback Pull Request');
       const base =
         mode === 'env-production' ? config.stagingEnvironmentBranch : 'develop';
       await github.openPullRequest({
@@ -772,7 +772,7 @@ export const runAction = async ({
         labels: config.mergebackLabels || [],
       });
 
-      info(`Pull Request Opened, workflow complete`);
+      info('Pull Request Opened, workflow complete');
     } else if (mode === 'env-development') {
       const tag = branch.replace(/\//g, '-');
       await buildAndPushDockerImage({
@@ -797,11 +797,11 @@ export const runAction = async ({
           error: `Pull request from hotfix/ branch made against ${baseBranch}`,
           pullRequest,
           comment:
-            `Pull requests from \`hotfix/<name>\` branches can only target ` +
+            'Pull requests from `hotfix/<name>` branches can only target ' +
             `\`env/prod\` and \`${config.stagingEnvironmentBranch}\`:\n\n` +
-            `* If this is supposed to be a hotfix, please re-target this pull request.\n` +
-            `* If this is not supposed to be a hotfix, ` +
-            `please use a branch name that does not begin with \`hotfix/\``,
+            '* If this is supposed to be a hotfix, please re-target this pull request.\n' +
+            '* If this is not supposed to be a hotfix, ' +
+            'please use a branch name that does not begin with `hotfix/`',
         });
       }
 
@@ -853,11 +853,11 @@ export const runAction = async ({
           error: `Pull request from release/ branch made against ${baseBranch}`,
           pullRequest,
           comment:
-            `Pull requests from \`release/<name>\` branches can only target ` +
+            'Pull requests from `release/<name>` branches can only target ' +
             `\`${config.stagingEnvironmentBranch}\`:\n\n` +
-            `* If this is supposed to be a release, please re-target this pull request.\n` +
-            `* If this is not supposed to be a release, ` +
-            `please use a branch name that does not begin with \`release/\``,
+            '* If this is supposed to be a release, please re-target this pull request.\n' +
+            '* If this is not supposed to be a release, ' +
+            'please use a branch name that does not begin with `release/`',
         });
       }
 
@@ -911,17 +911,17 @@ export const runAction = async ({
             `* a release, merging \`release/<version>\` into \`${config.stagingEnvironmentBranch}\`, or\n` +
             `* a hotfix, merging \`hotfix/<name>\` into \`${config.stagingEnvironmentBranch}\`\n` +
             `* an automated mergeback pull request, merging \`mergeback/<name>\` into \`${config.stagingEnvironmentBranch}\`\n\n` +
-            `For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)`,
+            'For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)',
         });
       } else if (baseBranch === 'env/prod') {
         await failWithPRComment({
           error: `Pull request from ${branch} made against ${baseBranch}`,
           pullRequest,
           comment:
-            `Pull requests that modify \`env/prod\` must be either:\n\n` +
+            'Pull requests that modify `env/prod` must be either:\n\n' +
             `* an update, merging \`${config.stagingEnvironmentBranch}\` into \`env/prod\`, or\n` +
-            `* a hotfix, merging \`hotfix/<name>\` into \`env/prod\`\n\n` +
-            `For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)`,
+            '* a hotfix, merging `hotfix/<name>` into `env/prod`\n\n' +
+            'For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)',
         });
       }
 
@@ -931,12 +931,12 @@ export const runAction = async ({
       if (cMode === 'comment') {
         return github.commentOnPullRequest({
           pullRequestNumber: pullRequest.number,
-          body: `Checks have passed and this pull request is ready for manual review`,
+          body: 'Checks have passed and this pull request is ready for manual review',
         });
       } else if (cMode === 'review') {
         return github.reviewPullRequest({
           pullRequestNumber: pullRequest.number,
-          body: `Checks have passed and this pull request is ready for manual review`,
+          body: 'Checks have passed and this pull request is ready for manual review',
           state: 'approve',
         });
       }
