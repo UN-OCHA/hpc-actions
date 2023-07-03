@@ -113,7 +113,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
             payload: JSON.parse((await fs_1.default.promises.readFile(env.GITHUB_EVENT_PATH)).toString()),
         };
         if ((_b = (_a = event === null || event === void 0 ? void 0 : event.payload) === null || _a === void 0 ? void 0 : _a.ref) === null || _b === void 0 ? void 0 : _b.startsWith('refs/tags/')) {
-            info(`Push is for tag, skipping action`);
+            info('Push is for tag, skipping action');
             return;
         }
     }
@@ -155,7 +155,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 }
                 const version = json.version;
                 if (typeof version !== 'string') {
-                    throw new Error(`Invalid version in package.json`);
+                    throw new Error('Invalid version in package.json');
                 }
                 return { sha, version };
             }
@@ -219,7 +219,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
         const buildAndPushDockerImage = async (opts) => {
             var _a;
             const { tag, checkBehaviour } = opts;
-            info(`Logging in to docker`);
+            info('Logging in to docker');
             const docker = dockerInit(config.docker);
             if (!config.docker.skipLogin) {
                 if (!env.DOCKER_USERNAME || !env.DOCKER_PASSWORD) {
@@ -241,17 +241,17 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 const image = isImagePulled && (await docker.getMetadata(tag));
                 if (image) {
                     // An image already exists, make sure it was built using the same files
-                    info(`Image already exists, checking it was built with same git tree`);
+                    info('Image already exists, checking it was built with same git tree');
                     if (image.treeSha !== head.commit.tree) {
                         if (checkBehaviour.checkStrict) {
-                            throw new Error(`Image was built with different tree, aborting`);
+                            throw new Error('Image was built with different tree, aborting');
                         }
                         else {
-                            info(`This image was built with a different tree, we can't use it`);
+                            info("This image was built with a different tree, we can't use it");
                         }
                     }
                     else {
-                        info(`Image was built with same tree, no need to run build again`);
+                        info('Image was built with same tree, no need to run build again');
                         return;
                     }
                 }
@@ -263,22 +263,22 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                     const isImagePulled = await docker.pullImage(tag, logger);
                     const image = isImagePulled && (await docker.getMetadata(tag));
                     if (image) {
-                        info(`Image already exists, checking it was built with same git tree`);
+                        info('Image already exists, checking it was built with same git tree');
                         if (image.treeSha !== head.commit.tree) {
-                            info(`This image was built with a different tree, we can't use it`);
+                            info("This image was built with a different tree, we can't use it");
                         }
                         else {
-                            info(`Image was built with same tree, no need to run build again`);
+                            info('Image was built with same tree, no need to run build again');
                             existingMatchingImage = tag;
                             continue;
                         }
                     }
                     else {
-                        info(`No image exists with this tag`);
+                        info('No image exists with this tag');
                     }
                 }
                 if (!existingMatchingImage) {
-                    info(`Building new image`);
+                    info('Building new image');
                 }
             }
             else if (!checkBehaviour) {
@@ -319,7 +319,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                     throw new Error('Tag has changed, aborting');
                 }
                 else {
-                    info(`Tag is unchanged, okay to continue`);
+                    info('Tag is unchanged, okay to continue');
                 }
             }
             else if ((checkTag === null || checkTag === void 0 ? void 0 : checkTag.mode) === 'non-existant') {
@@ -339,33 +339,33 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                     }
                 }
                 else {
-                    info(`Tag has not been created, okay to continue`);
+                    info('Tag has not been created, okay to continue');
                 }
             }
             else {
-                info(`Image built`);
+                info('Image built');
             }
-            info(`Pushing image to docker repository`);
+            info('Pushing image to docker repository');
             await docker.pushImage(tag);
-            info(`Image Pushed`);
+            info('Image Pushed');
         };
         const runCICommands = async () => {
-            info(`Running CI Checks`);
+            info('Running CI Checks');
             for (const command of config.ci || []) {
                 info(`Running: ${command}`);
                 await (0, child_process_1.execAndPipeOutput)({ command, cwd: dir, logger });
             }
-            info(`CI Checks Complete`);
+            info('CI Checks Complete');
         };
         const getUniquePullRequest = async () => {
             const prs = await github.getOpenPullRequests({ branch });
             if (prs.data.length === 0) {
                 throw new NoPullRequestError(`The branch ${branch} has no pull requests open yet, ` +
-                    `so it is not possible to run this workflow.`);
+                    'so it is not possible to run this workflow.');
             }
             else if (prs.data.length > 1) {
                 throw new Error(`Multiple pull requests for branch ${branch} are open, ` +
-                    `so it is not possible to run this workflow.`);
+                    'so it is not possible to run this workflow.');
             }
             else {
                 return prs.data[0];
@@ -396,7 +396,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
         const fetchTag = (tag) => exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })
             .then(() => true)
             .catch((err) => {
-            if (err.stderr.indexOf(`fatal: couldn't find remote ref`) > -1) {
+            if (err.stderr.indexOf("fatal: couldn't find remote ref") > -1) {
                 return false;
             }
             else {
@@ -412,9 +412,9 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                     error: `Tag already exists for version ${tag}, aborting.`,
                     pullRequest,
                     comment: `There is already a tag for version ${tag},` +
-                        `so we can't create another release with the same version.\n\n` +
+                        "so we can't create another release with the same version.\n\n" +
                         `Please update the version in \`${file}\`\n\n to something ` +
-                        `that has not yet had peen deployed to \`env/prod\` ` +
+                        'that has not yet had peen deployed to `env/prod` ' +
                         `or \`${config.stagingEnvironmentBranch}\`.`,
                 });
             }
@@ -451,9 +451,9 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                         error: `Tag ${gitTag} has been created, aborting`,
                         pullRequest,
                         comment: `During the build of the docker image, the tag ${dockerTag} ` +
-                            `was created, and so the workflow has been aborted, ` +
-                            `and the docker image has not been pushed.\n\n` +
-                            `Please chose a new version and update the pull request.`,
+                            'was created, and so the workflow has been aborted, ' +
+                            'and the docker image has not been pushed.\n\n' +
+                            'Please chose a new version and update the pull request.',
                     }),
                 },
             });
@@ -461,10 +461,10 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
         const commentOnPullRequestWithDockerInfo = (params) => {
             const { pullRequest, tag } = params;
             // Post about successful
-            const body = `Docker image has been successfully built and pushed as: ` +
+            const body = 'Docker image has been successfully built and pushed as: ' +
                 `\`${config.docker.repository}:${tag}\`\n\n` +
-                `Please deploy this image to a development environment, and test ` +
-                `it is working as expected before merging this pull request.`;
+                'Please deploy this image to a development environment, and test ' +
+                'it is working as expected before merging this pull request.';
             const cMode = commentMode(pullRequest);
             if (cMode === 'comment') {
                 return github.commentOnPullRequest({
@@ -521,10 +521,10 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                     throw new Error(`New push to ${branch} without bumping version`);
                 }
                 else if (tagHead.oid === head.oid) {
-                    info(`The tag is for the current commit, okay to continue`);
+                    info('The tag is for the current commit, okay to continue');
                 }
                 else {
-                    info(`The current tree matches the existing tag, okay to continue`);
+                    info('The current tree matches the existing tag, okay to continue');
                 }
             }
             else if (mode === 'env-production') {
@@ -595,7 +595,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
             info(`Creating and pushing mergeback Branch: ${mergebackBranch}`);
             await isomorphic_git_1.default.branch({ fs: fs_1.default, dir, ref: mergebackBranch });
             await exec(`git push ${remote.remote} ${mergebackBranch}`, { cwd: dir });
-            info(`Opening Mergeback Pull Request`);
+            info('Opening Mergeback Pull Request');
             const base = mode === 'env-production' ? config.stagingEnvironmentBranch : 'develop';
             await github.openPullRequest({
                 base,
@@ -603,7 +603,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 title: `Update ${base} with changes from ${branch}`,
                 labels: config.mergebackLabels || [],
             });
-            info(`Pull Request Opened, workflow complete`);
+            info('Pull Request Opened, workflow complete');
         }
         else if (mode === 'env-development') {
             const tag = branch.replace(/\//g, '-');
@@ -625,11 +625,11 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 await failWithPRComment({
                     error: `Pull request from hotfix/ branch made against ${baseBranch}`,
                     pullRequest,
-                    comment: `Pull requests from \`hotfix/<name>\` branches can only target ` +
+                    comment: 'Pull requests from `hotfix/<name>` branches can only target ' +
                         `\`env/prod\` and \`${config.stagingEnvironmentBranch}\`:\n\n` +
-                        `* If this is supposed to be a hotfix, please re-target this pull request.\n` +
-                        `* If this is not supposed to be a hotfix, ` +
-                        `please use a branch name that does not begin with \`hotfix/\``,
+                        '* If this is supposed to be a hotfix, please re-target this pull request.\n' +
+                        '* If this is not supposed to be a hotfix, ' +
+                        'please use a branch name that does not begin with `hotfix/`',
                 });
             }
             // Check that there is no existing tag for the current version in package.json
@@ -669,11 +669,11 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 await failWithPRComment({
                     error: `Pull request from release/ branch made against ${baseBranch}`,
                     pullRequest,
-                    comment: `Pull requests from \`release/<name>\` branches can only target ` +
+                    comment: 'Pull requests from `release/<name>` branches can only target ' +
                         `\`${config.stagingEnvironmentBranch}\`:\n\n` +
-                        `* If this is supposed to be a release, please re-target this pull request.\n` +
-                        `* If this is not supposed to be a release, ` +
-                        `please use a branch name that does not begin with \`release/\``,
+                        '* If this is supposed to be a release, please re-target this pull request.\n' +
+                        '* If this is not supposed to be a release, ' +
+                        'please use a branch name that does not begin with `release/`',
                 });
             }
             // Check that there is no existing tag for the current version in package.json.
@@ -714,17 +714,17 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                         `* a release, merging \`release/<version>\` into \`${config.stagingEnvironmentBranch}\`, or\n` +
                         `* a hotfix, merging \`hotfix/<name>\` into \`${config.stagingEnvironmentBranch}\`\n` +
                         `* an automated mergeback pull request, merging \`mergeback/<name>\` into \`${config.stagingEnvironmentBranch}\`\n\n` +
-                        `For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)`,
+                        'For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)',
                 });
             }
             else if (baseBranch === 'env/prod') {
                 await failWithPRComment({
                     error: `Pull request from ${branch} made against ${baseBranch}`,
                     pullRequest,
-                    comment: `Pull requests that modify \`env/prod\` must be either:\n\n` +
+                    comment: 'Pull requests that modify `env/prod` must be either:\n\n' +
                         `* an update, merging \`${config.stagingEnvironmentBranch}\` into \`env/prod\`, or\n` +
-                        `* a hotfix, merging \`hotfix/<name>\` into \`env/prod\`\n\n` +
-                        `For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)`,
+                        '* a hotfix, merging `hotfix/<name>` into `env/prod`\n\n' +
+                        'For more information, please read our [Releases + Deployment process](https://github.com/UN-OCHA/hpc-actions#releases--deployment)',
                 });
             }
             await runCICommands();
@@ -732,13 +732,13 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
             if (cMode === 'comment') {
                 return github.commentOnPullRequest({
                     pullRequestNumber: pullRequest.number,
-                    body: `Checks have passed and this pull request is ready for manual review`,
+                    body: 'Checks have passed and this pull request is ready for manual review',
                 });
             }
             else if (cMode === 'review') {
                 return github.reviewPullRequest({
                     pullRequestNumber: pullRequest.number,
-                    body: `Checks have passed and this pull request is ready for manual review`,
+                    body: 'Checks have passed and this pull request is ready for manual review',
                     state: 'approve',
                 });
             }
