@@ -17,7 +17,7 @@
     "@octokit/webhooks-types": "^6.11.0",
     "@types/jest": "^29.5.1",
     "@types/node": "^18.16.19",
-    "@unocha/hpc-repo-tools": "^2.1.1",
+    "@unocha/hpc-repo-tools": "^3.0.1",
     "@vercel/ncc": "^0.36.1",
     "eslint": "^8.44.0",
     "husky": "^8.0.3",
