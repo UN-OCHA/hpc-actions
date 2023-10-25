@@ -163,7 +163,7 @@ export const runAction = async ({
       sha: string;
       version: string;
     }> => {
-      const sha = await git.resolveRef({ fs, dir, ref: ref || 'HEAD' });
+      const sha = await git.resolveRef({ fs, dir, ref: ref ?? 'HEAD' });
       if (config.repoType === 'node') {
         const pkg = await git
           .readBlob({
@@ -469,7 +469,7 @@ export const runAction = async ({
     const runCICommands = async () => {
       info('Running CI Checks');
 
-      for (const command of config.ci || []) {
+      for (const command of config.ci ?? []) {
         info(`Running: ${command}`);
         await execAndPipeOutput({ command, cwd: dir, logger });
       }
@@ -767,7 +767,7 @@ export const runAction = async ({
         base,
         head: mergebackBranch,
         title: `Update ${base} with changes from ${branch}`,
-        labels: config.mergebackLabels || [],
+        labels: config.mergebackLabels ?? [],
       });
 
       info('Pull Request Opened, workflow complete');

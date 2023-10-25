@@ -60,7 +60,7 @@ export const REAL_DOCKER: DockerInit = (config) => ({
     // Login to docker
     await execAndPipeOutput({
       command: `docker login ${
-        config.registry || ''
+        config.registry ?? ''
       } -u ${user}  --password-stdin`,
       cwd: __dirname,
       // Drop all console output (it's mostly warning about storing credentials)
