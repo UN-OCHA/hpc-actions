@@ -34,15 +34,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.runAction = exports.NoPullRequestError = void 0;
-const child_process = __importStar(__nccwpck_require__(2081));
-const fs_1 = __importDefault(__nccwpck_require__(7147));
 const isomorphic_git_1 = __importDefault(__nccwpck_require__(5114));
-const util_1 = __nccwpck_require__(3837);
+const child_process = __importStar(__nccwpck_require__(7718));
+const node_fs_1 = __importDefault(__nccwpck_require__(7561));
+const node_util_1 = __nccwpck_require__(7261);
 const child_process_1 = __nccwpck_require__(3325);
 const config_1 = __nccwpck_require__(6816);
 const docker_1 = __nccwpck_require__(9610);
 const github_1 = __nccwpck_require__(5865);
-const exec = (0, util_1.promisify)(child_process.exec);
+const exec = (0, node_util_1.promisify)(child_process.exec);
 const GITHUB_ACTIONS_USER_ID = 41898282;
 const GITHUB_ACTIONS_USER_LOGIN = 'github-actions';
 const DEPENDABOT_USER_ID = 49699333;
@@ -56,7 +56,7 @@ const determineMode = (config, branch) => {
     else if (branch === config.stagingEnvironmentBranch) {
         return 'env-staging';
     }
-    else if (config.developmentEnvironmentBranches.indexOf(branch) > -1) {
+    else if (config.developmentEnvironmentBranches.includes(branch)) {
         return 'env-development';
     }
     else if (branch.startsWith('env/')) {
@@ -109,7 +109,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
     if (env.GITHUB_EVENT_NAME === 'push') {
         event = {
             name: 'push',
-            payload: JSON.parse((await fs_1.default.promises.readFile(env.GITHUB_EVENT_PATH)).toString()),
+            payload: JSON.parse((await node_fs_1.default.promises.readFile(env.GITHUB_EVENT_PATH)).toString()),
         };
         if (event?.payload?.ref?.startsWith('refs/tags/')) {
             info('Push is for tag, skipping action');
@@ -129,11 +129,11 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
          */
         const versionFilePath = (repoType) => repoType === 'node' ? 'package.json' : 'UNKNOWN';
         const readRefShaAndVersion = async (ref) => {
-            const sha = await isomorphic_git_1.default.resolveRef({ fs: fs_1.default, dir, ref: ref || 'HEAD' });
+            const sha = await isomorphic_git_1.default.resolveRef({ fs: node_fs_1.default, dir, ref: ref ?? 'HEAD' });
             if (config.repoType === 'node') {
                 const pkg = await isomorphic_git_1.default
                     .readBlob({
-                    fs: fs_1.default,
+                    fs: node_fs_1.default,
                     dir,
                     oid: sha,
                     filepath: versionFilePath(config.repoType),
@@ -145,27 +145,25 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 try {
                     json = JSON.parse(new TextDecoder('utf-8').decode(pkg.blob));
                 }
-                catch (err) {
+                catch (error) {
                     let errMsg = 'Unable to read version from package.json: Invalid JSON';
-                    if (err instanceof Error) {
-                        errMsg += `: ${err.message}`;
+                    if (error instanceof Error) {
+                        errMsg += `: ${error.message}`;
                     }
                     throw new Error(errMsg);
                 }
                 const version = json.version;
                 if (typeof version !== 'string') {
-                    throw new Error('Invalid version in package.json');
+                    throw new TypeError('Invalid version in package.json');
                 }
                 return { sha, version };
             }
-            else {
-                throw new Error('Unsupported repo type: ' + config.repoType);
-            }
+            throw new Error(`Unsupported repo type: ${config.repoType}`);
         };
         // Get remote information
         const remotes = await isomorphic_git_1.default
             .listRemotes({
-            fs: fs_1.default,
+            fs: node_fs_1.default,
             dir,
         })
             .catch(() => {
@@ -189,14 +187,14 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
         const mode = determineMode(config, branch);
         // Check that the correct branch is checked out,
         // and get the current commit info
-        const currentBranch = await isomorphic_git_1.default.currentBranch({ fs: fs_1.default, dir });
+        const currentBranch = await isomorphic_git_1.default.currentBranch({ fs: node_fs_1.default, dir });
         if (!currentBranch) {
             throw new Error('no branch is currently checked out');
         }
         else if (currentBranch !== branch) {
             throw new Error('incorrect branch currently checked-out');
         }
-        const head = await isomorphic_git_1.default.readCommit({ fs: fs_1.default, dir, oid: headShaAndVersion.sha });
+        const head = await isomorphic_git_1.default.readCommit({ fs: node_fs_1.default, dir, oid: headShaAndVersion.sha });
         /**
          * Return true if this is a pull request created by the GitHub Actions user,
          * or dependabot, and so attempting to review the PR with the GitHub Actions
@@ -303,10 +301,10 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
             if (checkTag?.mode === 'match') {
                 const tag = checkTag.gitTag;
                 info(`Image built, checking tag ${tag} is unchanged`);
-                await isomorphic_git_1.default.deleteRef({ fs: fs_1.default, dir, ref: `refs/tags/${tag}` });
+                await isomorphic_git_1.default.deleteRef({ fs: node_fs_1.default, dir, ref: `refs/tags/${tag}` });
                 await exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir });
                 const newTagSha = await isomorphic_git_1.default.resolveRef({
-                    fs: fs_1.default,
+                    fs: node_fs_1.default,
                     dir,
                     ref: `refs/tags/${tag}`,
                 });
@@ -346,7 +344,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
         };
         const runCICommands = async () => {
             info('Running CI Checks');
-            for (const command of config.ci || []) {
+            for (const command of config.ci ?? []) {
                 info(`Running: ${command}`);
                 await (0, child_process_1.execAndPipeOutput)({ command, cwd: dir, logger });
             }
@@ -390,13 +388,11 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
          */
         const fetchTag = (tag) => exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })
             .then(() => true)
-            .catch((err) => {
-            if (err.stderr.indexOf("fatal: couldn't find remote ref") > -1) {
+            .catch((error) => {
+            if (error.stderr.includes("fatal: couldn't find remote ref")) {
                 return false;
             }
-            else {
-                throw err;
-            }
+            throw error;
         });
         const checkTagNotUsed = async (tag, pullRequest) => {
             info(`Checking if there is an existing tag for ${tag}`);
@@ -422,7 +418,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 cwd: dir,
             });
             if (!(await isomorphic_git_1.default.isDescendent({
-                fs: fs_1.default,
+                fs: node_fs_1.default,
                 dir,
                 ancestor: base.sha,
                 oid: head.oid,
@@ -510,8 +506,8 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 // Check that the tree hash of the existing tag matches
                 // (i.e. the content hasn't changed without changing the version)
                 info(`The tag ${tag} already exists, checking that tree hasn't changed`);
-                tagSha = await isomorphic_git_1.default.resolveRef({ fs: fs_1.default, dir, ref: `refs/tags/${tag}` });
-                const tagHead = await isomorphic_git_1.default.readCommit({ fs: fs_1.default, dir, oid: tagSha });
+                tagSha = await isomorphic_git_1.default.resolveRef({ fs: node_fs_1.default, dir, ref: `refs/tags/${tag}` });
+                const tagHead = await isomorphic_git_1.default.readCommit({ fs: node_fs_1.default, dir, oid: tagSha });
                 if (tagHead.commit.tree !== head.commit.tree) {
                     throw new Error(`New push to ${branch} without bumping version`);
                 }
@@ -525,8 +521,8 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
             else if (mode === 'env-production') {
                 // Create and push the tag if production
                 info(`Creating and pushing new tag ${tag}`);
-                await isomorphic_git_1.default.tag({ fs: fs_1.default, dir, ref: tag });
-                tagSha = await isomorphic_git_1.default.resolveRef({ fs: fs_1.default, dir, ref: `refs/tags/${tag}` });
+                await isomorphic_git_1.default.tag({ fs: node_fs_1.default, dir, ref: tag });
+                tagSha = await isomorphic_git_1.default.resolveRef({ fs: node_fs_1.default, dir, ref: `refs/tags/${tag}` });
                 await exec(`git push ${remote.remote} ${tag}`, { cwd: dir });
             }
             // Check whether there is an existing docker image, and build if needed
@@ -588,7 +584,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
             });
             const mergebackBranch = `mergeback/${branch.substring(4)}/${version}`;
             info(`Creating and pushing mergeback Branch: ${mergebackBranch}`);
-            await isomorphic_git_1.default.branch({ fs: fs_1.default, dir, ref: mergebackBranch });
+            await isomorphic_git_1.default.branch({ fs: node_fs_1.default, dir, ref: mergebackBranch });
             await exec(`git push ${remote.remote} ${mergebackBranch}`, { cwd: dir });
             info('Opening Mergeback Pull Request');
             const base = mode === 'env-production' ? config.stagingEnvironmentBranch : 'develop';
@@ -596,12 +592,12 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 base,
                 head: mergebackBranch,
                 title: `Update ${base} with changes from ${branch}`,
-                labels: config.mergebackLabels || [],
+                labels: config.mergebackLabels ?? [],
             });
             info('Pull Request Opened, workflow complete');
         }
         else if (mode === 'env-development') {
-            const tag = branch.replace(/\//g, '-');
+            const tag = branch.replaceAll('/', '-');
             await buildAndPushDockerImage({
                 checkBehaviour: null,
                 tag,
@@ -784,9 +780,9 @@ exports.getConfig = void 0;
  * except for secrets, and the config file pathname.
  */
 const fp_ts_1 = __nccwpck_require__(5187);
-const fs_1 = __nccwpck_require__(7147);
 const t = __importStar(__nccwpck_require__(5428));
 const PathReporter_1 = __nccwpck_require__(2985);
+const node_fs_1 = __nccwpck_require__(7561);
 // Specify the configuration options using io-ts,
 // which provides both type-definitions for the configuration,
 // and validation that matches these definitions.
@@ -906,28 +902,28 @@ const getConfig = async (env) => {
     if (!env.CONFIG_FILE) {
         throw new Error('Environment Variable CONFIG_FILE is required');
     }
-    const data = await fs_1.promises.readFile(env.CONFIG_FILE).catch((err) => {
-        if (err.message?.startsWith('ENOENT: no such file or directory')) {
+    const data = await node_fs_1.promises.readFile(env.CONFIG_FILE).catch((error) => {
+        if (error.message?.startsWith('ENOENT: no such file or directory')) {
             throw new Error(`Could not find configuration file "${env.CONFIG_FILE}" specified in CONFIG_FILE`);
         }
         else {
-            throw err;
+            throw error;
         }
     });
     let json;
     try {
         json = JSON.parse(data.toString());
     }
-    catch (err) {
+    catch (error) {
         let errMsg = `The configuration file at "${env.CONFIG_FILE}" is not valid JSON`;
-        if (err instanceof Error) {
-            errMsg += `: ${err.message}`;
+        if (error instanceof Error) {
+            errMsg += `: ${error.message}`;
         }
         throw new Error(errMsg);
     }
     const config = CONFIG.decode(json);
     if (fp_ts_1.either.isLeft(config)) {
-        throw new Error('Invalid Configuration: \n* ' + PathReporter_1.PathReporter.report(config).join('\n* '));
+        throw new Error(`Invalid Configuration: \n* ${PathReporter_1.PathReporter.report(config).join('\n* ')}`);
     }
     // Check that development environments all start with `env/`
     for (const env of config.right.developmentEnvironmentBranches) {
@@ -993,7 +989,7 @@ const REAL_DOCKER = (config) => ({
     login: async ({ user, pass }) => {
         // Login to docker
         await (0, child_process_1.execAndPipeOutput)({
-            command: `docker login ${config.registry || ''} -u ${user}  --password-stdin`,
+            command: `docker login ${config.registry ?? ''} -u ${user}  --password-stdin`,
             cwd: __dirname,
             // Drop all console output (it's mostly warning about storing credentials)
             logger: console,
@@ -1012,8 +1008,7 @@ const REAL_DOCKER = (config) => ({
         const data = JSON.parse(res.stdout);
         const check = IMAGE_DETAILS.decode(data);
         if ((0, Either_1.isLeft)(check)) {
-            throw new Error('Unexpected output from docker inspect: \n* ' +
-                PathReporter_1.PathReporter.report(check).join('\n* '));
+            throw new Error(`Unexpected output from docker inspect: \n* ${PathReporter_1.PathReporter.report(check).join('\n* ')}`);
         }
         if (check.right.length !== 1) {
             throw new Error('Unexpected output from docker inspect: multiple objects');
@@ -1075,7 +1070,7 @@ const REAL_GITHUB = ({ token, githubRepo }) => {
     });
     const repoSplit = githubRepo.split('/');
     if (repoSplit.length !== 2) {
-        throw new Error('Invalid value for repo: ' + githubRepo);
+        throw new Error(`Invalid value for repo: ${githubRepo}`);
     }
     const [owner, repo] = repoSplit;
     return {
@@ -1167,8 +1162,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.exec = exports.execAndPipeOutput = void 0;
-const child_process = __importStar(__nccwpck_require__(2081));
-const util_1 = __nccwpck_require__(3837);
+const child_process = __importStar(__nccwpck_require__(7718));
+const node_util_1 = __nccwpck_require__(7261);
 /**
  * Like child_process.exec,
  * but pipe all stdout and stderr to the given logger.
@@ -1176,7 +1171,7 @@ const util_1 = __nccwpck_require__(3837);
  * Optionally, send data to the stdin of the child process
  */
 const execAndPipeOutput = (opts) => {
-    const { command, cwd, logger } = opts;
+    const { command, cwd, data, logger } = opts;
     const p = child_process.execFile('sh', ['-c', command], { cwd });
     const buffer = {
         stderr: '',
@@ -1194,12 +1189,12 @@ const execAndPipeOutput = (opts) => {
         };
         p[stream]?.on('data', handle);
     }
-    if (opts.data) {
+    if (data) {
         if (!p.stdin) {
             throw new Error('Unexpected Error');
         }
         p.stdin.setDefaultEncoding('utf-8');
-        p.stdin.write(opts.data);
+        p.stdin.write(data);
         p.stdin.end();
     }
     return new Promise((resolve, reject) => p.on('exit', (code) => {
@@ -1218,7 +1213,7 @@ const execAndPipeOutput = (opts) => {
     }));
 };
 exports.execAndPipeOutput = execAndPipeOutput;
-exports.exec = (0, util_1.promisify)(child_process.exec);
+exports.exec = (0, node_util_1.promisify)(child_process.exec);
 
 
 /***/ }),
@@ -54162,22 +54157,6 @@ module.exports = require("buffer");
 
 /***/ }),
 
-/***/ 2081:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("child_process");
-
-/***/ }),
-
-/***/ 7147:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("fs");
-
-/***/ }),
-
 /***/ 3685:
 /***/ ((module) => {
 
@@ -54191,6 +54170,30 @@ module.exports = require("http");
 
 "use strict";
 module.exports = require("https");
+
+/***/ }),
+
+/***/ 7718:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:child_process");
+
+/***/ }),
+
+/***/ 7561:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:fs");
+
+/***/ }),
+
+/***/ 7261:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:util");
 
 /***/ }),
 
@@ -69261,10 +69264,10 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const action_1 = __nccwpck_require__(3767);
 (0, action_1.runAction)({
     env: process.env,
-}).catch((err) => {
-    console.log(`##[error] ${err.message}`);
+}).catch((error) => {
+    console.log(`##[error] ${error.message}`);
     setTimeout(() => {
-        console.error(err);
+        console.error(error);
         process.exit(1);
     }, 100);
 });
