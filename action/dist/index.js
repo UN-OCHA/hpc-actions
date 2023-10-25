@@ -54185,7 +54185,18 @@ class GitIndex {
   }
 
   static async fromBuffer(buffer) {
-    // Verify shasum
+    if (buffer.length === 0) {
+      throw new InternalError('Index file is empty (.git/index)')
+    }
+
+    const index = new GitIndex();
+    const reader = new BufferCursor(buffer);
+    const magic = reader.toString('utf8', 4);
+    if (magic !== 'DIRC') {
+      throw new InternalError(`Invalid dircache magic file number: ${magic}`)
+    }
+
+    // Verify shasum after we ensured that the file has a magic number
     const shaComputed = await shasum(buffer.slice(0, -20));
     const shaClaimed = buffer.slice(-20).toString('hex');
     if (shaClaimed !== shaComputed) {
@@ -54193,12 +54204,7 @@ class GitIndex {
         `Invalid checksum in GitIndex buffer: expected ${shaClaimed} but saw ${shaComputed}`
       )
     }
-    const index = new GitIndex();
-    const reader = new BufferCursor(buffer);
-    const magic = reader.toString('utf8', 4);
-    if (magic !== 'DIRC') {
-      throw new InternalError(`Inavlid dircache magic file number: ${magic}`)
-    }
+
     const version = reader.readUInt32BE();
     if (version !== 2) {
       throw new InternalError(`Unsupported dircache version: ${version}`)
@@ -56816,13 +56822,16 @@ MergeNotSupportedError.code = 'MergeNotSupportedError';
 class MergeConflictError extends BaseError {
   /**
    * @param {Array<string>} filepaths
+   * @param {Array<string>} bothModified
+   * @param {Array<string>} deleteByUs
+   * @param {Array<string>} deleteByTheirs
    */
-  constructor(filepaths) {
+  constructor(filepaths, bothModified, deleteByUs, deleteByTheirs) {
     super(
       `Automatic merge failed with one or more merge conflicts in the following files: ${filepaths.toString()}. Fix conflicts then commit the result.`
     );
     this.code = this.name = MergeConflictError.code;
-    this.data = { filepaths };
+    this.data = { filepaths, bothModified, deleteByUs, deleteByTheirs };
   }
 }
 /** @type {'MergeConflictError'} */
@@ -57904,6 +57913,69 @@ async function rmRecursive(fs, filepath) {
   }
 }
 
+function isPromiseLike(obj) {
+  return isObject(obj) && isFunction(obj.then) && isFunction(obj.catch)
+}
+
+function isObject(obj) {
+  return obj && typeof obj === 'object'
+}
+
+function isFunction(obj) {
+  return typeof obj === 'function'
+}
+
+function isPromiseFs(fs) {
+  const test = targetFs => {
+    try {
+      // If readFile returns a promise then we can probably assume the other
+      // commands do as well
+      return targetFs.readFile().catch(e => e)
+    } catch (e) {
+      return e
+    }
+  };
+  return isPromiseLike(test(fs))
+}
+
+// List of commands all filesystems are expected to provide. `rm` is not
+// included since it may not exist and must be handled as a special case
+const commands = [
+  'readFile',
+  'writeFile',
+  'mkdir',
+  'rmdir',
+  'unlink',
+  'stat',
+  'lstat',
+  'readdir',
+  'readlink',
+  'symlink',
+];
+
+function bindFs(target, fs) {
+  if (isPromiseFs(fs)) {
+    for (const command of commands) {
+      target[`_${command}`] = fs[command].bind(fs);
+    }
+  } else {
+    for (const command of commands) {
+      target[`_${command}`] = pify(fs[command].bind(fs));
+    }
+  }
+
+  // Handle the special case of `rm`
+  if (isPromiseFs(fs)) {
+    if (fs.rm) target._rm = fs.rm.bind(fs);
+    else if (fs.rmdir.length > 1) target._rm = fs.rmdir.bind(fs);
+    else target._rm = rmRecursive.bind(null, target);
+  } else {
+    if (fs.rm) target._rm = pify(fs.rm.bind(fs));
+    else if (fs.rmdir.length > 2) target._rm = pify(fs.rmdir.bind(fs));
+    else target._rm = rmRecursive.bind(null, target);
+  }
+}
+
 /**
  * This is just a collection of helper functions really. At least that's how it started.
  */
@@ -57913,41 +57985,9 @@ class FileSystem {
 
     const promises = Object.getOwnPropertyDescriptor(fs, 'promises');
     if (promises && promises.enumerable) {
-      this._readFile = fs.promises.readFile.bind(fs.promises);
-      this._writeFile = fs.promises.writeFile.bind(fs.promises);
-      this._mkdir = fs.promises.mkdir.bind(fs.promises);
-      if (fs.promises.rm) {
-        this._rm = fs.promises.rm.bind(fs.promises);
-      } else if (fs.promises.rmdir.length > 1) {
-        this._rm = fs.promises.rmdir.bind(fs.promises);
-      } else {
-        this._rm = rmRecursive.bind(null, this);
-      }
-      this._rmdir = fs.promises.rmdir.bind(fs.promises);
-      this._unlink = fs.promises.unlink.bind(fs.promises);
-      this._stat = fs.promises.stat.bind(fs.promises);
-      this._lstat = fs.promises.lstat.bind(fs.promises);
-      this._readdir = fs.promises.readdir.bind(fs.promises);
-      this._readlink = fs.promises.readlink.bind(fs.promises);
-      this._symlink = fs.promises.symlink.bind(fs.promises);
+      bindFs(this, fs.promises);
     } else {
-      this._readFile = pify(fs.readFile.bind(fs));
-      this._writeFile = pify(fs.writeFile.bind(fs));
-      this._mkdir = pify(fs.mkdir.bind(fs));
-      if (fs.rm) {
-        this._rm = pify(fs.rm.bind(fs));
-      } else if (fs.rmdir.length > 2) {
-        this._rm = pify(fs.rmdir.bind(fs));
-      } else {
-        this._rm = rmRecursive.bind(null, this);
-      }
-      this._rmdir = pify(fs.rmdir.bind(fs));
-      this._unlink = pify(fs.unlink.bind(fs));
-      this._stat = pify(fs.stat.bind(fs));
-      this._lstat = pify(fs.lstat.bind(fs));
-      this._readdir = pify(fs.readdir.bind(fs));
-      this._readlink = pify(fs.readlink.bind(fs));
-      this._symlink = pify(fs.symlink.bind(fs));
+      bindFs(this, fs);
     }
     this._original_unwrapped_fs = fs;
   }
@@ -58414,6 +58454,7 @@ function posixifyPathBuffer(buffer) {
  * @param {string|string[]} args.filepath - The path to the file to add to the index
  * @param {object} [args.cache] - a [cache](cache.md) object
  * @param {boolean} [args.force=false] - add to index even if matches gitignore. Think `git add --force`
+ * @param {boolean} [args.parallel=false] - process each input file in parallel. Parallel processing will result in more memory consumption but less process time
  *
  * @returns {Promise<void>} Resolves successfully once the git index has been updated
  *
@@ -58430,6 +58471,7 @@ async function add({
   filepath,
   cache = {},
   force = false,
+  parallel = true,
 }) {
   try {
     assertParameter('fs', _fs);
@@ -58439,7 +58481,15 @@ async function add({
 
     const fs = new FileSystem(_fs);
     await GitIndexManager.acquire({ fs, gitdir, cache }, async index => {
-      return addToIndex({ dir, gitdir, fs, filepath, index, force })
+      return addToIndex({
+        dir,
+        gitdir,
+        fs,
+        filepath,
+        index,
+        force,
+        parallel,
+      })
     });
   } catch (err) {
     err.caller = 'git.add';
@@ -58447,7 +58497,15 @@ async function add({
   }
 }
 
-async function addToIndex({ dir, gitdir, fs, filepath, index, force }) {
+async function addToIndex({
+  dir,
+  gitdir,
+  fs,
+  filepath,
+  index,
+  force,
+  parallel,
+}) {
   // TODO: Should ignore UNLESS it's already in the index.
   filepath = Array.isArray(filepath) ? filepath : [filepath];
   const promises = filepath.map(async currentFilepath => {
@@ -58465,17 +58523,32 @@ async function addToIndex({ dir, gitdir, fs, filepath, index, force }) {
 
     if (stats.isDirectory()) {
       const children = await fs.readdir(join(dir, currentFilepath));
-      const promises = children.map(child =>
-        addToIndex({
-          dir,
-          gitdir,
-          fs,
-          filepath: [join(currentFilepath, child)],
-          index,
-          force,
-        })
-      );
-      await Promise.all(promises);
+      if (parallel) {
+        const promises = children.map(child =>
+          addToIndex({
+            dir,
+            gitdir,
+            fs,
+            filepath: [join(currentFilepath, child)],
+            index,
+            force,
+            parallel,
+          })
+        );
+        await Promise.all(promises);
+      } else {
+        for (const child of children) {
+          await addToIndex({
+            dir,
+            gitdir,
+            fs,
+            filepath: [join(currentFilepath, child)],
+            index,
+            force,
+            parallel,
+          });
+        }
+      }
     } else {
       const object = stats.isSymbolicLink()
         ? await fs.readlink(join(dir, currentFilepath)).then(posixifyPathBuffer)
@@ -60753,8 +60826,8 @@ function filterCapabilities(server, client) {
 
 const pkg = {
   name: 'isomorphic-git',
-  version: '1.23.0',
-  agent: 'git/isomorphic-git@1.23.0',
+  version: '1.25.0',
+  agent: 'git/isomorphic-git@1.25.0',
 };
 
 class FIFO {
@@ -61840,6 +61913,7 @@ async function currentBranch({
  * @returns {Promise<void>}
  */
 async function _deleteBranch({ fs, gitdir, ref }) {
+  ref = ref.startsWith('refs/heads/') ? ref : `refs/heads/${ref}`;
   const exist = await GitRefManager.exists({ fs, gitdir, ref });
   if (!exist) {
     throw new NotFoundError(ref)
@@ -62076,15 +62150,20 @@ async function _expandOid({ fs, cache, gitdir, oid: short }) {
   // process can acquire external ref-deltas.
   const getExternalRefDelta = oid => _readObject({ fs, cache, gitdir, oid });
 
-  const results1 = await expandOidLoose({ fs, gitdir, oid: short });
-  const results2 = await expandOidPacked({
+  const results = await expandOidLoose({ fs, gitdir, oid: short });
+  const packedOids = await expandOidPacked({
     fs,
     cache,
     gitdir,
     oid: short,
     getExternalRefDelta,
   });
-  const results = results1.concat(results2);
+  // Objects can exist in a pack file as well as loose, make sure we only get a list of unique oids.
+  for (const packedOid of packedOids) {
+    if (results.indexOf(packedOid) === -1) {
+      results.push(packedOid);
+    }
+  }
 
   if (results.length === 1) {
     return results[0]
@@ -62312,6 +62391,9 @@ async function mergeTree({
   const theirTree = TREE({ ref: theirOid });
 
   const unmergedFiles = [];
+  const bothModified = [];
+  const deleteByUs = [];
+  const deleteByTheirs = [];
 
   const results = await _walk({
     fs,
@@ -62377,6 +62459,7 @@ async function mergeTree({
             }).then(async r => {
               if (!r.cleanMerge) {
                 unmergedFiles.push(filepath);
+                bothModified.push(filepath);
                 if (!abortOnConflict) {
                   const baseOid = await base.oid();
                   const ourOid = await ours.oid();
@@ -62394,8 +62477,70 @@ async function mergeTree({
               return r.mergeResult
             })
           }
+
+          // deleted by us
+          if (
+            base &&
+            !ours &&
+            theirs &&
+            (await base.type()) === 'blob' &&
+            (await theirs.type()) === 'blob'
+          ) {
+            unmergedFiles.push(filepath);
+            deleteByUs.push(filepath);
+            if (!abortOnConflict) {
+              const baseOid = await base.oid();
+              const theirOid = await theirs.oid();
+
+              index.delete({ filepath });
+
+              index.insert({ filepath, oid: baseOid, stage: 1 });
+              index.insert({ filepath, oid: theirOid, stage: 3 });
+            }
+
+            return {
+              mode: await theirs.mode(),
+              oid: await theirs.oid(),
+              type: 'blob',
+              path,
+            }
+          }
+
+          // deleted by theirs
+          if (
+            base &&
+            ours &&
+            !theirs &&
+            (await base.type()) === 'blob' &&
+            (await ours.type()) === 'blob'
+          ) {
+            unmergedFiles.push(filepath);
+            deleteByTheirs.push(filepath);
+            if (!abortOnConflict) {
+              const baseOid = await base.oid();
+              const ourOid = await ours.oid();
+
+              index.delete({ filepath });
+
+              index.insert({ filepath, oid: baseOid, stage: 1 });
+              index.insert({ filepath, oid: ourOid, stage: 2 });
+            }
+
+            return {
+              mode: await ours.mode(),
+              oid: await ours.oid(),
+              type: 'blob',
+              path,
+            }
+          }
+
+          // deleted by both
+          if (base && !ours && !theirs && (await base.type()) === 'blob') {
+            return undefined
+          }
+
           // all other types of conflicts fail
-          // TODO: Merge conflicts involving deletions/additions
+          // TODO: Merge conflicts involving additions
           throw new MergeNotSupportedError()
         }
       }
@@ -62451,7 +62596,12 @@ async function mergeTree({
         },
       });
     }
-    return new MergeConflictError(unmergedFiles)
+    return new MergeConflictError(
+      unmergedFiles,
+      bothModified,
+      deleteByUs,
+      deleteByTheirs
+    )
   }
 
   return results.oid
@@ -63892,6 +64042,9 @@ async function isIgnored({
  * Note that specifying a remote does not actually contact the server and update the list of branches.
  * If you want an up-to-date list, first do a `fetch` to that remote.
  * (Which branch you fetch doesn't matter - the list of branches available on the remote is updated during the fetch handshake.)
+ *
+ * Also note, that a branch is a reference to a commit. If you initialize a new repository it has no commits, so the
+ * `listBranches` function will return an empty list, until you create the first commit.
  *
  * @param {object} args
  * @param {FsClient} args.fs - a file system client
@@ -66673,7 +66826,14 @@ async function _renameBranch({
   await GitRefManager.writeRef({ fs, gitdir, ref: fullnewref, value });
   await GitRefManager.deleteRef({ fs, gitdir, ref: fulloldref });
 
-  if (checkout) {
+  const fullCurrentBranchRef = await _currentBranch({
+    fs,
+    gitdir,
+    fullname: true,
+  });
+  const isCurrentBranch = fullCurrentBranchRef === fulloldref;
+
+  if (checkout || isCurrentBranch) {
     // Update HEAD
     await GitRefManager.writeSymbolicRef({
       fs,
