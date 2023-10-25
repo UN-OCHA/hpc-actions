@@ -6,4 +6,14 @@ module.exports = {
     project: true,
     tsconfigRootDir: __dirname,
   },
+  overrides: [
+    ...baseConfig.overrides,
+    {
+      files: ['*.{ts,tsx}'],
+      rules: {
+        'unicorn/no-process-exit': 'off',
+        'unicorn/prefer-module': 'off',
+      },
+    },
+  ],
 };
