@@ -80,7 +80,6 @@ class NoPullRequestError extends Error {
 }
 exports.NoPullRequestError = NoPullRequestError;
 const runAction = async ({ env, dir = process.cwd(), logger = console, dockerInit = docker_1.REAL_DOCKER, gitHubInit = github_1.REAL_GITHUB, }) => {
-    var _a, _b;
     const info = (message) => logger.log(`##[info] ${message}`);
     const config = await (0, config_1.getConfig)(env);
     // Get event information
@@ -112,7 +111,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
             name: 'push',
             payload: JSON.parse((await fs_1.default.promises.readFile(env.GITHUB_EVENT_PATH)).toString()),
         };
-        if ((_b = (_a = event === null || event === void 0 ? void 0 : event.payload) === null || _a === void 0 ? void 0 : _a.ref) === null || _b === void 0 ? void 0 : _b.startsWith('refs/tags/')) {
+        if (event?.payload?.ref?.startsWith('refs/tags/')) {
             info('Push is for tag, skipping action');
             return;
         }
@@ -203,21 +202,17 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
          * or dependabot, and so attempting to review the PR with the GitHub Actions
          * token will fail, and commenting is required instead.
          */
-        const commentMode = (pr) => {
-            var _a, _b, _c, _d, _e, _f, _g;
-            return ((_a = pr.user) === null || _a === void 0 ? void 0 : _a.id) === UNOCHA_HPC_USER_ID ||
-                ((_b = pr.user) === null || _b === void 0 ? void 0 : _b.id) === GITHUB_ACTIONS_USER_ID ||
-                (((_c = pr.user) === null || _c === void 0 ? void 0 : _c.login.startsWith(GITHUB_ACTIONS_USER_LOGIN)) &&
-                    ((_d = pr.user) === null || _d === void 0 ? void 0 : _d.type.toLowerCase()) === 'bot')
-                ? 'comment'
-                : ((_e = pr.user) === null || _e === void 0 ? void 0 : _e.id) === DEPENDABOT_USER_ID ||
-                    (((_f = pr.user) === null || _f === void 0 ? void 0 : _f.login.startsWith(DEPENDABOT_USER_LOGIN)) &&
-                        ((_g = pr.user) === null || _g === void 0 ? void 0 : _g.type.toLowerCase()) === 'bot')
-                    ? 'none'
-                    : 'review';
-        };
+        const commentMode = (pr) => pr.user?.id === UNOCHA_HPC_USER_ID ||
+            pr.user?.id === GITHUB_ACTIONS_USER_ID ||
+            (pr.user?.login.startsWith(GITHUB_ACTIONS_USER_LOGIN) &&
+                pr.user?.type.toLowerCase() === 'bot')
+            ? 'comment'
+            : pr.user?.id === DEPENDABOT_USER_ID ||
+                (pr.user?.login.startsWith(DEPENDABOT_USER_LOGIN) &&
+                    pr.user?.type.toLowerCase() === 'bot')
+                ? 'none'
+                : 'review';
         const buildAndPushDockerImage = async (opts) => {
-            var _a;
             const { tag, checkBehaviour } = opts;
             info('Logging in to docker');
             const docker = dockerInit(config.docker);
@@ -300,12 +295,12 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                     logger,
                 });
             }
-            const checkTag = ((_a = opts.checkTag) === null || _a === void 0 ? void 0 : _a.mode) === 'conditional'
+            const checkTag = opts.checkTag?.mode === 'conditional'
                 ? existingMatchingImage
                     ? opts.checkTag.retagged
                     : opts.checkTag.built
                 : opts.checkTag;
-            if ((checkTag === null || checkTag === void 0 ? void 0 : checkTag.mode) === 'match') {
+            if (checkTag?.mode === 'match') {
                 const tag = checkTag.gitTag;
                 info(`Image built, checking tag ${tag} is unchanged`);
                 await isomorphic_git_1.default.deleteRef({ fs: fs_1.default, dir, ref: `refs/tags/${tag}` });
@@ -322,7 +317,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                     info('Tag is unchanged, okay to continue');
                 }
             }
-            else if ((checkTag === null || checkTag === void 0 ? void 0 : checkTag.mode) === 'non-existant') {
+            else if (checkTag?.mode === 'non-existant') {
                 const tag = checkTag.gitTag;
                 info(`Image built, checking tag ${tag} still does not exist`);
                 const doesExist = await exec(`git fetch ${remote.remote} ${tag}:${tag}`, {
@@ -912,8 +907,7 @@ const getConfig = async (env) => {
         throw new Error('Environment Variable CONFIG_FILE is required');
     }
     const data = await fs_1.promises.readFile(env.CONFIG_FILE).catch((err) => {
-        var _a;
-        if ((_a = err.message) === null || _a === void 0 ? void 0 : _a.startsWith('ENOENT: no such file or directory')) {
+        if (err.message?.startsWith('ENOENT: no such file or directory')) {
             throw new Error(`Could not find configuration file "${env.CONFIG_FILE}" specified in CONFIG_FILE`);
         }
         else {
@@ -1182,7 +1176,6 @@ const util_1 = __nccwpck_require__(3837);
  * Optionally, send data to the stdin of the child process
  */
 const execAndPipeOutput = (opts) => {
-    var _a;
     const { command, cwd, logger } = opts;
     const p = child_process.execFile('sh', ['-c', command], { cwd });
     const buffer = {
@@ -1199,7 +1192,7 @@ const execAndPipeOutput = (opts) => {
                 logger[stream === 'stdout' ? 'log' : 'error'](ready);
             }
         };
-        (_a = p[stream]) === null || _a === void 0 ? void 0 : _a.on('data', handle);
+        p[stream]?.on('data', handle);
     }
     if (opts.data) {
         if (!p.stdin) {
