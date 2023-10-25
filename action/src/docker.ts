@@ -1,6 +1,6 @@
+import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 import { PathReporter } from 'io-ts/lib/PathReporter';
-import { isLeft } from 'fp-ts/lib/Either';
 
 import { exec, execAndPipeOutput } from './util/child_process';
 import { Logger } from './util/interfaces';

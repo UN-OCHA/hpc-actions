@@ -1,19 +1,19 @@
-import * as fs from 'fs';
 import * as child_process from 'child_process';
+import * as fs from 'fs';
 import git from 'isomorphic-git';
 import * as path from 'path';
 import { promisify } from 'util';
 
 import * as util from '../util';
 
-import { Config, Env } from '../../src/config';
 import * as action from '../../src/action';
+import { Config, Env } from '../../src/config';
 import {
-  DockerImageMetadata,
   DockerController,
+  DockerImageMetadata,
   DockerInit,
 } from '../../src/docker';
-import { GitHubInit, GitHubController } from '../../src/github';
+import { GitHubController, GitHubInit } from '../../src/github';
 
 const exec = promisify(child_process.exec);
 

@@ -1,14 +1,14 @@
+import type { PushEvent } from '@octokit/webhooks-types';
 import * as child_process from 'child_process';
 import fs from 'fs';
 import git from 'isomorphic-git';
 import { promisify } from 'util';
-import type { PushEvent } from '@octokit/webhooks-types';
 
 import { execAndPipeOutput } from './util/child_process';
 
-import { Env, Config, getConfig } from './config';
+import { Config, Env, getConfig } from './config';
 import { DockerInit, REAL_DOCKER } from './docker';
-import { GitHubInit, REAL_GITHUB, PullRequest } from './github';
+import { GitHubInit, PullRequest, REAL_GITHUB } from './github';
 
 const exec = promisify(child_process.exec);
 

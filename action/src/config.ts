@@ -6,10 +6,10 @@
  * extensibility. This configuration file will be used for all options,
  * except for secrets, and the config file pathname.
  */
-import * as t from 'io-ts';
-import { PathReporter } from 'io-ts/lib/PathReporter';
 import { either } from 'fp-ts';
 import { promises as fs } from 'fs';
+import * as t from 'io-ts';
+import { PathReporter } from 'io-ts/lib/PathReporter';
 
 /**
  * The environment variables that are expected
