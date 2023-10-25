@@ -1,4 +1,4 @@
-import { promises as fs } from 'fs';
+import { promises as fs } from 'node:fs';
 
 import * as util from '../util';
 
@@ -9,9 +9,11 @@ describe('config', () => {
   it('Require CONFIG_FILE variable', async () => {
     await config
       .getConfig({})
-      .then(() => Promise.reject(new Error('Expected error to be thrown')))
-      .catch((err: Error) => {
-        expect(err.message).toEqual(
+      .then(() => {
+        throw new Error('Expected error to be thrown');
+      })
+      .catch((error: Error) => {
+        expect(error.message).toEqual(
           'Environment Variable CONFIG_FILE is required'
         );
       });
@@ -22,9 +24,11 @@ describe('config', () => {
       .getConfig({
         CONFIG_FILE: 'foo',
       })
-      .then(() => Promise.reject(new Error('Expected error to be thrown')))
-      .catch((err: Error) => {
-        expect(err.message).toEqual(
+      .then(() => {
+        throw new Error('Expected error to be thrown');
+      })
+      .catch((error: Error) => {
+        expect(error.message).toEqual(
           'Could not find configuration file "foo" specified in CONFIG_FILE'
         );
       });
@@ -37,9 +41,11 @@ describe('config', () => {
       .getConfig({
         CONFIG_FILE: TEST_CONFIG_PATH,
       })
-      .then(() => Promise.reject(new Error('Expected error to be thrown')))
-      .catch((err: Error) => {
-        expect(err.message.replace(TEST_CONFIG_PATH, '<file>')).toEqual(
+      .then(() => {
+        throw new Error('Expected error to be thrown');
+      })
+      .catch((error: Error) => {
+        expect(error.message.replace(TEST_CONFIG_PATH, '<file>')).toEqual(
           'The configuration file at "<file>" is not valid JSON: ' +
             'Unexpected end of JSON input'
         );
@@ -58,9 +64,11 @@ describe('config', () => {
       .getConfig({
         CONFIG_FILE: TEST_CONFIG_PATH,
       })
-      .then(() => Promise.reject(new Error('Expected error to be thrown')))
-      .catch((err: Error) => {
-        expect(err.message.startsWith('Invalid Configuration:')).toBeTruthy();
+      .then(() => {
+        throw new Error('Expected error to be thrown');
+      })
+      .catch((error: Error) => {
+        expect(error.message.startsWith('Invalid Configuration:')).toBeTruthy();
       });
   });
 
@@ -91,9 +99,11 @@ describe('config', () => {
       .getConfig({
         CONFIG_FILE: TEST_CONFIG_PATH,
       })
-      .then(() => Promise.reject(new Error('Expected error to be thrown')))
-      .catch((err: Error) => {
-        expect(err.message).toEqual(
+      .then(() => {
+        throw new Error('Expected error to be thrown');
+      })
+      .catch((error: Error) => {
+        expect(error.message).toEqual(
           'Invalid Configuration: Docker repository must start with: docker.pkg.github.com/'
         );
       });
@@ -125,9 +135,11 @@ describe('config', () => {
       .getConfig({
         CONFIG_FILE: TEST_CONFIG_PATH,
       })
-      .then(() => Promise.reject(new Error('Expected error to be thrown')))
-      .catch((err: Error) => {
-        expect(err.message).toEqual(
+      .then(() => {
+        throw new Error('Expected error to be thrown');
+      })
+      .catch((error: Error) => {
+        expect(error.message).toEqual(
           'Invalid Configuration: All development environment branches must start with env/'
         );
       });

@@ -1,7 +1,7 @@
-import * as child_process from 'child_process';
-import { promisify } from 'util';
+import * as child_process from 'node:child_process';
+import { promisify } from 'node:util';
 
-import { Logger } from './interfaces';
+import { type Logger } from './interfaces';
 
 /**
  * Like child_process.exec,

@@ -1,19 +1,19 @@
-import * as child_process from 'child_process';
-import * as fs from 'fs';
 import git from 'isomorphic-git';
-import * as path from 'path';
-import { promisify } from 'util';
+import * as child_process from 'node:child_process';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { promisify } from 'node:util';
 
 import * as util from '../util';
 
 import * as action from '../../src/action';
-import { Config, Env } from '../../src/config';
-import {
+import type { Config, Env } from '../../src/config';
+import type {
   DockerController,
   DockerImageMetadata,
   DockerInit,
 } from '../../src/docker';
-import { GitHubController, GitHubInit } from '../../src/github';
+import type { GitHubController, GitHubInit } from '../../src/github';
 
 const exec = promisify(child_process.exec);
 
@@ -96,9 +96,11 @@ describe('action', () => {
           env: DEFAULT_ENV,
           dir,
         })
-        .then(() => Promise.reject(new Error('Expected error to be thrown')))
-        .catch((err: Error) => {
-          expect(err.message).toEqual('Action not run within git repository');
+        .then(() => {
+          throw new Error('Expected error to be thrown');
+        })
+        .catch((error: Error) => {
+          expect(error.message).toEqual('Action not run within git repository');
         });
     });
 
@@ -112,9 +114,11 @@ describe('action', () => {
           env: DEFAULT_ENV,
           dir,
         })
-        .then(() => Promise.reject(new Error('Expected error to be thrown')))
-        .catch((err: Error) => {
-          expect(err.message).toEqual(
+        .then(() => {
+          throw new Error('Expected error to be thrown');
+        })
+        .catch((error: Error) => {
+          expect(error.message).toEqual(
             'Exactly 1 remote expected in repository'
           );
         });
@@ -135,10 +139,12 @@ describe('action', () => {
           env: DEFAULT_ENV,
           dir,
         })
-        .then(() => Promise.reject(new Error('Expected error to be thrown')))
-        .catch((err: Error) => {
+        .then(() => {
+          throw new Error('Expected error to be thrown');
+        })
+        .catch((error: Error) => {
           expect(
-            err.message.startsWith(
+            error.message.startsWith(
               'Unable to read version from package.json: File not found in commit'
             )
           ).toBeTruthy();
@@ -160,10 +166,12 @@ describe('action', () => {
           env: DEFAULT_ENV,
           dir,
         })
-        .then(() => Promise.reject(new Error('Expected error to be thrown')))
-        .catch((err: Error) => {
+        .then(() => {
+          throw new Error('Expected error to be thrown');
+        })
+        .catch((error: Error) => {
           expect(
-            err.message.startsWith(
+            error.message.startsWith(
               'Unable to read version from package.json: Invalid JSON'
             )
           ).toBeTruthy();
@@ -190,9 +198,11 @@ describe('action', () => {
           env: DEFAULT_ENV,
           dir,
         })
-        .then(() => Promise.reject(new Error('Expected error to be thrown')))
-        .catch((err: Error) => {
-          expect(err.message).toEqual('Invalid version in package.json');
+        .then(() => {
+          throw new Error('Expected error to be thrown');
+        })
+        .catch((error: Error) => {
+          expect(error.message).toEqual('Invalid version in package.json');
         });
     });
 
@@ -256,10 +266,10 @@ describe('action', () => {
                   logger,
                   dockerInit: testCompleteDockerInit,
                 })
-                .then(() =>
-                  Promise.reject(new Error('Expected error to be thrown'))
-                )
-                .catch((err) => expect(err).toBe(testCompleteError));
+                .then(() => {
+                  throw new Error('Expected error to be thrown');
+                })
+                .catch((error) => expect(error).toBe(testCompleteError));
               expect(logger.log.mock.calls).toMatchSnapshot();
             });
 
@@ -300,10 +310,10 @@ describe('action', () => {
                   logger,
                   dockerInit: testCompleteDockerInit,
                 })
-                .then(() =>
-                  Promise.reject(new Error('Expected error to be thrown'))
-                )
-                .catch((err) => expect(err).toBe(testCompleteError));
+                .then(() => {
+                  throw new Error('Expected error to be thrown');
+                })
+                .catch((error) => expect(error).toBe(testCompleteError));
               expect(logger.log.mock.calls).toMatchSnapshot();
             });
 
@@ -347,10 +357,10 @@ describe('action', () => {
                   logger,
                   dockerInit: testCompleteDockerInit,
                 })
-                .then(() =>
-                  Promise.reject(new Error('Expected error to be thrown'))
-                )
-                .catch((err) => expect(err).toBe(testCompleteError));
+                .then(() => {
+                  throw new Error('Expected error to be thrown');
+                })
+                .catch((error) => expect(error).toBe(testCompleteError));
               expect(logger.log.mock.calls).toMatchSnapshot();
             });
 
@@ -393,11 +403,11 @@ describe('action', () => {
                   dir,
                   logger,
                 })
-                .then(() =>
-                  Promise.reject(new Error('Expected error to be thrown'))
-                )
-                .catch((err: Error) => {
-                  expect(err.message).toEqual(
+                .then(() => {
+                  throw new Error('Expected error to be thrown');
+                })
+                .catch((error: Error) => {
+                  expect(error.message).toEqual(
                     `New push to env/${env} without bumping version`
                   );
                 });
@@ -462,10 +472,10 @@ describe('action', () => {
                   }),
                   gitHubInit: testCompleteGitHubInit,
                 })
-                .then(() =>
-                  Promise.reject(new Error('Expected error to be thrown'))
-                )
-                .catch((err) => expect(err).toBe(testCompleteError));
+                .then(() => {
+                  throw new Error('Expected error to be thrown');
+                })
+                .catch((error) => expect(error).toBe(testCompleteError));
               expect(logger.log.mock.calls).toMatchSnapshot();
               expect(
                 pullImage.mock.calls.map((call) => [call[0]])
@@ -537,10 +547,10 @@ describe('action', () => {
                   }),
                   gitHubInit: testCompleteGitHubInit,
                 })
-                .then(() =>
-                  Promise.reject(new Error('Expected error to be thrown'))
-                )
-                .catch((err) => expect(err).toBe(testCompleteError));
+                .then(() => {
+                  throw new Error('Expected error to be thrown');
+                })
+                .catch((error) => expect(error).toBe(testCompleteError));
               expect(logger.log.mock.calls).toMatchSnapshot();
               expect(
                 pullImage.mock.calls.map((call) => [call[0]])
@@ -600,16 +610,16 @@ describe('action', () => {
                     getMetadata,
                   }),
                 })
-                .then(() =>
-                  Promise.reject(new Error('Expected error to be thrown'))
-                )
-                .catch((err: Error) => {
+                .then(() => {
+                  throw new Error('Expected error to be thrown');
+                })
+                .catch((error: Error) => {
                   if (env === 'prod') {
-                    expect(err.message).toEqual(
+                    expect(error.message).toEqual(
                       'Image was built with different tree, aborting'
                     );
                   } else {
-                    expect(err).toBe(testCompleteError);
+                    expect(error).toBe(testCompleteError);
                   }
                 });
               expect(logger.log.mock.calls).toMatchSnapshot();
@@ -673,10 +683,10 @@ describe('action', () => {
                   }),
                   gitHubInit: testCompleteGitHubInit,
                 })
-                .then(() =>
-                  Promise.reject(new Error('Expected error to be thrown'))
-                )
-                .catch((err) => expect(err).toBe(testCompleteError));
+                .then(() => {
+                  throw new Error('Expected error to be thrown');
+                })
+                .catch((error) => expect(error).toBe(testCompleteError));
               expect(logger.log.mock.calls).toMatchSnapshot();
               expect(
                 pullImage.mock.calls.map((call) => [call[0]])
@@ -736,10 +746,10 @@ describe('action', () => {
                   }),
                   gitHubInit: testCompleteGitHubInit,
                 })
-                .then(() =>
-                  Promise.reject(new Error('Expected error to be thrown'))
-                )
-                .catch((err) => expect(err).toBe(testCompleteError));
+                .then(() => {
+                  throw new Error('Expected error to be thrown');
+                })
+                .catch((error) => expect(error).toBe(testCompleteError));
               expect(logger.log.mock.calls).toMatchSnapshot();
               expect(
                 pullImage.mock.calls.map((call) => [call[0]])
@@ -797,10 +807,10 @@ describe('action', () => {
                   }),
                   gitHubInit: testCompleteGitHubInit,
                 })
-                .then(() =>
-                  Promise.reject(new Error('Expected error to be thrown'))
-                )
-                .catch((err) => expect(err).toBe(testCompleteError));
+                .then(() => {
+                  throw new Error('Expected error to be thrown');
+                })
+                .catch((error) => expect(error).toBe(testCompleteError));
               expect(logger.log.mock.calls).toMatchSnapshot();
               expect({
                 pullImage: pullImage.mock.calls.map((call) => [call[0]]),
@@ -887,11 +897,11 @@ describe('action', () => {
                     pushImage,
                   }),
                 })
-                .then(() =>
-                  Promise.reject(new Error('Expected error to be thrown'))
-                )
-                .catch((err: Error) => {
-                  expect(err.message).toEqual(
+                .then(() => {
+                  throw new Error('Expected error to be thrown');
+                })
+                .catch((error: Error) => {
+                  expect(error.message).toEqual(
                     env === 'prod'
                       ? 'Tag has changed, aborting'
                       : 'Tag v1.2.0 now exists, aborting'
@@ -1196,9 +1206,11 @@ describe('action', () => {
             logger,
             dockerInit: testCompleteDockerInit,
           })
-          .then(() => Promise.reject(new Error('Expected error to be thrown')))
-          .catch((err) =>
-            expect(err.message).toEqual(
+          .then(() => {
+            throw new Error('Expected error to be thrown');
+          })
+          .catch((error) =>
+            expect(error.message).toEqual(
               'Invalid development branch: env/dev2, must be one of: env/dev'
             )
           );
@@ -1323,12 +1335,14 @@ describe('action', () => {
               getOpenPullRequests,
             }),
           })
-          .then(() => Promise.reject(new Error('Expected error to be thrown')))
-          .catch((err) => {
-            expect(err.message).toEqual(
+          .then(() => {
+            throw new Error('Expected error to be thrown');
+          })
+          .catch((error) => {
+            expect(error.message).toEqual(
               'The branch hotfix/foo has no pull requests open yet, so it is not possible to run this workflow.'
             );
-            expect(err).toBeInstanceOf(action.NoPullRequestError);
+            expect(error).toBeInstanceOf(action.NoPullRequestError);
           });
         expect(logger.log.mock.calls).toMatchSnapshot();
         expect(getOpenPullRequests.mock.calls).toMatchSnapshot();
@@ -1378,9 +1392,11 @@ describe('action', () => {
               getOpenPullRequests,
             }),
           })
-          .then(() => Promise.reject(new Error('Expected error to be thrown')))
-          .catch((err) => {
-            expect(err.message).toEqual(
+          .then(() => {
+            throw new Error('Expected error to be thrown');
+          })
+          .catch((error) => {
+            expect(error.message).toEqual(
               'Multiple pull requests for branch hotfix/foo are open, so it is not possible to run this workflow.'
             );
           });
@@ -1439,9 +1455,11 @@ describe('action', () => {
               reviewPullRequest,
             }),
           })
-          .then(() => Promise.reject(new Error('Expected error to be thrown')))
-          .catch((err) => {
-            expect(err.message).toEqual(
+          .then(() => {
+            throw new Error('Expected error to be thrown');
+          })
+          .catch((error) => {
+            expect(error.message).toEqual(
               'Pull request from hotfix/ branch made against develop'
             );
           });
@@ -1512,9 +1530,11 @@ describe('action', () => {
               reviewPullRequest,
             }),
           })
-          .then(() => Promise.reject(new Error('Expected error to be thrown')))
-          .catch((err) => {
-            expect(err.message).toEqual(
+          .then(() => {
+            throw new Error('Expected error to be thrown');
+          })
+          .catch((error) => {
+            expect(error.message).toEqual(
               'Tag already exists for version v1.2.1, aborting.'
             );
           });
@@ -1586,9 +1606,11 @@ describe('action', () => {
               reviewPullRequest,
             }),
           })
-          .then(() => Promise.reject(new Error('Expected error to be thrown')))
-          .catch((err) => {
-            expect(err.message).toEqual(
+          .then(() => {
+            throw new Error('Expected error to be thrown');
+          })
+          .catch((error) => {
+            expect(error.message).toEqual(
               'hotfix/foo is not a descendant of target (base) branch env/prod'
             );
           });
@@ -1683,9 +1705,11 @@ describe('action', () => {
               reviewPullRequest,
             }),
           })
-          .then(() => Promise.reject(new Error('Expected error to be thrown')))
-          .catch((err) => {
-            expect(err.message).toEqual(
+          .then(() => {
+            throw new Error('Expected error to be thrown');
+          })
+          .catch((error) => {
+            expect(error.message).toEqual(
               'Tag v1.2.1 has been created, aborting'
             );
           });
@@ -1855,7 +1879,7 @@ describe('action', () => {
             {
               number: 321,
               base: { ref: 'env/prod' },
-              user: { id: 41898282 },
+              user: { id: 41_898_282 },
             },
           ],
         });
@@ -1979,9 +2003,11 @@ describe('action', () => {
               reviewPullRequest,
             }),
           })
-          .then(() => Promise.reject(new Error('Expected error to be thrown')))
-          .catch((err) => {
-            expect(err.message).toEqual(
+          .then(() => {
+            throw new Error('Expected error to be thrown');
+          })
+          .catch((error) => {
+            expect(error.message).toEqual(
               'Pull request from release/ branch made against develop'
             );
           });
@@ -2180,9 +2206,11 @@ describe('action', () => {
               reviewPullRequest,
             }),
           })
-          .then(() => Promise.reject(new Error('Expected error to be thrown')))
-          .catch((err) => {
-            expect(err.message).toEqual(
+          .then(() => {
+            throw new Error('Expected error to be thrown');
+          })
+          .catch((error) => {
+            expect(error.message).toEqual(
               'Pull request from some-feature-branch made against env/staging'
             );
           });
@@ -2242,9 +2270,11 @@ describe('action', () => {
               reviewPullRequest,
             }),
           })
-          .then(() => Promise.reject(new Error('Expected error to be thrown')))
-          .catch((err) => {
-            expect(err.message).toEqual(
+          .then(() => {
+            throw new Error('Expected error to be thrown');
+          })
+          .catch((error) => {
+            expect(error.message).toEqual(
               'Pull request from some-feature-branch made against env/prod'
             );
           });
@@ -2311,9 +2341,11 @@ describe('action', () => {
               commentOnPullRequest,
             }),
           })
-          .then(() => Promise.reject(new Error('Expected error to be thrown')))
-          .catch((err) => {
-            expect(err.message).toEqual(
+          .then(() => {
+            throw new Error('Expected error to be thrown');
+          })
+          .catch((error) => {
+            expect(error.message).toEqual(
               'Pull request from some-feature-branch made against env/prod'
             );
           });
@@ -2406,7 +2438,7 @@ describe('action', () => {
               number: 321,
               base: { ref: 'develop' },
               user: {
-                id: 41898282,
+                id: 41_898_282,
               },
             },
           ],
@@ -2558,11 +2590,11 @@ describe('action', () => {
                 reviewPullRequest,
               }),
             })
-            .then(() =>
-              Promise.reject(new Error('Expected error to be thrown'))
-            )
-            .catch((err: Error) => {
-              expect(err.message).toEqual(
+            .then(() => {
+              throw new Error('Expected error to be thrown');
+            })
+            .catch((error: Error) => {
+              expect(error.message).toEqual(
                 'Command "exit 123" exited with exit code 123'
               );
             });

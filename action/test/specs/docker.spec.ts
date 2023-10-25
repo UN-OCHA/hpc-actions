@@ -1,5 +1,5 @@
-import { promises as fs } from 'fs';
-import * as path from 'path';
+import { promises as fs } from 'node:fs';
+import * as path from 'node:path';
 
 import * as util from '../util';
 
@@ -46,14 +46,14 @@ describe('docker', () => {
         },
         logger,
       })
-      .catch((err) => {
+      .catch((error) => {
         const errs: string[] = [
-          err.message,
+          error.message,
           ...logger.error.mock.calls.map((args) => args.join(' ')),
           ...logger.log.mock.calls.map((args) => args.join(' ')),
         ];
         console.error(errs.join('\n'));
-        throw err;
+        throw error;
       });
 
     expect(logger.error.mock.calls.length).toBeGreaterThan(1);

@@ -1,4 +1,4 @@
-import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
+import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
 
 interface GitHubParams {
   token: string;
@@ -53,7 +53,7 @@ export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
 
   const repoSplit = githubRepo.split('/');
   if (repoSplit.length !== 2) {
-    throw new Error('Invalid value for repo: ' + githubRepo);
+    throw new Error(`Invalid value for repo: ${githubRepo}`);
   }
   const [owner, repo] = repoSplit;
 
