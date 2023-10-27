@@ -56,10 +56,10 @@ describe('docker', () => {
         throw err;
       });
 
-    expect(logger.log.mock.calls.length).toBeGreaterThan(1);
-    expect(logger.log.mock.calls[logger.log.mock.calls.length - 1]).toEqual([
-      'Successfully tagged hpc-actions/unit-test:some-tag',
-    ]);
+    expect(logger.error.mock.calls.length).toBeGreaterThan(1);
+    expect(logger.error.mock.calls.at(-2).at(0)).toMatch(
+      'naming to docker.io/hpc-actions/unit-test:some-tag done'
+    );
 
     expect(await docker.getMetadata('some-tag')).toEqual({
       commitSha: 'foo',
