@@ -10,7 +10,7 @@
     "test": "jest --config test/jest.config.js --runInBand --verbose"
   },
   "engines": {
-    "node": ">=18.16.1",
+    "node": ">=18.18.2",
     "npm": ">=9.5.1"
   },
   "devDependencies": {
