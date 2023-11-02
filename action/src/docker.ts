@@ -1,11 +1,11 @@
+import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 import { PathReporter } from 'io-ts/lib/PathReporter';
-import { isLeft } from 'fp-ts/lib/Either';
 
 import { exec, execAndPipeOutput } from './util/child_process';
-import { Logger } from './util/interfaces';
+import { type Logger } from './util/interfaces';
 
-import { DockerConfig } from './config';
+import { type DockerConfig } from './config';
 
 export type DockerInit = (config: DockerConfig) => DockerController;
 
@@ -60,7 +60,7 @@ export const REAL_DOCKER: DockerInit = (config) => ({
     // Login to docker
     await execAndPipeOutput({
       command: `docker login ${
-        config.registry || ''
+        config.registry ?? ''
       } -u ${user}  --password-stdin`,
       cwd: __dirname,
       // Drop all console output (it's mostly warning about storing credentials)
@@ -84,8 +84,9 @@ export const REAL_DOCKER: DockerInit = (config) => ({
     const check = IMAGE_DETAILS.decode(data);
     if (isLeft(check)) {
       throw new Error(
-        'Unexpected output from docker inspect: \n* ' +
-          PathReporter.report(check).join('\n* ')
+        `Unexpected output from docker inspect: \n* ${PathReporter.report(
+          check
+        ).join('\n* ')}`
       );
     }
     if (check.right.length !== 1) {

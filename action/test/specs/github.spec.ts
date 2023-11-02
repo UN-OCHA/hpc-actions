@@ -16,8 +16,8 @@ describe('github', () => {
         token: 'asdf',
       });
       throw new Error('Expected error to be thrown');
-    } catch (err) {
-      expect((err as { message: string }).message).toEqual(
+    } catch (error) {
+      expect((error as { message: string }).message).toEqual(
         'Invalid value for repo: oooorrrr'
       );
     }

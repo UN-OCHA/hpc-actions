@@ -1,22 +1,22 @@
-import * as child_process from 'child_process';
-import fs from 'fs';
-import git from 'isomorphic-git';
-import { promisify } from 'util';
 import type { PushEvent } from '@octokit/webhooks-types';
+import git from 'isomorphic-git';
+import * as child_process from 'node:child_process';
+import fs from 'node:fs';
+import { promisify } from 'node:util';
 
 import { execAndPipeOutput } from './util/child_process';
 
-import { Env, Config, getConfig } from './config';
-import { DockerInit, REAL_DOCKER } from './docker';
-import { GitHubInit, REAL_GITHUB, PullRequest } from './github';
+import { getConfig, type Config, type Env } from './config';
+import { REAL_DOCKER, type DockerInit } from './docker';
+import { REAL_GITHUB, type GitHubInit, type PullRequest } from './github';
 
 const exec = promisify(child_process.exec);
 
-const GITHUB_ACTIONS_USER_ID = 41898282;
+const GITHUB_ACTIONS_USER_ID = 41_898_282;
 const GITHUB_ACTIONS_USER_LOGIN = 'github-actions';
-const DEPENDABOT_USER_ID = 49699333;
+const DEPENDABOT_USER_ID = 49_699_333;
 const DEPENDABOT_USER_LOGIN = 'dependabot';
-const UNOCHA_HPC_USER_ID = 90184116;
+const UNOCHA_HPC_USER_ID = 90_184_116;
 
 interface Params {
   /**
@@ -65,7 +65,7 @@ const determineMode = (config: Config, branch: string): Mode => {
     return 'env-production';
   } else if (branch === config.stagingEnvironmentBranch) {
     return 'env-staging';
-  } else if (config.developmentEnvironmentBranches.indexOf(branch) > -1) {
+  } else if (config.developmentEnvironmentBranches.includes(branch)) {
     return 'env-development';
   } else if (branch.startsWith('env/')) {
     throw new Error(
@@ -163,7 +163,7 @@ export const runAction = async ({
       sha: string;
       version: string;
     }> => {
-      const sha = await git.resolveRef({ fs, dir, ref: ref || 'HEAD' });
+      const sha = await git.resolveRef({ fs, dir, ref: ref ?? 'HEAD' });
       if (config.repoType === 'node') {
         const pkg = await git
           .readBlob({
@@ -180,21 +180,20 @@ export const runAction = async ({
         let json: PackageJson;
         try {
           json = JSON.parse(new TextDecoder('utf-8').decode(pkg.blob));
-        } catch (err) {
+        } catch (error) {
           let errMsg = 'Unable to read version from package.json: Invalid JSON';
-          if (err instanceof Error) {
-            errMsg += `: ${err.message}`;
+          if (error instanceof Error) {
+            errMsg += `: ${error.message}`;
           }
           throw new Error(errMsg);
         }
         const version = json.version;
         if (typeof version !== 'string') {
-          throw new Error('Invalid version in package.json');
+          throw new TypeError('Invalid version in package.json');
         }
         return { sha, version };
-      } else {
-        throw new Error('Unsupported repo type: ' + config.repoType);
       }
+      throw new Error(`Unsupported repo type: ${config.repoType}`);
     };
 
     // Get remote information
@@ -470,7 +469,7 @@ export const runAction = async ({
     const runCICommands = async () => {
       info('Running CI Checks');
 
-      for (const command of config.ci || []) {
+      for (const command of config.ci ?? []) {
         info(`Running: ${command}`);
         await execAndPipeOutput({ command, cwd: dir, logger });
       }
@@ -524,12 +523,11 @@ export const runAction = async ({
     const fetchTag = (tag: string) =>
       exec(`git fetch ${remote.remote} ${tag}:${tag}`, { cwd: dir })
         .then(() => true)
-        .catch((err) => {
-          if (err.stderr.indexOf("fatal: couldn't find remote ref") > -1) {
+        .catch((error) => {
+          if (error.stderr.includes("fatal: couldn't find remote ref")) {
             return false;
-          } else {
-            throw err;
           }
+          throw error;
         });
 
     const checkTagNotUsed = async (tag: string, pullRequest: PullRequest) => {
@@ -769,12 +767,12 @@ export const runAction = async ({
         base,
         head: mergebackBranch,
         title: `Update ${base} with changes from ${branch}`,
-        labels: config.mergebackLabels || [],
+        labels: config.mergebackLabels ?? [],
       });
 
       info('Pull Request Opened, workflow complete');
     } else if (mode === 'env-development') {
-      const tag = branch.replace(/\//g, '-');
+      const tag = branch.replaceAll('/', '-');
       await buildAndPushDockerImage({
         checkBehaviour: null,
         tag,

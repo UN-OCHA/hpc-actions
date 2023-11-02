@@ -6,10 +6,10 @@
  * extensibility. This configuration file will be used for all options,
  * except for secrets, and the config file pathname.
  */
+import { either } from 'fp-ts';
 import * as t from 'io-ts';
 import { PathReporter } from 'io-ts/lib/PathReporter';
-import { either } from 'fp-ts';
-import { promises as fs } from 'fs';
+import { promises as fs } from 'node:fs';
 
 /**
  * The environment variables that are expected
@@ -175,29 +175,29 @@ export const getConfig = async (env: Env): Promise<Config> => {
   if (!env.CONFIG_FILE) {
     throw new Error('Environment Variable CONFIG_FILE is required');
   }
-  const data = await fs.readFile(env.CONFIG_FILE).catch((err) => {
-    if (err.message?.startsWith('ENOENT: no such file or directory')) {
+  const data = await fs.readFile(env.CONFIG_FILE).catch((error) => {
+    if (error.message?.startsWith('ENOENT: no such file or directory')) {
       throw new Error(
         `Could not find configuration file "${env.CONFIG_FILE}" specified in CONFIG_FILE`
       );
     } else {
-      throw err;
+      throw error;
     }
   });
   let json: string;
   try {
     json = JSON.parse(data.toString());
-  } catch (err) {
+  } catch (error) {
     let errMsg = `The configuration file at "${env.CONFIG_FILE}" is not valid JSON`;
-    if (err instanceof Error) {
-      errMsg += `: ${err.message}`;
+    if (error instanceof Error) {
+      errMsg += `: ${error.message}`;
     }
     throw new Error(errMsg);
   }
   const config = CONFIG.decode(json);
   if (either.isLeft(config)) {
     throw new Error(
-      'Invalid Configuration: \n* ' + PathReporter.report(config).join('\n* ')
+      `Invalid Configuration: \n* ${PathReporter.report(config).join('\n* ')}`
     );
   }
   // Check that development environments all start with `env/`

@@ -1,7 +1,7 @@
-import * as child_process from 'child_process';
-import { promisify } from 'util';
+import * as child_process from 'node:child_process';
+import { promisify } from 'node:util';
 
-import { Logger } from './interfaces';
+import { type Logger } from './interfaces';
 
 /**
  * Like child_process.exec,
@@ -18,7 +18,7 @@ export const execAndPipeOutput = (opts: {
    */
   data?: string;
 }) => {
-  const { command, cwd, logger } = opts;
+  const { command, cwd, data, logger } = opts;
   const p = child_process.execFile('sh', ['-c', command], { cwd });
   const buffer = {
     stderr: '',
@@ -36,12 +36,12 @@ export const execAndPipeOutput = (opts: {
     };
     p[stream]?.on('data', handle);
   }
-  if (opts.data) {
+  if (data) {
     if (!p.stdin) {
       throw new Error('Unexpected Error');
     }
     p.stdin.setDefaultEncoding('utf-8');
-    p.stdin.write(opts.data);
+    p.stdin.write(data);
     p.stdin.end();
   }
   return new Promise((resolve, reject) =>

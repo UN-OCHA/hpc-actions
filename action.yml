@@ -2,8 +2,7 @@ name: 'HPC Workflow'
 description: 'Action that implements the development workflow for HPC repos'
 author: 'Sam Lanning <sam@samlanning.com>'
 runs:
-  # TODO: Switch to 'node18' when GitHub starts supporting it
-  using: 'node16'
+  using: 'node20'
   main: 'action/dist/index.js'
 branding:
   icon: 'upload-cloud'

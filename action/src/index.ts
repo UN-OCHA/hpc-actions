@@ -3,10 +3,10 @@ import type { Env } from './config';
 
 runAction({
   env: process.env as unknown as Env,
-}).catch((err) => {
-  console.log(`##[error] ${err.message}`);
+}).catch((error) => {
+  console.log(`##[error] ${error.message}`);
   setTimeout(() => {
-    console.error(err);
+    console.error(error);
     process.exit(1);
   }, 100);
 });
