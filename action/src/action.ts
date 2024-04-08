@@ -273,16 +273,6 @@ export const runAction = async ({
         };
 
     const buildAndPushDockerImage = async (opts: {
-      /**
-       * How should the registry be checked for existing images with the
-       * same tag before building a new one?
-       *
-       * * `check-tree`: if the image doesn't yet exist, build it, if it does,
-       *   check to see that it was built with the same git tree sha. If it
-       *   was, finish, if not, throw an error.
-       * * `overwrite`: Don't check the registry, just build and push a new
-       *   image.
-       */
       checkBehaviour: null | {
         /**
          * If checkStrict is true,
