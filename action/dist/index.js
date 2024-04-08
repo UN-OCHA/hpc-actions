@@ -55019,16 +55019,32 @@ function compareRefNames(a, b) {
   return tmp
 }
 
+const memo = new Map();
 function normalizePath(path) {
+  let normalizedPath = memo.get(path);
+  if (!normalizedPath) {
+    normalizedPath = normalizePathInternal(path);
+    memo.set(path, normalizedPath);
+  }
+  return normalizedPath
+}
+
+function normalizePathInternal(path) {
+  path = path
+    .split('/./')
+    .join('/') // Replace '/./' with '/'
+    .replace(/\/{2,}/g, '/'); // Replace consecutive '/'
+
+  if (path === '/.') return '/' // if path === '/.' return '/'
+  if (path === './') return '.' // if path === './' return '.'
+
+  if (path.startsWith('./')) path = path.slice(2); // Remove leading './'
+  if (path.endsWith('/.')) path = path.slice(0, -2); // Remove trailing '/.'
+  if (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1); // Remove trailing '/'
+
+  if (path === '') return '.' // if path === '' return '.'
+
   return path
-    .replace(/\/\.\//g, '/') // Replace '/./' with '/'
-    .replace(/\/{2,}/g, '/') // Replace consecutive '/'
-    .replace(/^\/\.$/, '/') // if path === '/.' return '/'
-    .replace(/^\.\/$/, '.') // if path === './' return '.'
-    .replace(/^\.\//, '') // Remove leading './'
-    .replace(/\/\.$/, '') // Remove trailing '/.'
-    .replace(/(.+)\/$/, '$1') // Remove trailing '/'
-    .replace(/^$/, '.') // if path === '' return '.'
 }
 
 // For some reason path.posix.join is undefined in webpack
@@ -55073,7 +55089,7 @@ const schema = {
 // section starts with [ and ends with ]
 // section is alphanumeric (ASCII) with - and .
 // section is case insensitive
-// subsection is optionnal
+// subsection is optional
 // subsection is specified after section and one or more spaces
 // subsection is specified between double quotes
 const SECTION_LINE_REGEX = /^\[([A-Za-z0-9-.]+)(?: "(.*)")?\]$/;
@@ -55351,6 +55367,13 @@ const refpaths = ref => [
 // @see https://git-scm.com/docs/gitrepository-layout
 const GIT_FILES = ['config', 'description', 'index', 'shallow', 'commondir'];
 
+let lock$1;
+
+async function acquireLock(ref, callback) {
+  if (lock$1 === undefined) lock$1 = new AsyncLock();
+  return lock$1.acquire(ref, callback)
+}
+
 class GitRefManager {
   static async updateRemoteRefs({
     fs,
@@ -55457,7 +55480,9 @@ class GitRefManager {
     // are .git/refs/remotes/origin/refs/remotes/remote_mirror_3059
     // and .git/refs/remotes/origin/refs/merge-requests
     for (const [key, value] of actualRefsToWrite) {
-      await fs.write(join(gitdir, key), `${value.trim()}\n`, 'utf8');
+      await acquireLock(key, async () =>
+        fs.write(join(gitdir, key), `${value.trim()}\n`, 'utf8')
+      );
     }
     return { pruned }
   }
@@ -55468,11 +55493,15 @@ class GitRefManager {
     if (!value.match(/[0-9a-f]{40}/)) {
       throw new InvalidOidError(value)
     }
-    await fs.write(join(gitdir, ref), `${value.trim()}\n`, 'utf8');
+    await acquireLock(ref, async () =>
+      fs.write(join(gitdir, ref), `${value.trim()}\n`, 'utf8')
+    );
   }
 
   static async writeSymbolicRef({ fs, gitdir, ref, value }) {
-    await fs.write(join(gitdir, ref), 'ref: ' + `${value.trim()}\n`, 'utf8');
+    await acquireLock(ref, async () =>
+      fs.write(join(gitdir, ref), 'ref: ' + `${value.trim()}\n`, 'utf8')
+    );
   }
 
   static async deleteRef({ fs, gitdir, ref }) {
@@ -55483,7 +55512,9 @@ class GitRefManager {
     // Delete regular ref
     await Promise.all(refs.map(ref => fs.rm(join(gitdir, ref))));
     // Delete any packed ref
-    let text = await fs.read(`${gitdir}/packed-refs`, { encoding: 'utf8' });
+    let text = await acquireLock('packed-refs', async () =>
+      fs.read(`${gitdir}/packed-refs`, { encoding: 'utf8' })
+    );
     const packed = GitPackedRefs.from(text);
     const beforeSize = packed.refs.size;
     for (const ref of refs) {
@@ -55493,7 +55524,9 @@ class GitRefManager {
     }
     if (packed.refs.size < beforeSize) {
       text = packed.toString();
-      await fs.write(`${gitdir}/packed-refs`, text, { encoding: 'utf8' });
+      await acquireLock('packed-refs', async () =>
+        fs.write(`${gitdir}/packed-refs`, text, { encoding: 'utf8' })
+      );
     }
   }
 
@@ -55512,7 +55545,7 @@ class GitRefManager {
         return ref
       }
     }
-    let sha;
+
     // Is it a ref pointer?
     if (ref.startsWith('ref: ')) {
       ref = ref.slice('ref: '.length);
@@ -55528,9 +55561,12 @@ class GitRefManager {
     const allpaths = refpaths(ref).filter(p => !GIT_FILES.includes(p)); // exclude git system files (#709)
 
     for (const ref of allpaths) {
-      sha =
-        (await fs.read(`${gitdir}/${ref}`, { encoding: 'utf8' })) ||
-        packedMap.get(ref);
+      const sha = await acquireLock(
+        ref,
+        async () =>
+          (await fs.read(`${gitdir}/${ref}`, { encoding: 'utf8' })) ||
+          packedMap.get(ref)
+      );
       if (sha) {
         return GitRefManager.resolve({ fs, gitdir, ref: sha.trim(), depth })
       }
@@ -55558,7 +55594,10 @@ class GitRefManager {
     // Look in all the proper paths, in this order
     const allpaths = refpaths(ref);
     for (const ref of allpaths) {
-      if (await fs.exists(`${gitdir}/${ref}`)) return ref
+      const refExists = await acquireLock(ref, async () =>
+        fs.exists(`${gitdir}/${ref}`)
+      );
+      if (refExists) return ref
       if (packedMap.has(ref)) return ref
     }
     // Do we give up?
@@ -55609,7 +55648,9 @@ class GitRefManager {
   }
 
   static async packedRefs({ fs, gitdir }) {
-    const text = await fs.read(`${gitdir}/packed-refs`, { encoding: 'utf8' });
+    const text = await acquireLock('packed-refs', async () =>
+      fs.read(`${gitdir}/packed-refs`, { encoding: 'utf8' })
+    );
     const packed = GitPackedRefs.from(text);
     return packed.refs
   }
@@ -56028,6 +56069,7 @@ class StreamReader {
     let { done, value } = await this.stream.next();
     if (done) {
       this._ended = true;
+      if (!value) return Buffer.alloc(0)
     }
     if (value) {
       value = Buffer.from(value);
@@ -57056,7 +57098,7 @@ class IndexResetError extends BaseError {
    */
   constructor(filepath) {
     super(
-      `Could not merge index: Entry for '${filepath}' is not up to date. Either reset the index entry to HEAD, or stage your unstaged chages.`
+      `Could not merge index: Entry for '${filepath}' is not up to date. Either reset the index entry to HEAD, or stage your unstaged changes.`
     );
     this.code = this.name = IndexResetError.code;
     this.data = { filepath };
@@ -58055,7 +58097,7 @@ class FileSystem {
 
   /**
    * Return true if a file exists, false if it doesn't exist.
-   * Rethrows errors that aren't related to file existance.
+   * Rethrows errors that aren't related to file existence.
    */
   async exists(filepath, options = {}) {
     try {
@@ -58199,7 +58241,7 @@ class FileSystem {
 
   /**
    * Return the Stats of a file/symlink if it exists, otherwise returns null.
-   * Rethrows errors that aren't related to file existance.
+   * Rethrows errors that aren't related to file existence.
    */
   async lstat(filename) {
     try {
@@ -58215,7 +58257,7 @@ class FileSystem {
 
   /**
    * Reads the contents of a symlink if it exists, otherwise returns null.
-   * Rethrows errors that aren't related to file existance.
+   * Rethrows errors that aren't related to file existence.
    */
   async readlink(filename, opts = { encoding: 'buffer' }) {
     // Note: FileSystem.readlink returns a buffer by default
@@ -58375,7 +58417,7 @@ async function abortMerge({
 }
 
 // I'm putting this in a Manager because I reckon it could benefit
-// from a LOT of cacheing.
+// from a LOT of caching.
 class GitIgnoreManager {
   static async isIgnored({ fs, dir, gitdir = join(dir, '.git'), filepath }) {
     // ALWAYS ignore ".git" folders.
@@ -58466,13 +58508,14 @@ async function browserDeflate(buffer) {
 function testCompressionStream() {
   try {
     const cs = new CompressionStream('deflate');
+    cs.writable.close();
     // Test if `Blob.stream` is present. React Native does not have the `stream` method
-    new Blob([]).stream();
-    if (cs) return true
+    const stream = new Blob([]).stream();
+    stream.cancel();
+    return true
   } catch (_) {
-    // no bother
+    return false
   }
-  return false
 }
 
 async function _writeObject({
@@ -59359,7 +59402,7 @@ async function _annotatedTag({
  * @param {string} [args.tagger.email] - Default is `user.email` config.
  * @param {number} [args.tagger.timestamp=Math.floor(Date.now()/1000)] - Set the tagger timestamp field. This is the integer number of seconds since the Unix epoch (1970-01-01 00:00:00).
  * @param {number} [args.tagger.timezoneOffset] - Set the tagger timezone offset field. This is the difference, in minutes, from the current timezone to UTC. Default is `(new Date()).getTimezoneOffset()`.
- * @param {string} [args.gpgsig] - The gpgsig attatched to the tag object. (Mutually exclusive with the `signingKey` option.)
+ * @param {string} [args.gpgsig] - The gpgsig attached to the tag object. (Mutually exclusive with the `signingKey` option.)
  * @param {string} [args.signingKey] - Sign the tag object using this private PGP key. (Mutually exclusive with the `gpgsig` option.)
  * @param {boolean} [args.force = false] - Instead of throwing an error if a tag named `ref` already exists, overwrite the existing tag. Note that this option does not modify the original tag object itself.
  * @param {object} [args.cache] - a [cache](cache.md) object
@@ -59854,7 +59897,7 @@ async function analyze({
 
       // This is a kind of silly pattern but it worked so well for me in the past
       // and it makes intuitively demonstrating exhaustiveness so *easy*.
-      // This checks for the presense and/or absence of each of the 3 entries,
+      // This checks for the presence and/or absence of each of the 3 entries,
       // converts that to a 3-bit binary representation, and then handles
       // every possible combination (2^3 or 8 cases) with a lookup table.
       const key = [!!stage, !!commit, !!workdir].map(Number).join('');
@@ -60335,7 +60378,7 @@ of the line, the pkt-len, indicates the total length of the line,
 in hexadecimal.  The pkt-len includes the 4 bytes used to contain
 the length's hexadecimal representation.
 
-A pkt-line MAY contain binary data, so implementors MUST ensure
+A pkt-line MAY contain binary data, so implementers MUST ensure
 pkt-line parsing/formatting routines are 8-bit clean.
 
 A non-binary line SHOULD BE terminated by an LF, which if present
@@ -60410,7 +60453,7 @@ class GitPktLine {
         if (buffer == null) return true
         return buffer
       } catch (err) {
-        console.log('error', err);
+        stream.error = err;
         return true
       }
     }
@@ -60482,14 +60525,17 @@ async function parseRefsAdResponse(stream, { service }) {
 
   const [firstRef, capabilitiesLine] = splitAndAssert(lineTwo, '\x00', '\\x00');
   capabilitiesLine.split(' ').map(x => capabilities.add(x));
-  const [ref, name] = splitAndAssert(firstRef, ' ', ' ');
-  refs.set(name, ref);
-  while (true) {
-    const line = await read();
-    if (line === true) break
-    if (line !== null) {
-      const [ref, name] = splitAndAssert(line.toString('utf8'), ' ', ' ');
-      refs.set(name, ref);
+  // see no-refs in https://git-scm.com/docs/pack-protocol#_reference_discovery (since git 2.41.0)
+  if (firstRef !== '0000000000000000000000000000000000000000 capabilities^{}') {
+    const [ref, name] = splitAndAssert(firstRef, ' ', ' ');
+    refs.set(name, ref);
+    while (true) {
+      const line = await read();
+      if (line === true) break
+      if (line !== null) {
+        const [ref, name] = splitAndAssert(line.toString('utf8'), ' ', ' ');
+        refs.set(name, ref);
+      }
     }
   }
   // Symrefs are thrown into the "capabilities" unfortunately.
@@ -60515,7 +60561,7 @@ function splitAndAssert(line, sep, expected) {
   return split
 }
 
-// Try to accomodate known CORS proxy implementations:
+// Try to accommodate known CORS proxy implementations:
 // - https://jcubic.pl/proxy.php?  <-- uses query string
 // - https://cors.isomorphic-git.org  <-- uses path
 const corsProxify = (corsProxy, url) =>
@@ -60769,14 +60815,14 @@ class GitRemoteManager {
   }
 }
 
-let lock$1 = null;
+let lock$2 = null;
 
 class GitShallowManager {
   static async read({ fs, gitdir }) {
-    if (lock$1 === null) lock$1 = new AsyncLock();
+    if (lock$2 === null) lock$2 = new AsyncLock();
     const filepath = join(gitdir, 'shallow');
     const oids = new Set();
-    await lock$1.acquire(filepath, async function() {
+    await lock$2.acquire(filepath, async function() {
       const text = await fs.read(filepath, { encoding: 'utf8' });
       if (text === null) return oids // no file
       if (text.trim() === '') return oids // empty file
@@ -60789,18 +60835,18 @@ class GitShallowManager {
   }
 
   static async write({ fs, gitdir, oids }) {
-    if (lock$1 === null) lock$1 = new AsyncLock();
+    if (lock$2 === null) lock$2 = new AsyncLock();
     const filepath = join(gitdir, 'shallow');
     if (oids.size > 0) {
       const text = [...oids].join('\n') + '\n';
-      await lock$1.acquire(filepath, async function() {
+      await lock$2.acquire(filepath, async function() {
         await fs.write(filepath, text, {
           encoding: 'utf8',
         });
       });
     } else {
       // No shallows
-      await lock$1.acquire(filepath, async function() {
+      await lock$2.acquire(filepath, async function() {
         await fs.rm(filepath);
       });
     }
@@ -60887,8 +60933,8 @@ function filterCapabilities(server, client) {
 
 const pkg = {
   name: 'isomorphic-git',
-  version: '1.25.0',
-  agent: 'git/isomorphic-git@1.25.0',
+  version: '1.25.7',
+  agent: 'git/isomorphic-git@1.25.7',
 };
 
 class FIFO {
@@ -60919,8 +60965,8 @@ class FIFO {
   }
 
   destroy(err) {
-    this._ended = true;
     this.error = err;
+    this.end();
   }
 
   async next() {
@@ -61015,7 +61061,7 @@ class GitSideBand {
       if (line === true) {
         packetlines.end();
         progress.end();
-        packfile.end();
+        input.error ? packfile.destroy(input.error) : packfile.end();
         return
       }
       // Examine first byte to determine which output "stream" to use
@@ -61034,12 +61080,14 @@ class GitSideBand {
           // fatal error message just before stream aborts
           const error = line.slice(1);
           progress.write(error);
+          packetlines.end();
+          progress.end();
           packfile.destroy(new Error(error.toString('utf8')));
           return
         }
         default: {
           // Not part of the side-band-64k protocol
-          packetlines.write(line.slice(0));
+          packetlines.write(line);
         }
       }
       // Careful not to blow up the stack.
@@ -61152,9 +61200,20 @@ async function parseUploadPackResponse(stream) {
       } else if (line.startsWith('NAK')) {
         nak = true;
         done = true;
+      } else {
+        done = true;
+        nak = true;
       }
       if (done) {
-        resolve({ shallows, unshallows, acks, nak, packfile, progress });
+        stream.error
+          ? reject(stream.error)
+          : resolve({ shallows, unshallows, acks, nak, packfile, progress });
+      }
+    }).finally(() => {
+      if (!done) {
+        stream.error
+          ? reject(stream.error)
+          : resolve({ shallows, unshallows, acks, nak, packfile, progress });
       }
     });
   })
@@ -61520,6 +61579,7 @@ async function _fetch({
     });
   }
   const packfile = Buffer.from(await collect(response.packfile));
+  if (raw.body.error) throw raw.body.error
   const packfileSha = packfile.slice(-20).toString('hex');
   const res = {
     defaultBranch: response.HEAD,
@@ -64465,12 +64525,12 @@ async function writeListRefsRequest({ prefix, symrefs, peelTags }) {
  * Hard numbers vary by situation, but here's some numbers from my machine:
  *
  * Using isomorphic-git in a browser, with a CORS proxy, listing only the branches (refs/heads) of https://github.com/isomorphic-git/isomorphic-git
- * - Protocol Version 1 took ~300ms and transfered 84 KB.
- * - Protocol Version 2 took ~500ms and transfered 4.1 KB.
+ * - Protocol Version 1 took ~300ms and transferred 84 KB.
+ * - Protocol Version 2 took ~500ms and transferred 4.1 KB.
  *
  * Using isomorphic-git in a browser, with a CORS proxy, listing only the branches (refs/heads) of https://gitlab.com/gitlab-org/gitlab
- * - Protocol Version 1 took ~4900ms and transfered 9.41 MB.
- * - Protocol Version 2 took ~1280ms and transfered 433 KB.
+ * - Protocol Version 1 took ~4900ms and transferred 9.41 MB.
+ * - Protocol Version 2 took ~1280ms and transferred 433 KB.
  *
  * Finally, there is a fun quirk regarding the `symrefs` parameter.
  * Protocol Version 1 will generally only return the `HEAD` symref and not others.
@@ -67426,6 +67486,8 @@ async function getHeadTree({ fs, cache, gitdir }) {
  *   ["g.txt", 1, 2, 3], // modified, staged, with unstaged changes
  *   ["h.txt", 1, 0, 1], // deleted, unstaged
  *   ["i.txt", 1, 0, 0], // deleted, staged
+ *   ["j.txt", 1, 2, 0], // deleted, staged, with unstaged-modified changes (new file of the same name)
+ *   ["k.txt", 1, 1, 0], // deleted, staged, with unstaged changes (new file of the same name)
  * ]
  * ```
  *
