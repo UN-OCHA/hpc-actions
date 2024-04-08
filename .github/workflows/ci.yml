@@ -15,9 +15,9 @@ jobs:
     name: Run Build and check output is checked-in
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v4
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
       - name: Install NPM Packages
@@ -34,9 +34,9 @@ jobs:
     name: Check file formatting, linting and Typescript types
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v4
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
       - name: Install NPM Packages
@@ -61,9 +61,9 @@ jobs:
     name: Run Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v4
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
       - name: Install NPM Packages
@@ -75,7 +75,7 @@ jobs:
           cd action
           npm run test -- --coverage
       - name: Submit to CodeCov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           files: ./action/.coverage/lcov.info
           fail_ci_if_error: true
