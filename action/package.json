@@ -16,7 +16,7 @@
   "devDependencies": {
     "@octokit/webhooks-types": "^7.5.1",
     "@types/jest": "^29.5.12",
-    "@types/node": "^20.8.10",
+    "@types/node": "^20.12.7",
     "@unocha/hpc-repo-tools": "^4.0.0",
     "@vercel/ncc": "^0.38.1",
     "eslint": "^8.52.0",
