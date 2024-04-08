@@ -6844,7 +6844,10 @@ var chainWithIndex = function (f) {
     return function (as) {
         var out = [];
         for (var i = 0; i < as.length; i++) {
-            out.push.apply(out, f(i, as[i]));
+            var bs = f(i, as[i]);
+            for (var j = 0; j < bs.length; j++) {
+                out.push(bs[j]);
+            }
         }
         return out;
     };
@@ -7945,7 +7948,7 @@ exports.separate = separate;
  *
  * @example
  * import { filter } from 'fp-ts/Array'
- * import { isString } from "fp-ts/lib/string";
+ * import { isString } from "fp-ts/string";
  *
  * assert.deepStrictEqual(filter(isString)(["a", 1, {}, "b", 5]), ["a", "b"]);
  * assert.deepStrictEqual(filter((x:number) => x > 0)([-3, 1, -2, 5]), [1, 5]);
@@ -7967,7 +7970,7 @@ exports.filter = filter;
  *
  * @example
  * import { partition } from 'fp-ts/Array'
- * import { isString } from "fp-ts/lib/string";
+ * import { isString } from "fp-ts/string";
  *
  * assert.deepStrictEqual(partition(isString)(["a", 1, {}, "b", 5]), { left: [1, {}, 5], right: ["a", "b"] });
  * assert.deepStrictEqual(partition((x: number) => x > 0)([-3, 1, -2, 5]), { left: [-3, -2], right: [1, 5] });
@@ -8017,7 +8020,7 @@ exports.partitionWithIndex = partitionWithIndex;
  *
  * @example
  * import { partitionMap } from 'fp-ts/Array'
- * import { Either, left, right } from "fp-ts/lib/Either";
+ * import { Either, left, right } from "fp-ts/Either";
  *
  * const upperIfString = <B>(x: B): Either<B, string> =>
  *   typeof x === "string" ? right(x.toUpperCase()) : left(x);
@@ -8036,7 +8039,7 @@ exports.partitionMap = partitionMap;
  *
  * @example
  * import { partitionMapWithIndex } from 'fp-ts/Array'
- * import { Either, left, right } from "fp-ts/lib/Either";
+ * import { Either, left, right } from "fp-ts/Either";
  *
  * const upperIfStringBefore3 = <B>(index: number, x: B): Either<B, string> =>
  *   index < 3 && typeof x === "string" ? right(x.toUpperCase()) : left(x);
@@ -8265,7 +8268,7 @@ exports.reduceRightWithIndex = RA.reduceRightWithIndex;
  *
  * @example
  * import { traverse } from 'fp-ts/Array'
- * import { Applicative, left, right } from "fp-ts/lib/Either";
+ * import { Applicative, left, right } from "fp-ts/Either";
  *
  * const f = (x: unknown) =>
  *   typeof x === "string" ? right(x.toUpperCase()) : left(new Error("not a string"));
@@ -8292,7 +8295,7 @@ exports.traverse = traverse;
  *
  * @example
  * import { sequence } from 'fp-ts/Array'
- * import { Applicative, left, right } from "fp-ts/lib/Either";
+ * import { Applicative, left, right } from "fp-ts/Either";
  *
  * assert.deepStrictEqual(sequence(Applicative)([right("a"), right("b")]), right(["a", "b"]));
  * assert.deepStrictEqual(
@@ -8316,7 +8319,7 @@ exports.sequence = sequence;
  *
  * @example
  * import { traverseWithIndex } from 'fp-ts/Array'
- * import { Applicative, left, right } from "fp-ts/lib/Either";
+ * import { Applicative, left, right } from "fp-ts/Either";
  *
  * const f = (index:number, x:unknown) =>
  *   typeof x === "string" ? right(x.toUpperCase() + index) : left(new Error("not a string"));
@@ -11135,7 +11138,12 @@ exports.toUnion = (0, exports.foldW)(function_1.identity, function_1.identity);
  * @since 2.0.0
  */
 function toError(e) {
-    return e instanceof Error ? e : new Error(String(e));
+    try {
+        return e instanceof Error ? e : new Error(String(e));
+    }
+    catch (error) {
+        return new Error();
+    }
 }
 exports.toError = toError;
 function elem(E) {
@@ -13739,8 +13747,7 @@ exports.chainOptionK = (0, FromEither_1.chainOptionK)(exports.FromEither, export
  * @category legacy
  * @since 2.13.2
  */
-exports.chainOptionKW = 
-/*#__PURE__*/ exports.chainOptionK;
+exports.chainOptionKW = exports.chainOptionK;
 /** @internal */
 var _FromEither = {
     fromEither: exports.FromEither.fromEither
@@ -17171,7 +17178,10 @@ var chainWithIndex = function (f) {
     return function (as) {
         var out = (0, exports.fromReadonlyNonEmptyArray)(f(0, (0, exports.head)(as)));
         for (var i = 1; i < as.length; i++) {
-            out.push.apply(out, f(i, as[i]));
+            var bs = f(i, as[i]);
+            for (var j = 0; j < bs.length; j++) {
+                out.push(bs[j]);
+            }
         }
         return out;
     };
@@ -21317,8 +21327,7 @@ exports.chainOptionK =
  * @category legacy
  * @since 2.13.2
  */
-exports.chainOptionKW = 
-/*#__PURE__*/ exports.chainOptionK;
+exports.chainOptionKW = exports.chainOptionK;
 /** @internal */
 var _FromEither = {
     fromEither: exports.FromEither.fromEither
@@ -23146,13 +23155,17 @@ exports.leftIO = (0, function_1.flow)(TE.leftIO, exports.fromTaskEither);
  * @category constructors
  * @since 2.13.0
  */
-var rightReaderIO = function (ma) { return (0, function_1.flow)(ma, TE.rightIO); };
+var rightReaderIO = function (ma) {
+    return (0, function_1.flow)(ma, TE.rightIO);
+};
 exports.rightReaderIO = rightReaderIO;
 /**
  * @category constructors
  * @since 2.13.0
  */
-var leftReaderIO = function (me) { return (0, function_1.flow)(me, TE.leftIO); };
+var leftReaderIO = function (me) {
+    return (0, function_1.flow)(me, TE.leftIO);
+};
 exports.leftReaderIO = leftReaderIO;
 // -------------------------------------------------------------------------------------
 // conversions
@@ -24061,8 +24074,7 @@ exports.chainOptionK =
  * @category legacy
  * @since 2.13.2
  */
-exports.chainOptionKW = 
-/*#__PURE__*/ exports.chainOptionK;
+exports.chainOptionKW = exports.chainOptionK;
 /** @internal */
 var _FromEither = {
     fromEither: exports.FromEither.fromEither
@@ -24939,7 +24951,10 @@ var chainWithIndex = function (f) {
         }
         var out = [];
         for (var i = 0; i < as.length; i++) {
-            out.push.apply(out, f(i, as[i]));
+            var bs = f(i, as[i]);
+            for (var j = 0; j < bs.length; j++) {
+                out.push(bs[j]);
+            }
         }
         return out;
     };
@@ -28490,7 +28505,10 @@ var chainWithIndex = function (f) {
     return function (as) {
         var out = _.fromReadonlyNonEmptyArray(f(0, (0, exports.head)(as)));
         for (var i = 1; i < as.length; i++) {
-            out.push.apply(out, f(i, as[i]));
+            var bs = f(i, as[i]);
+            for (var j = 0; j < bs.length; j++) {
+                out.push(bs[j]);
+            }
         }
         return out;
     };
@@ -35400,8 +35418,7 @@ exports.chainOptionK = (0, FromEither_1.chainOptionK)(exports.FromEither, export
  * @category legacy
  * @since 2.13.2
  */
-exports.chainOptionKW = 
-/*#__PURE__*/ exports.chainOptionK;
+exports.chainOptionKW = exports.chainOptionK;
 /**
  * Alias of `flatMapEither`.
  *
@@ -37661,8 +37678,7 @@ exports.chainOptionK = (0, FromEither_1.chainOptionK)(exports.FromEither, export
  * @category legacy
  * @since 2.13.2
  */
-exports.chainOptionKW = 
-/*#__PURE__*/ exports.chainOptionK;
+exports.chainOptionKW = exports.chainOptionK;
 /** @internal */
 var _FromEither = {
     fromEither: exports.FromEither.fromEither
@@ -42897,40 +42913,40 @@ var liftOption = function (F) {
 exports.liftOption = liftOption;
 /** @internal */
 var flatMapNullable = function (F, M) {
-    /*#__PURE__*/ return (0, function_1.dual)(3, function (self, f, onNullable) {
+    return /*#__PURE__*/ (0, function_1.dual)(3, function (self, f, onNullable) {
         return M.flatMap(self, (0, exports.liftNullable)(F)(f, onNullable));
     });
 };
 exports.flatMapNullable = flatMapNullable;
 /** @internal */
 var flatMapOption = function (F, M) {
-    /*#__PURE__*/ return (0, function_1.dual)(3, function (self, f, onNone) { return M.flatMap(self, (0, exports.liftOption)(F)(f, onNone)); });
+    return /*#__PURE__*/ (0, function_1.dual)(3, function (self, f, onNone) { return M.flatMap(self, (0, exports.liftOption)(F)(f, onNone)); });
 };
 exports.flatMapOption = flatMapOption;
 /** @internal */
 var flatMapEither = function (F, M) {
-    /*#__PURE__*/ return (0, function_1.dual)(2, function (self, f) {
+    return /*#__PURE__*/ (0, function_1.dual)(2, function (self, f) {
         return M.flatMap(self, function (a) { return F.fromEither(f(a)); });
     });
 };
 exports.flatMapEither = flatMapEither;
 /** @internal */
 var flatMapIO = function (F, M) {
-    /*#__PURE__*/ return (0, function_1.dual)(2, function (self, f) {
+    return /*#__PURE__*/ (0, function_1.dual)(2, function (self, f) {
         return M.flatMap(self, function (a) { return F.fromIO(f(a)); });
     });
 };
 exports.flatMapIO = flatMapIO;
 /** @internal */
 var flatMapTask = function (F, M) {
-    /*#__PURE__*/ return (0, function_1.dual)(2, function (self, f) {
+    return /*#__PURE__*/ (0, function_1.dual)(2, function (self, f) {
         return M.flatMap(self, function (a) { return F.fromTask(f(a)); });
     });
 };
 exports.flatMapTask = flatMapTask;
 /** @internal */
 var flatMapReader = function (F, M) {
-    /*#__PURE__*/ return (0, function_1.dual)(2, function (self, f) {
+    return /*#__PURE__*/ (0, function_1.dual)(2, function (self, f) {
         return M.flatMap(self, function (a) { return F.fromReader(f(a)); });
     });
 };
