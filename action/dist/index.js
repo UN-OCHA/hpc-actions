@@ -44449,8 +44449,11 @@ if (typeof Object.create === 'function') {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PathReporter = exports.success = exports.failure = void 0;
-var _1 = __nccwpck_require__(5428);
+/**
+ * @since 1.0.0
+ */
 var Either_1 = __nccwpck_require__(7534);
+var _1 = __nccwpck_require__(5428);
 function stringify(v) {
     if (typeof v === 'function') {
         return (0, _1.getFunctionName)(v);
@@ -44683,39 +44686,12 @@ function getPartialTypeName(inner) {
 function enumerableRecord(keys, domain, codomain, name) {
     if (name === void 0) { name = "{ [K in ".concat(domain.name, "]: ").concat(codomain.name, " }"); }
     var len = keys.length;
-    return new DictionaryType(name, function (u) { return exports.UnknownRecord.is(u) && keys.every(function (k) { return codomain.is(u[k]); }); }, function (u, c) {
-        var e = exports.UnknownRecord.validate(u, c);
-        if ((0, Either_1.isLeft)(e)) {
-            return e;
-        }
-        var o = e.right;
-        var a = {};
-        var errors = [];
-        var changed = false;
-        for (var i = 0; i < len; i++) {
-            var k = keys[i];
-            var ok = o[k];
-            var codomainResult = codomain.validate(ok, appendContext(c, k, codomain, ok));
-            if ((0, Either_1.isLeft)(codomainResult)) {
-                pushAll(errors, codomainResult.left);
-            }
-            else {
-                var vok = codomainResult.right;
-                changed = changed || vok !== ok;
-                a[k] = vok;
-            }
-        }
-        return errors.length > 0 ? (0, exports.failures)(errors) : (0, exports.success)((changed || Object.keys(o).length !== len ? a : o));
-    }, codomain.encode === exports.identity
-        ? exports.identity
-        : function (a) {
-            var s = {};
-            for (var i = 0; i < len; i++) {
-                var k = keys[i];
-                s[k] = codomain.encode(a[k]);
-            }
-            return s;
-        }, domain, codomain);
+    var props = {};
+    for (var i = 0; i < len; i++) {
+        props[keys[i]] = codomain;
+    }
+    var exactCodec = (0, exports.strict)(props, name);
+    return new DictionaryType(name, function (u) { return exactCodec.is(u); }, exactCodec.validate, exactCodec.encode, domain, codomain);
 }
 /**
  * @internal
@@ -44738,11 +44714,27 @@ function getDomainKeys(domain) {
     return undefined;
 }
 exports.getDomainKeys = getDomainKeys;
+function stripNonDomainKeys(o, domain) {
+    var keys = Object.keys(o);
+    var len = keys.length;
+    var shouldStrip = false;
+    var r = {};
+    for (var i = 0; i < len; i++) {
+        var k = keys[i];
+        if (domain.is(k)) {
+            r[k] = o[k];
+        }
+        else {
+            shouldStrip = true;
+        }
+    }
+    return shouldStrip ? r : o;
+}
 function nonEnumerableRecord(domain, codomain, name) {
     if (name === void 0) { name = "{ [K in ".concat(domain.name, "]: ").concat(codomain.name, " }"); }
     return new DictionaryType(name, function (u) {
         if (exports.UnknownRecord.is(u)) {
-            return Object.keys(u).every(function (k) { return domain.is(k) && codomain.is(u[k]); });
+            return Object.keys(u).every(function (k) { return !domain.is(k) || codomain.is(u[k]); });
         }
         return isAnyC(codomain) && Array.isArray(u);
     }, function (u, c) {
@@ -44757,7 +44749,7 @@ function nonEnumerableRecord(domain, codomain, name) {
                 var ok = u[k];
                 var domainResult = domain.validate(k, appendContext(c, k, domain, k));
                 if ((0, Either_1.isLeft)(domainResult)) {
-                    pushAll(errors, domainResult.left);
+                    changed = true;
                 }
                 else {
                     var vk = domainResult.right;
@@ -44781,10 +44773,10 @@ function nonEnumerableRecord(domain, codomain, name) {
         }
         return (0, exports.failure)(u, c);
     }, domain.encode === exports.identity && codomain.encode === exports.identity
-        ? exports.identity
+        ? function (a) { return stripNonDomainKeys(a, domain); }
         : function (a) {
             var s = {};
-            var keys = Object.keys(a);
+            var keys = Object.keys(stripNonDomainKeys(a, domain));
             var len = keys.length;
             for (var i = 0; i < len; i++) {
                 var k = keys[i];
