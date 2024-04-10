@@ -331,7 +331,7 @@ export const runAction = async ({
       }
 
       /**
-       * Set this to the image tag for any image we find that
+       * Set this to the image tag for any image we find
        * that was built with the same git tree.
        */
       let existingMatchingImage: string | null = null;
