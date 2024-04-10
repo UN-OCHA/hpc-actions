@@ -10,7 +10,7 @@ import * as action from '../../src/action';
 import type { Config, Env } from '../../src/config';
 import type {
   DockerController,
-  DockerImageMetadata,
+  DockerImageBuildArgs,
   DockerInit,
 } from '../../src/docker';
 import type { GitHubController, GitHubInit } from '../../src/github';
@@ -448,7 +448,7 @@ describe('action', () => {
               // Prepare docker mock
               const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
               const head = await git.readCommit({ fs, dir, oid: sha });
-              const meta: DockerImageMetadata = {
+              const args: DockerImageBuildArgs = {
                 commitSha: head.oid,
                 treeSha: head.commit.tree,
               };
@@ -456,7 +456,7 @@ describe('action', () => {
               const getMetadata = jest
                 .fn()
                 .mockImplementation((tag: string) =>
-                  tag === 'v1.2.0' ? meta : null
+                  tag === 'v1.2.0' ? args : null
                 );
               const retagImage = jest.fn().mockResolvedValue(true);
               await action
@@ -523,7 +523,7 @@ describe('action', () => {
               // Prepare docker mock
               const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
               const head = await git.readCommit({ fs, dir, oid: sha });
-              const meta: DockerImageMetadata = {
+              const args: DockerImageBuildArgs = {
                 commitSha: head.oid,
                 treeSha: head.commit.tree,
               };
@@ -531,7 +531,7 @@ describe('action', () => {
               const getMetadata = jest
                 .fn()
                 .mockImplementation((tag: string) =>
-                  tag === 'v1.2.0' ? meta : null
+                  tag === 'v1.2.0' ? args : null
                 );
               const retagImage = jest.fn().mockResolvedValue(true);
               await action
@@ -589,7 +589,7 @@ describe('action', () => {
               );
               const logger = util.newLogger();
               // Prepare docker mock
-              const meta: DockerImageMetadata = {
+              const args: DockerImageBuildArgs = {
                 commitSha: 'foo',
                 treeSha: 'bar',
               };
@@ -597,7 +597,7 @@ describe('action', () => {
               const getMetadata = jest
                 .fn()
                 .mockImplementation((tag: string) =>
-                  tag === 'v1.2.0' ? meta : null
+                  tag === 'v1.2.0' ? args : null
                 );
               await action
                 .runAction({
@@ -661,7 +661,7 @@ describe('action', () => {
               // Prepare docker mock
               const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
               const head = await git.readCommit({ fs, dir, oid: sha });
-              const meta: DockerImageMetadata = {
+              const args: DockerImageBuildArgs = {
                 commitSha: head.oid,
                 treeSha: head.commit.tree,
               };
@@ -669,7 +669,7 @@ describe('action', () => {
               const getMetadata = jest
                 .fn()
                 .mockImplementation((tag: string) =>
-                  tag === 'v1.2.0-pre' ? meta : null
+                  tag === 'v1.2.0-pre' ? args : null
                 );
               await action
                 .runAction({
@@ -724,7 +724,7 @@ describe('action', () => {
               );
               const logger = util.newLogger();
               // Prepare docker mock
-              const meta: DockerImageMetadata = {
+              const args: DockerImageBuildArgs = {
                 commitSha: 'foo',
                 treeSha: 'bar',
               };
@@ -732,7 +732,7 @@ describe('action', () => {
               const getMetadata = jest
                 .fn()
                 .mockImplementation((tag: string) =>
-                  tag === 'v1.2.0-pre' ? meta : null
+                  tag === 'v1.2.0-pre' ? args : null
                 );
               await action
                 .runAction({
@@ -820,7 +820,7 @@ describe('action', () => {
               }).toMatchSnapshot();
               const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
               const head = await git.readCommit({ fs, dir, oid: sha });
-              const meta: DockerImageMetadata = {
+              const args: DockerImageBuildArgs = {
                 commitSha: head.oid,
                 treeSha: head.commit.tree,
               };
@@ -830,7 +830,7 @@ describe('action', () => {
                     cwd: dir,
                     logger,
                     tag: env === 'prod' ? 'v1.2.0' : 'v1.2.0-pre',
-                    meta,
+                    args,
                   },
                 ],
               ]);
@@ -916,7 +916,7 @@ describe('action', () => {
               }).toMatchSnapshot();
               const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
               const head = await git.readCommit({ fs, dir, oid: sha });
-              const meta: DockerImageMetadata = {
+              const args: DockerImageBuildArgs = {
                 commitSha: head.oid,
                 treeSha: head.commit.tree,
               };
@@ -926,7 +926,7 @@ describe('action', () => {
                     cwd: dir,
                     logger,
                     tag: env === 'prod' ? 'v1.2.0' : 'v1.2.0-pre',
-                    meta,
+                    args,
                   },
                 ],
               ]);
@@ -1274,7 +1274,7 @@ describe('action', () => {
         expect(pushImage.mock.calls).toEqual([['env-dev']]);
         const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
         const head = await git.readCommit({ fs, dir, oid: sha });
-        const meta: DockerImageMetadata = {
+        const args: DockerImageBuildArgs = {
           commitSha: head.oid,
           treeSha: head.commit.tree,
         };
@@ -1284,7 +1284,7 @@ describe('action', () => {
               cwd: dir,
               logger,
               tag: 'env-dev',
-              meta,
+              args,
             },
           ],
         ]);
@@ -1725,7 +1725,7 @@ describe('action', () => {
         }).toMatchSnapshot();
         const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
         const head = await git.readCommit({ fs, dir, oid: sha });
-        const meta: DockerImageMetadata = {
+        const args: DockerImageBuildArgs = {
           commitSha: head.oid,
           treeSha: head.commit.tree,
         };
@@ -1735,7 +1735,7 @@ describe('action', () => {
               cwd: dir,
               logger,
               tag: 'v1.2.1-pre',
-              meta,
+              args,
             },
           ],
         ]);
@@ -1828,7 +1828,7 @@ describe('action', () => {
         }).toMatchSnapshot();
         const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
         const head = await git.readCommit({ fs, dir, oid: sha });
-        const meta: DockerImageMetadata = {
+        const args: DockerImageBuildArgs = {
           commitSha: head.oid,
           treeSha: head.commit.tree,
         };
@@ -1838,7 +1838,7 @@ describe('action', () => {
               cwd: dir,
               logger,
               tag: 'v1.2.1-pre',
-              meta,
+              args,
             },
           ],
         ]);
@@ -1935,7 +1935,7 @@ describe('action', () => {
         }).toMatchSnapshot();
         const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
         const head = await git.readCommit({ fs, dir, oid: sha });
-        const meta: DockerImageMetadata = {
+        const args: DockerImageBuildArgs = {
           commitSha: head.oid,
           treeSha: head.commit.tree,
         };
@@ -1945,7 +1945,7 @@ describe('action', () => {
               cwd: dir,
               logger,
               tag: 'v1.2.1-pre',
-              meta,
+              args,
             },
           ],
         ]);
@@ -2104,7 +2104,7 @@ describe('action', () => {
         }).toMatchSnapshot();
         const sha = await git.resolveRef({ fs, dir, ref: 'HEAD' });
         const head = await git.readCommit({ fs, dir, oid: sha });
-        const meta: DockerImageMetadata = {
+        const args: DockerImageBuildArgs = {
           commitSha: head.oid,
           treeSha: head.commit.tree,
         };
@@ -2114,7 +2114,7 @@ describe('action', () => {
               cwd: dir,
               logger,
               tag: 'v1.2.1-pre',
-              meta,
+              args,
             },
           ],
         ]);

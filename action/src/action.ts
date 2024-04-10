@@ -399,7 +399,7 @@ export const runAction = async ({
       } else {
         await docker.runBuild({
           tag,
-          meta: {
+          args: {
             commitSha: head.oid,
             treeSha: head.commit.tree,
           },

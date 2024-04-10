@@ -9,9 +9,13 @@ import { type DockerConfig } from './config';
 
 export type DockerInit = (config: DockerConfig) => DockerController;
 
-export interface DockerImageMetadata {
+interface DockerImageMetadata {
   commitSha: string;
   treeSha: string;
+}
+
+export interface DockerImageBuildArgs extends DockerImageMetadata {
+  appToBuild?: string;
 }
 
 export interface DockerController {
@@ -31,7 +35,7 @@ export interface DockerController {
   runBuild: (opts: {
     cwd: string;
     tag: string;
-    meta: DockerImageMetadata;
+    args: DockerImageBuildArgs;
     logger: Logger;
   }) => Promise<void>;
   /**
@@ -118,12 +122,17 @@ export const REAL_DOCKER: DockerInit = (config) => ({
     };
   },
 
-  runBuild: async ({ cwd, tag, meta, logger }) => {
+  runBuild: async ({ cwd, tag, args, logger }) => {
     await execAndPipeOutput({
       command:
         `docker build ${config.path} ` +
-        `--build-arg ${config.args.commitSha}=${meta.commitSha} ` +
-        `--build-arg ${config.args.treeSha}=${meta.treeSha} ` +
+        `--build-arg ${config.args.commitSha}=${args.commitSha} ` +
+        `--build-arg ${config.args.treeSha}=${args.treeSha} ` +
+        `${
+          config.args.appToBuild
+            ? `--build-arg ${config.args.appToBuild}=${args.appToBuild} `
+            : ''
+        }` +
         `-t ${config.repository}:${tag}`,
       logger,
       cwd,

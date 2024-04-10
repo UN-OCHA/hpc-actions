@@ -40,7 +40,7 @@ describe('docker', () => {
       .runBuild({
         cwd: dir,
         tag: 'some-tag',
-        meta: {
+        args: {
           commitSha: 'foo',
           treeSha: 'bar',
         },

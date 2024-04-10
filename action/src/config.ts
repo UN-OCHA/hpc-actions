@@ -56,16 +56,24 @@ const DOCKER_CONFIG = t.intersection([
      * What are the names of the build arguments that the docker image
      * expects to be supplied
      */
-    args: t.type({
-      /**
-       * What is the name of the build argument that expects the commit sha
-       */
-      commitSha: t.string,
-      /**
-       * What is the name of the build argument that expects the tree sha
-       */
-      treeSha: t.string,
-    }),
+    args: t.intersection([
+      t.type({
+        /**
+         * What is the name of the build argument that expects the commit sha
+         */
+        commitSha: t.string,
+        /**
+         * What is the name of the build argument that expects the tree sha
+         */
+        treeSha: t.string,
+      }),
+      t.partial({
+        /**
+         * What is the name of the build argument used to specify application to build.
+         */
+        appToBuild: t.string,
+      }),
+    ]),
     /**
      * What are the names of the environment variables where important bits of
      * information are stored
