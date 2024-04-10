@@ -18,7 +18,7 @@ import { promises as fs } from 'node:fs';
 export interface Env {
   /**
    * The path to the configuration json file,
-   * that adheres to the specification set out by CONFIG above.
+   * that adheres to the specification set out by CONFIG below.
    */
   CONFIG_FILE?: string;
   /**
