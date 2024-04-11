@@ -648,12 +648,24 @@ export const runAction = async ({
       tag: string;
     }) => {
       const { pullRequest, tag } = params;
+
+      const deployedImages = imagesToBuild.map(
+        (dockerConfig) => dockerConfig.repository
+      );
+      const isMultipleImages = deployedImages.length > 1;
+
       // Post about successful
       const body =
-        'Docker image has been successfully built and pushed as: ' +
-        `\`${config.docker.repository}:${tag}\`\n\n` +
-        'Please deploy this image to a development environment, and test ' +
-        'it is working as expected before merging this pull request.';
+        `Docker ${
+          isMultipleImages ? 'images have' : 'image has'
+        } been successfully built and pushed as: ` +
+        `${deployedImages.map((i) => `\`${i}:${tag}\``).join(', ')}\n\n` +
+        `Please deploy ${
+          isMultipleImages ? 'these images' : 'this image'
+        } to a development environment, and test ` +
+        `${
+          isMultipleImages ? 'they are' : 'it is'
+        } working as expected before merging this pull request.`;
       const cMode = commentMode(pullRequest);
       if (cMode === 'comment') {
         return github.commentOnPullRequest({
