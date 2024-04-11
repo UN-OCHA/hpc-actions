@@ -9,6 +9,7 @@ import { execAndPipeOutput } from './util/child_process';
 import { getConfig, type Config, type DockerConfig, type Env } from './config';
 import { REAL_DOCKER, type DockerInit } from './docker';
 import { REAL_GITHUB, type GitHubInit, type PullRequest } from './github';
+import { isDefined } from './util';
 
 const exec = promisify(child_process.exec);
 
@@ -141,6 +142,30 @@ export const runAction = async ({
   } else {
     throw new Error(`Unsupported GITHUB_EVENT_NAME: ${env.GITHUB_EVENT_NAME}`);
   }
+
+  const appsToBuild = env['INPUT_APPS-TO-BUILD']?.split(',').filter(Boolean);
+
+  // Check that `appsToBuild` param has valid values
+
+  const validApps = config.dockerImages.map((d) => d.appName).filter(isDefined);
+  if (appsToBuild?.length && !validApps.length) {
+    throw new Error('There are no valid apps to build');
+  }
+  for (const app of appsToBuild ?? []) {
+    if (!validApps.includes(app)) {
+      throw new Error(
+        `Invalid name "${app}" provided as application name. ` +
+          `Valid application names are: ${validApps.join(', ')}`
+      );
+    }
+  }
+
+  const imagesToBuild = config.dockerImages.filter(
+    (dockerConfig) =>
+      !dockerConfig.appName ||
+      !appsToBuild?.length ||
+      appsToBuild.includes(dockerConfig.appName)
+  );
 
   const github = gitHubInit({
     githubRepo: env.GITHUB_REPOSITORY,
@@ -410,6 +435,7 @@ export const runAction = async ({
           args: {
             commitSha: head.oid,
             treeSha: head.commit.tree,
+            appToBuild: dockerConfig.appName,
           },
           cwd: dir,
           logger,
@@ -589,7 +615,7 @@ export const runAction = async ({
       const { dockerTag, gitTag, pullRequest } = params;
 
       await Promise.all(
-        config.dockerImages.map((dockerConfig) =>
+        imagesToBuild.map((dockerConfig) =>
           buildAndPushDockerImage({
             dockerConfig,
             checkBehaviour: null,
@@ -602,7 +628,11 @@ export const runAction = async ({
                   error: `Tag ${gitTag} has been created, aborting`,
                   pullRequest,
                   comment:
-                    `During the build of the docker image, the tag ${dockerTag} ` +
+                    `During the build of the docker image${
+                      dockerConfig.appName
+                        ? ` for app ${dockerConfig.appName}`
+                        : ''
+                    }, the tag ${dockerTag} ` +
                     'was created, and so the workflow has been aborted, ' +
                     'and the docker image has not been pushed.\n\n' +
                     'Please choose a new version and update the pull request.',
@@ -711,7 +741,7 @@ export const runAction = async ({
         deploymentDockerTag = tag;
 
         await Promise.all(
-          config.dockerImages.map((dockerConfig) =>
+          imagesToBuild.map((dockerConfig) =>
             buildAndPushDockerImage({
               dockerConfig,
               checkBehaviour: {
@@ -729,7 +759,7 @@ export const runAction = async ({
         );
       } else {
         await Promise.all(
-          config.dockerImages.map((dockerConfig) =>
+          imagesToBuild.map((dockerConfig) =>
             buildAndPushDockerImage({
               dockerConfig,
               checkBehaviour: {
@@ -766,7 +796,7 @@ export const runAction = async ({
       }
 
       await Promise.all(
-        config.dockerImages.map(() =>
+        imagesToBuild.map(() =>
           createDeploymentIfRequired({
             dockerTag: deploymentDockerTag,
             ref: deploymentSha,
@@ -794,7 +824,7 @@ export const runAction = async ({
       const tag = branch.replaceAll('/', '-');
 
       await Promise.all(
-        config.dockerImages.map(async (dockerConfig) => {
+        imagesToBuild.map(async (dockerConfig) => {
           await buildAndPushDockerImage({
             dockerConfig,
             checkBehaviour: null,

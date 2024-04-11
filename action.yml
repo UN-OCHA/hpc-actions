@@ -1,6 +1,10 @@
 name: 'HPC Workflow'
 description: 'Action that implements the development workflow for HPC repos'
 author: 'Sam Lanning <sam@samlanning.com>'
+inputs:
+  apps-to-build:
+    description: 'Comma-separated list of applications to build'
+    required: false
 runs:
   using: 'node20'
   main: 'action/dist/index.js'

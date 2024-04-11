@@ -33,6 +33,14 @@ export interface Env {
    * Token to use when interacting with the GitHub API
    */
   GITHUB_TOKEN?: string;
+  /**
+   * Environment variable coming from "apps-to-build" `inputs` argument
+   * of this action. When you specify an input in a workflow file or use a
+   * default input value, GitHub creates an environment variable for the input
+   * with the name `INPUT_<VARIABLE_NAME>`. The environment variable created
+   * converts input names to uppercase letters and replaces spaces with `_` characters.
+   */
+  'INPUT_APPS-TO-BUILD'?: string;
 
   // Implicit environment variables passed by GitHub
   GITHUB_REPOSITORY?: string;
@@ -95,6 +103,10 @@ const DOCKER_CONFIG = t.intersection([
   }),
   // Optional config
   t.partial({
+    /**
+     * Name of the application
+     */
+    appName: t.string,
     /**
      * If provided, use the given registry instead of Docker Hub.
      *

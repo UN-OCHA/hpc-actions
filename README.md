@@ -313,9 +313,11 @@ this:
   "dockerImages": [
     {
       "dockerfilePath": "docker",
+      "appName": "hpc-app",
       "args": {
         "commitSha": "COMMIT_SHA",
-        "treeSha": "TREE_SHA"
+        "treeSha": "TREE_SHA",
+        "appToBuild": "APP_TO_BUILD"
       },
       "environmentVariables": {
         "commitSha": "HPC_ACTIONS_COMMIT_SHA",
@@ -369,6 +371,7 @@ you need to also add the following lines to your `Dockerfile`:
 ```Dockerfile
 ARG COMMIT_SHA
 ARG TREE_SHA
+ARG APP_TO_BUILD # Optional
 ENV HPC_ACTIONS_COMMIT_SHA $COMMIT_SHA
 ENV HPC_ACTIONS_TREE_SHA $TREE_SHA
 ```
