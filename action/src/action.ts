@@ -684,6 +684,7 @@ export const runAction = async ({
     const createDeploymentIfRequired = async (params: {
       dockerTag: string;
       ref: string;
+      repoName?: string;
     }) => {
       if (config.deployments) {
         for (const environment of config.deployments.environments) {
@@ -695,6 +696,7 @@ export const runAction = async ({
               environment: environment.environment,
               payload: {
                 docker_tag: params.dockerTag,
+                repository_name: params.repoName,
               },
               production_environment: mode === 'env-production',
               transient_environment: false,
@@ -808,10 +810,11 @@ export const runAction = async ({
       }
 
       await Promise.all(
-        imagesToBuild.map(() =>
+        imagesToBuild.map((dockerConfig) =>
           createDeploymentIfRequired({
             dockerTag: deploymentDockerTag,
             ref: deploymentSha,
+            repoName: dockerConfig.appName,
           })
         )
       );
@@ -845,6 +848,7 @@ export const runAction = async ({
           await createDeploymentIfRequired({
             dockerTag: tag,
             ref: head.oid,
+            repoName: dockerConfig.appName,
           });
         })
       );
