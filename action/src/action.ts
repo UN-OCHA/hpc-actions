@@ -239,9 +239,14 @@ export const runAction = async ({
     const head = await git.readCommit({ fs, dir, oid: headShaAndVersion.sha });
 
     /**
-     * Return true if this is a pull request created by the GitHub Actions user,
-     * or dependabot, and so attempting to review the PR with the GitHub Actions
-     * token will fail, and commenting is required instead.
+     * For pull requests created by the GitHub Actions user, commenting is required,
+     * because attempting to review the PR with the GitHub Actions token would fail.
+     *
+     * Also, the `GITHUB_TOKEN` that is used for Dependabot actions has no write
+     * actions at all, which includes making comments on a PR. As a result, we can't
+     * comment at the end of a workflow that's started by Dependabot (e.g. PRs),
+     * so we just do nothing, and rely on the exit code being zero (i.e. the workflow
+     * succeeding) to allow for merges.
      */
     const commentMode = (pr: PullRequest): 'review' | 'comment' | 'none' =>
       pr.user?.id === UNOCHA_HPC_USER_ID ||
