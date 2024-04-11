@@ -51,7 +51,7 @@ const DOCKER_CONFIG = t.intersection([
     /**
      * Where in the repository should the build be run from
      */
-    path: t.string,
+    dockerfilePath: t.string,
     /**
      * What are the names of the build arguments that the docker image
      * expects to be supplied
@@ -136,9 +136,9 @@ const CONFIG = t.intersection([
       node: null,
     }),
     /**
-     * Configuration for the docker image build and publication
+     * Configuration for the docker images to be built and published
      */
-    docker: DOCKER_CONFIG,
+    dockerImages: t.array(DOCKER_CONFIG),
   }),
   // Optional config
   t.partial({
@@ -216,16 +216,18 @@ export const getConfig = async (env: Env): Promise<Config> => {
       );
     }
   }
-  if (
-    config.right.docker.registry &&
-    !config.right.docker.repository.startsWith(
-      `${config.right.docker.registry}/`
-    )
-  ) {
-    throw new Error(
-      'Invalid Configuration: Docker repository must start with: ' +
-        `${config.right.docker.registry}/`
-    );
+
+  for (const dockerConfig of config.right.dockerImages) {
+    if (
+      dockerConfig.registry &&
+      !dockerConfig.repository.startsWith(`${dockerConfig.registry}/`)
+    ) {
+      throw new Error(
+        'Invalid Configuration: Docker repository must start with: ' +
+          `${dockerConfig.registry}/`
+      );
+    }
   }
+
   return config.right;
 };

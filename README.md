@@ -310,18 +310,20 @@ this:
   "stagingEnvironmentBranch": "env/staging",
   "repoType": "node",
   "developmentEnvironmentBranches": [],
-  "docker": {
-    "path": "docker",
-    "args": {
+  "dockerImages": [
+    {
+      "dockerfilePath": "docker",
+      "args": {
         "commitSha": "COMMIT_SHA",
         "treeSha": "TREE_SHA"
-    },
+      },
       "environmentVariables": {
         "commitSha": "HPC_ACTIONS_COMMIT_SHA",
         "treeSha": "HPC_ACTIONS_TREE_SHA"
-    },
-    "repository": "dockerhub-org/repo",
-  },
+      },
+      "repository": "dockerhub-org/repo"
+    }
+  ],
   "ci": [],
   "mergebackLabels": ["mergeback"]
 }

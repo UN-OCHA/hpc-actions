@@ -77,19 +77,21 @@ describe('config', () => {
       stagingEnvironmentBranch: 'env/stage',
       repoType: 'node',
       developmentEnvironmentBranches: [],
-      docker: {
-        path: '.',
-        args: {
-          commitSha: '',
-          treeSha: '',
+      dockerImages: [
+        {
+          dockerfilePath: '.',
+          args: {
+            commitSha: '',
+            treeSha: '',
+          },
+          environmentVariables: {
+            commitSha: '',
+            treeSha: '',
+          },
+          repository: 'user/repo',
+          registry: 'docker.pkg.github.com',
         },
-        environmentVariables: {
-          commitSha: '',
-          treeSha: '',
-        },
-        repository: 'user/repo',
-        registry: 'docker.pkg.github.com',
-      },
+      ],
       ci: [],
     };
 
@@ -114,18 +116,20 @@ describe('config', () => {
       stagingEnvironmentBranch: 'env/stage',
       repoType: 'node',
       developmentEnvironmentBranches: ['dev'],
-      docker: {
-        path: '.',
-        args: {
-          commitSha: '',
-          treeSha: '',
+      dockerImages: [
+        {
+          dockerfilePath: '.',
+          args: {
+            commitSha: '',
+            treeSha: '',
+          },
+          environmentVariables: {
+            commitSha: '',
+            treeSha: '',
+          },
+          repository: '',
         },
-        environmentVariables: {
-          commitSha: '',
-          treeSha: '',
-        },
-        repository: '',
-      },
+      ],
       ci: [],
     };
 
@@ -150,18 +154,20 @@ describe('config', () => {
       stagingEnvironmentBranch: 'env/stage',
       repoType: 'node',
       developmentEnvironmentBranches: ['env/dev1', 'env/dev2'],
-      docker: {
-        path: '.',
-        args: {
-          commitSha: '',
-          treeSha: '',
+      dockerImages: [
+        {
+          dockerfilePath: '.',
+          args: {
+            commitSha: '',
+            treeSha: '',
+          },
+          environmentVariables: {
+            commitSha: '',
+            treeSha: '',
+          },
+          repository: '',
         },
-        environmentVariables: {
-          commitSha: '',
-          treeSha: '',
-        },
-        repository: '',
-      },
+      ],
       ci: [],
     };
 

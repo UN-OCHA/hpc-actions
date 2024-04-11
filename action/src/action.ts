@@ -6,7 +6,7 @@ import { promisify } from 'node:util';
 
 import { execAndPipeOutput } from './util/child_process';
 
-import { getConfig, type Config, type Env } from './config';
+import { getConfig, type Config, type DockerConfig, type Env } from './config';
 import { REAL_DOCKER, type DockerInit } from './docker';
 import { REAL_GITHUB, type GitHubInit, type PullRequest } from './github';
 
@@ -108,13 +108,15 @@ export const runAction = async ({
     throw new Error('Expected GITHUB_REPOSITORY');
   }
 
-  // Get docker credentials
-  if (!config.docker.skipLogin) {
-    if (!env.DOCKER_USERNAME) {
-      throw new Error('Expected DOCKER_USERNAME');
-    }
-    if (!env.DOCKER_PASSWORD) {
-      throw new Error('Expected DOCKER_PASSWORD');
+  // Fail if there are no valid Docker credentials
+  for (const dockerConfig of config.dockerImages) {
+    if (!dockerConfig.skipLogin) {
+      if (!env.DOCKER_USERNAME) {
+        throw new Error('Expected DOCKER_USERNAME');
+      }
+      if (!env.DOCKER_PASSWORD) {
+        throw new Error('Expected DOCKER_PASSWORD');
+      }
     }
   }
 
@@ -278,6 +280,7 @@ export const runAction = async ({
         };
 
     const buildAndPushDockerImage = async (opts: {
+      dockerConfig: DockerConfig;
       checkBehaviour: null | {
         /**
          * If checkStrict is true,
@@ -322,10 +325,10 @@ export const runAction = async ({
             built: BuildAndPushDockerImageCheckTagCondition;
           };
     }) => {
-      const { tag, checkBehaviour } = opts;
+      const { dockerConfig, tag, checkBehaviour } = opts;
       info('Logging in to docker');
-      const docker = dockerInit(config.docker);
-      if (!config.docker.skipLogin) {
+      const docker = dockerInit(dockerConfig);
+      if (!dockerConfig.skipLogin) {
         if (!env.DOCKER_USERNAME || !env.DOCKER_PASSWORD) {
           throw new Error('Unexpected error!');
         }
@@ -572,7 +575,7 @@ export const runAction = async ({
       }
     };
 
-    const buildAndPushDockerImageForReleaseOrHotfix = (params: {
+    const buildAndPushDockerImageForReleaseOrHotfix = async (params: {
       /**
        * The docker tag to use
        */
@@ -585,24 +588,29 @@ export const runAction = async ({
     }) => {
       const { dockerTag, gitTag, pullRequest } = params;
 
-      return buildAndPushDockerImage({
-        checkBehaviour: null,
-        tag: dockerTag,
-        checkTag: {
-          mode: 'non-existant',
-          gitTag,
-          onError: () =>
-            failWithPRComment({
-              error: `Tag ${gitTag} has been created, aborting`,
-              pullRequest,
-              comment:
-                `During the build of the docker image, the tag ${dockerTag} ` +
-                'was created, and so the workflow has been aborted, ' +
-                'and the docker image has not been pushed.\n\n' +
-                'Please chose a new version and update the pull request.',
-            }),
-        },
-      });
+      await Promise.all(
+        config.dockerImages.map((dockerConfig) =>
+          buildAndPushDockerImage({
+            dockerConfig,
+            checkBehaviour: null,
+            tag: dockerTag,
+            checkTag: {
+              mode: 'non-existant',
+              gitTag,
+              onError: () =>
+                failWithPRComment({
+                  error: `Tag ${gitTag} has been created, aborting`,
+                  pullRequest,
+                  comment:
+                    `During the build of the docker image, the tag ${dockerTag} ` +
+                    'was created, and so the workflow has been aborted, ' +
+                    'and the docker image has not been pushed.\n\n' +
+                    'Please choose a new version and update the pull request.',
+                }),
+            },
+          })
+        )
+      );
     };
 
     const commentOnPullRequestWithDockerInfo = (params: {
@@ -701,54 +709,70 @@ export const runAction = async ({
         }
         deploymentSha = tagSha;
         deploymentDockerTag = tag;
-        await buildAndPushDockerImage({
-          checkBehaviour: {
-            checkStrict: true,
-            alsoCheck: [preTag],
-          },
-          tag,
-          checkTag: {
-            mode: 'match',
-            gitTag: tag,
-            sha: tagSha,
-          },
-        });
+
+        await Promise.all(
+          config.dockerImages.map((dockerConfig) =>
+            buildAndPushDockerImage({
+              dockerConfig,
+              checkBehaviour: {
+                checkStrict: true,
+                alsoCheck: [preTag],
+              },
+              tag,
+              checkTag: {
+                mode: 'match',
+                gitTag: tag,
+                sha: tagSha,
+              },
+            })
+          )
+        );
       } else {
-        await buildAndPushDockerImage({
-          checkBehaviour: {
-            checkStrict: false,
-            alsoCheck: [tag],
-          },
-          tag: preTag,
-          checkTag: {
-            mode: 'conditional',
-            built: {
-              mode: 'non-existant',
-              gitTag: tag,
-            },
-            // If an image is retagged, and we know about an existing git tag
-            // then ensure that the git tag is still the same,
-            // otherwise require that it doesn't exist
-            retagged: tagSha
-              ? {
-                  mode: 'match',
-                  gitTag: tag,
-                  sha: tagSha,
-                }
-              : {
+        await Promise.all(
+          config.dockerImages.map((dockerConfig) =>
+            buildAndPushDockerImage({
+              dockerConfig,
+              checkBehaviour: {
+                checkStrict: false,
+                alsoCheck: [tag],
+              },
+              tag: preTag,
+              checkTag: {
+                mode: 'conditional',
+                built: {
                   mode: 'non-existant',
                   gitTag: tag,
                 },
-          },
-        });
+                // If an image is retagged, and we know about an existing git tag
+                // then ensure that the git tag is still the same,
+                // otherwise require that it doesn't exist
+                retagged: tagSha
+                  ? {
+                      mode: 'match',
+                      gitTag: tag,
+                      sha: tagSha,
+                    }
+                  : {
+                      mode: 'non-existant',
+                      gitTag: tag,
+                    },
+              },
+            })
+          )
+        );
+
         deploymentSha = head.oid;
         deploymentDockerTag = preTag;
       }
 
-      await createDeploymentIfRequired({
-        dockerTag: deploymentDockerTag,
-        ref: deploymentSha,
-      });
+      await Promise.all(
+        config.dockerImages.map(() =>
+          createDeploymentIfRequired({
+            dockerTag: deploymentDockerTag,
+            ref: deploymentSha,
+          })
+        )
+      );
 
       const mergebackBranch = `mergeback/${branch.substring(4)}/${version}`;
       info(`Creating and pushing mergeback Branch: ${mergebackBranch}`);
@@ -768,14 +792,20 @@ export const runAction = async ({
       info('Pull Request Opened, workflow complete');
     } else if (mode === 'env-development') {
       const tag = branch.replaceAll('/', '-');
-      await buildAndPushDockerImage({
-        checkBehaviour: null,
-        tag,
-      });
-      await createDeploymentIfRequired({
-        dockerTag: tag,
-        ref: head.oid,
-      });
+
+      await Promise.all(
+        config.dockerImages.map(async (dockerConfig) => {
+          await buildAndPushDockerImage({
+            dockerConfig,
+            checkBehaviour: null,
+            tag,
+          });
+          await createDeploymentIfRequired({
+            dockerTag: tag,
+            ref: head.oid,
+          });
+        })
+      );
     } else if (mode === 'hotfix') {
       const pullRequest = await getUniquePullRequest();
 

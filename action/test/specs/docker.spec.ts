@@ -22,7 +22,7 @@ describe('docker', () => {
     await fs.writeFile(path.join(dir, 'docker', 'Dockerfile'), DOCKER_FILE);
 
     const docker = REAL_DOCKER({
-      path: './docker',
+      dockerfilePath: './docker',
       args: {
         commitSha: 'COMMIT_SHA',
         treeSha: 'TREE_SHA',

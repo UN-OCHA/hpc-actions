@@ -125,7 +125,7 @@ export const REAL_DOCKER: DockerInit = (config) => ({
   runBuild: async ({ cwd, tag, args, logger }) => {
     await execAndPipeOutput({
       command:
-        `docker build ${config.path} ` +
+        `docker build ${config.dockerfilePath} ` +
         `--build-arg ${config.args.commitSha}=${args.commitSha} ` +
         `--build-arg ${config.args.treeSha}=${args.treeSha} ` +
         `${

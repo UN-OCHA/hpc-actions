@@ -24,18 +24,20 @@ const DEFAULT_CONFIG: Config = {
   stagingEnvironmentBranch: 'env/staging',
   repoType: 'node',
   developmentEnvironmentBranches: ['env/dev'],
-  docker: {
-    path: '.',
-    args: {
-      commitSha: '',
-      treeSha: '',
+  dockerImages: [
+    {
+      dockerfilePath: '.',
+      args: {
+        commitSha: '',
+        treeSha: '',
+      },
+      environmentVariables: {
+        commitSha: '',
+        treeSha: '',
+      },
+      repository: '',
     },
-    environmentVariables: {
-      commitSha: '',
-      treeSha: '',
-    },
-    repository: '',
-  },
+  ],
   ci: [],
   mergebackLabels: ['some-label'],
 };
