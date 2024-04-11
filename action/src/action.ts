@@ -483,11 +483,15 @@ export const runAction = async ({
           info('Tag has not been created, okay to continue');
         }
       } else {
-        info('Image built');
+        info(
+          `Image built${
+            dockerConfig.appName ? ` for app ${dockerConfig.appName}` : ''
+          }`
+        );
       }
-      info('Pushing image to docker repository');
+      info(`Pushing image to docker repository ${dockerConfig.repository}`);
       await docker.pushImage(tag);
-      info('Image Pushed');
+      info(`Image ${dockerConfig.repository}:${tag} pushed`);
     };
 
     const runCICommands = async () => {
