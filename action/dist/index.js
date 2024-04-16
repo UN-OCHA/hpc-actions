@@ -42,6 +42,7 @@ const child_process_1 = __nccwpck_require__(3325);
 const config_1 = __nccwpck_require__(6816);
 const docker_1 = __nccwpck_require__(9610);
 const github_1 = __nccwpck_require__(5865);
+const util_1 = __nccwpck_require__(1238);
 const exec = (0, node_util_1.promisify)(child_process.exec);
 const GITHUB_ACTIONS_USER_ID = 41_898_282;
 const GITHUB_ACTIONS_USER_LOGIN = 'github-actions';
@@ -92,13 +93,15 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
     if (!env.GITHUB_REPOSITORY) {
         throw new Error('Expected GITHUB_REPOSITORY');
     }
-    // Get docker credentials
-    if (!config.docker.skipLogin) {
-        if (!env.DOCKER_USERNAME) {
-            throw new Error('Expected DOCKER_USERNAME');
-        }
-        if (!env.DOCKER_PASSWORD) {
-            throw new Error('Expected DOCKER_PASSWORD');
+    // Fail if there are no valid Docker credentials
+    for (const dockerConfig of config.dockerImages) {
+        if (!dockerConfig.skipLogin) {
+            if (!env.DOCKER_USERNAME) {
+                throw new Error('Expected DOCKER_USERNAME');
+            }
+            if (!env.DOCKER_PASSWORD) {
+                throw new Error('Expected DOCKER_PASSWORD');
+            }
         }
     }
     // Get GitHub credentials
@@ -119,6 +122,21 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
     else {
         throw new Error(`Unsupported GITHUB_EVENT_NAME: ${env.GITHUB_EVENT_NAME}`);
     }
+    const appsToBuild = env['INPUT_APPS-TO-BUILD']?.split(',').filter(Boolean);
+    // Check that `appsToBuild` param has valid values
+    const validApps = config.dockerImages.map((d) => d.appName).filter(util_1.isDefined);
+    if (appsToBuild?.length && !validApps.length) {
+        throw new Error('There are no valid apps to build');
+    }
+    for (const app of appsToBuild ?? []) {
+        if (!validApps.includes(app)) {
+            throw new Error(`Invalid name "${app}" provided as application name. ` +
+                `Valid application names are: ${validApps.join(', ')}`);
+        }
+    }
+    const imagesToBuild = config.dockerImages.filter((dockerConfig) => !dockerConfig.appName ||
+        !appsToBuild?.length ||
+        appsToBuild.includes(dockerConfig.appName));
     const github = gitHubInit({
         githubRepo: env.GITHUB_REPOSITORY,
         token: env.GITHUB_TOKEN,
@@ -196,9 +214,14 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
         }
         const head = await isomorphic_git_1.default.readCommit({ fs: node_fs_1.default, dir, oid: headShaAndVersion.sha });
         /**
-         * Return true if this is a pull request created by the GitHub Actions user,
-         * or dependabot, and so attempting to review the PR with the GitHub Actions
-         * token will fail, and commenting is required instead.
+         * For pull requests created by the GitHub Actions user, commenting is required,
+         * because attempting to review the PR with the GitHub Actions token would fail.
+         *
+         * Also, the `GITHUB_TOKEN` that is used for Dependabot actions has no write
+         * actions at all, which includes making comments on a PR. As a result, we can't
+         * comment at the end of a workflow that's started by Dependabot (e.g. PRs),
+         * so we just do nothing, and rely on the exit code being zero (i.e. the workflow
+         * succeeding) to allow for merges.
          */
         const commentMode = (pr) => pr.user?.id === UNOCHA_HPC_USER_ID ||
             pr.user?.id === GITHUB_ACTIONS_USER_ID ||
@@ -211,10 +234,11 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 ? 'none'
                 : 'review';
         const buildAndPushDockerImage = async (opts) => {
-            const { tag, checkBehaviour } = opts;
-            info('Logging in to docker');
-            const docker = dockerInit(config.docker);
-            if (!config.docker.skipLogin) {
+            const { dockerConfig, tag, checkBehaviour } = opts;
+            info('Initializing Docker controller');
+            const docker = dockerInit(dockerConfig);
+            if (!dockerConfig.skipLogin) {
+                info('Logging in to Docker');
                 if (!env.DOCKER_USERNAME || !env.DOCKER_PASSWORD) {
                     throw new Error('Unexpected error!');
                 }
@@ -224,7 +248,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 });
             }
             /**
-             * Set this to the image tag for any image we find that
+             * Set this to the image tag for any image we find
              * that was built with the same git tree.
              */
             let existingMatchingImage = null;
@@ -285,9 +309,10 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
             else {
                 await docker.runBuild({
                     tag,
-                    meta: {
+                    args: {
                         commitSha: head.oid,
                         treeSha: head.commit.tree,
+                        appToBuild: dockerConfig.appName,
                     },
                     cwd: dir,
                     logger,
@@ -336,11 +361,11 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 }
             }
             else {
-                info('Image built');
+                info(`Image built${dockerConfig.appName ? ` for app ${dockerConfig.appName}` : ''}`);
             }
-            info('Pushing image to docker repository');
+            info(`Pushing image to docker repository ${dockerConfig.repository}`);
             await docker.pushImage(tag);
-            info('Image Pushed');
+            info(`Image ${dockerConfig.repository}:${tag} pushed`);
         };
         const runCICommands = async () => {
             info('Running CI Checks');
@@ -430,9 +455,10 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 });
             }
         };
-        const buildAndPushDockerImageForReleaseOrHotfix = (params) => {
+        const buildAndPushDockerImageForReleaseOrHotfix = async (params) => {
             const { dockerTag, gitTag, pullRequest } = params;
-            return buildAndPushDockerImage({
+            await Promise.all(imagesToBuild.map((dockerConfig) => buildAndPushDockerImage({
+                dockerConfig,
                 checkBehaviour: null,
                 tag: dockerTag,
                 checkTag: {
@@ -441,21 +467,25 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                     onError: () => failWithPRComment({
                         error: `Tag ${gitTag} has been created, aborting`,
                         pullRequest,
-                        comment: `During the build of the docker image, the tag ${dockerTag} ` +
+                        comment: `During the build of the docker image${dockerConfig.appName
+                            ? ` for app ${dockerConfig.appName}`
+                            : ''}, the tag ${dockerTag} ` +
                             'was created, and so the workflow has been aborted, ' +
                             'and the docker image has not been pushed.\n\n' +
-                            'Please chose a new version and update the pull request.',
+                            'Please choose a new version and update the pull request.',
                     }),
                 },
-            });
+            })));
         };
         const commentOnPullRequestWithDockerInfo = (params) => {
             const { pullRequest, tag } = params;
+            const deployedImages = imagesToBuild.map((dockerConfig) => dockerConfig.repository);
+            const isMultipleImages = deployedImages.length > 1;
             // Post about successful
-            const body = 'Docker image has been successfully built and pushed as: ' +
-                `\`${config.docker.repository}:${tag}\`\n\n` +
-                'Please deploy this image to a development environment, and test ' +
-                'it is working as expected before merging this pull request.';
+            const body = `Docker ${isMultipleImages ? 'images have' : 'image has'} been successfully built and pushed as: ` +
+                `${deployedImages.map((i) => `\`${i}:${tag}\``).join(', ')}\n\n` +
+                `Please deploy ${isMultipleImages ? 'these images' : 'this image'} to a development environment, and test ` +
+                `${isMultipleImages ? 'they are' : 'it is'} working as expected before merging this pull request.`;
             const cMode = commentMode(pullRequest);
             if (cMode === 'comment') {
                 return github.commentOnPullRequest({
@@ -482,6 +512,7 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                             environment: environment.environment,
                             payload: {
                                 docker_tag: params.dockerTag,
+                                repository_name: params.repoName,
                             },
                             production_environment: mode === 'env-production',
                             transient_environment: false,
@@ -534,7 +565,8 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 }
                 deploymentSha = tagSha;
                 deploymentDockerTag = tag;
-                await buildAndPushDockerImage({
+                await Promise.all(imagesToBuild.map((dockerConfig) => buildAndPushDockerImage({
+                    dockerConfig,
                     checkBehaviour: {
                         checkStrict: true,
                         alsoCheck: [preTag],
@@ -545,10 +577,11 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                         gitTag: tag,
                         sha: tagSha,
                     },
-                });
+                })));
             }
             else {
-                await buildAndPushDockerImage({
+                await Promise.all(imagesToBuild.map((dockerConfig) => buildAndPushDockerImage({
+                    dockerConfig,
                     checkBehaviour: {
                         checkStrict: false,
                         alsoCheck: [tag],
@@ -574,14 +607,15 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                                 gitTag: tag,
                             },
                     },
-                });
+                })));
                 deploymentSha = head.oid;
                 deploymentDockerTag = preTag;
             }
-            await createDeploymentIfRequired({
+            await Promise.all(imagesToBuild.map((dockerConfig) => createDeploymentIfRequired({
                 dockerTag: deploymentDockerTag,
                 ref: deploymentSha,
-            });
+                repoName: dockerConfig.appName,
+            })));
             const mergebackBranch = `mergeback/${branch.substring(4)}/${version}`;
             info(`Creating and pushing mergeback Branch: ${mergebackBranch}`);
             await isomorphic_git_1.default.branch({ fs: node_fs_1.default, dir, ref: mergebackBranch });
@@ -598,14 +632,18 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
         }
         else if (mode === 'env-development') {
             const tag = branch.replaceAll('/', '-');
-            await buildAndPushDockerImage({
-                checkBehaviour: null,
-                tag,
-            });
-            await createDeploymentIfRequired({
-                dockerTag: tag,
-                ref: head.oid,
-            });
+            await Promise.all(imagesToBuild.map(async (dockerConfig) => {
+                await buildAndPushDockerImage({
+                    dockerConfig,
+                    checkBehaviour: null,
+                    tag,
+                });
+                await createDeploymentIfRequired({
+                    dockerTag: tag,
+                    ref: head.oid,
+                    repoName: dockerConfig.appName,
+                });
+            }));
         }
         else if (mode === 'hotfix') {
             const pullRequest = await getUniquePullRequest();
@@ -792,21 +830,29 @@ const DOCKER_CONFIG = t.intersection([
         /**
          * Where in the repository should the build be run from
          */
-        path: t.string,
+        dockerfilePath: t.string,
         /**
          * What are the names of the build arguments that the docker image
          * expects to be supplied
          */
-        args: t.type({
-            /**
-             * What is the name of the build argument that expects the commit sha
-             */
-            commitSha: t.string,
-            /**
-             * What is the name of the build argument that expects the tree sha
-             */
-            treeSha: t.string,
-        }),
+        args: t.intersection([
+            t.type({
+                /**
+                 * What is the name of the build argument that expects the commit sha
+                 */
+                commitSha: t.string,
+                /**
+                 * What is the name of the build argument that expects the tree sha
+                 */
+                treeSha: t.string,
+            }),
+            t.partial({
+                /**
+                 * What is the name of the build argument used to specify application to build.
+                 */
+                appToBuild: t.string,
+            }),
+        ]),
         /**
          * What are the names of the environment variables where important bits of
          * information are stored
@@ -828,6 +874,10 @@ const DOCKER_CONFIG = t.intersection([
     }),
     // Optional config
     t.partial({
+        /**
+         * Name of the application
+         */
+        appName: t.string,
         /**
          * If provided, use the given registry instead of Docker Hub.
          *
@@ -868,9 +918,9 @@ const CONFIG = t.intersection([
             node: null,
         }),
         /**
-         * Configuration for the docker image build and publication
+         * Configuration for the docker images to be built and published
          */
-        docker: DOCKER_CONFIG,
+        dockerImages: t.array(DOCKER_CONFIG),
     }),
     // Optional config
     t.partial({
@@ -931,10 +981,12 @@ const getConfig = async (env) => {
             throw new Error('Invalid Configuration: All development environment branches must start with env/');
         }
     }
-    if (config.right.docker.registry &&
-        !config.right.docker.repository.startsWith(`${config.right.docker.registry}/`)) {
-        throw new Error('Invalid Configuration: Docker repository must start with: ' +
-            `${config.right.docker.registry}/`);
+    for (const dockerConfig of config.right.dockerImages) {
+        if (dockerConfig.registry &&
+            !dockerConfig.repository.startsWith(`${dockerConfig.registry}/`)) {
+            throw new Error('Invalid Configuration: Docker repository must start with: ' +
+                `${dockerConfig.registry}/`);
+        }
     }
     return config.right;
 };
@@ -1034,11 +1086,14 @@ const REAL_DOCKER = (config) => ({
             treeSha,
         };
     },
-    runBuild: async ({ cwd, tag, meta, logger }) => {
+    runBuild: async ({ cwd, tag, args, logger }) => {
         await (0, child_process_1.execAndPipeOutput)({
-            command: `docker build ${config.path} ` +
-                `--build-arg ${config.args.commitSha}=${meta.commitSha} ` +
-                `--build-arg ${config.args.treeSha}=${meta.treeSha} ` +
+            command: `docker build ${config.dockerfilePath} ` +
+                `--build-arg ${config.args.commitSha}=${args.commitSha} ` +
+                `--build-arg ${config.args.treeSha}=${args.treeSha} ` +
+                `${config.args.appToBuild
+                    ? `--build-arg ${config.args.appToBuild}=${args.appToBuild} `
+                    : ''}` +
                 `-t ${config.repository}:${tag}`,
             logger,
             cwd,
@@ -1218,6 +1273,19 @@ const execAndPipeOutput = (opts) => {
 };
 exports.execAndPipeOutput = execAndPipeOutput;
 exports.exec = (0, node_util_1.promisify)(child_process.exec);
+
+
+/***/ }),
+
+/***/ 1238:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.isDefined = void 0;
+const isDefined = (v) => v !== null && v !== undefined;
+exports.isDefined = isDefined;
 
 
 /***/ }),
