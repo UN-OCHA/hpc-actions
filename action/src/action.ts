@@ -351,9 +351,10 @@ export const runAction = async ({
           };
     }) => {
       const { dockerConfig, tag, checkBehaviour } = opts;
-      info('Logging in to docker');
+      info('Initializing Docker controller');
       const docker = dockerInit(dockerConfig);
       if (!dockerConfig.skipLogin) {
+        info('Logging in to Docker');
         if (!env.DOCKER_USERNAME || !env.DOCKER_PASSWORD) {
           throw new Error('Unexpected error!');
         }
