@@ -1001,6 +1001,7 @@ describe('action', () => {
                     environment: env,
                     payload: {
                       docker_tag: env === 'prod' ? 'v1.2.0' : 'v1.2.0-pre',
+                      repository_name: undefined,
                     },
                     production_environment: env === 'prod',
                     // TODO: test this more thoroughly
