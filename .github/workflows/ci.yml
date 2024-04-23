@@ -77,5 +77,6 @@ jobs:
       - name: Submit to CodeCov
         uses: codecov/codecov-action@v4
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./action/.coverage/lcov.info
           fail_ci_if_error: true
