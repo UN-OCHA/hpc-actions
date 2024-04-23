@@ -1339,9 +1339,14 @@ var import_graphql = __nccwpck_require__(8467);
 var import_auth_token = __nccwpck_require__(334);
 
 // pkg/dist-src/version.js
-var VERSION = "5.0.1";
+var VERSION = "5.2.0";
 
 // pkg/dist-src/index.js
+var noop = () => {
+};
+var consoleWarn = console.warn.bind(console);
+var consoleError = console.error.bind(console);
+var userAgentTrail = `octokit-core.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`;
 var Octokit = class {
   static {
     this.VERSION = VERSION;
@@ -1402,10 +1407,7 @@ var Octokit = class {
         format: ""
       }
     };
-    requestDefaults.headers["user-agent"] = [
-      options.userAgent,
-      `octokit-core.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`
-    ].filter(Boolean).join(" ");
+    requestDefaults.headers["user-agent"] = options.userAgent ? `${options.userAgent} ${userAgentTrail}` : userAgentTrail;
     if (options.baseUrl) {
       requestDefaults.baseUrl = options.baseUrl;
     }
@@ -1419,12 +1421,10 @@ var Octokit = class {
     this.graphql = (0, import_graphql.withCustomRequest)(this.request).defaults(requestDefaults);
     this.log = Object.assign(
       {
-        debug: () => {
-        },
-        info: () => {
-        },
-        warn: console.warn.bind(console),
-        error: console.error.bind(console)
+        debug: noop,
+        info: noop,
+        warn: consoleWarn,
+        error: consoleError
       },
       options.log
     );
@@ -1461,9 +1461,9 @@ var Octokit = class {
       this.auth = auth;
     }
     const classConstructor = this.constructor;
-    classConstructor.plugins.forEach((plugin) => {
-      Object.assign(this, plugin(this, options));
-    });
+    for (let i = 0; i < classConstructor.plugins.length; ++i) {
+      Object.assign(this, classConstructor.plugins[i](this, options));
+    }
   }
 };
 // Annotate the CommonJS export names for ESM import in node:
@@ -1506,7 +1506,7 @@ module.exports = __toCommonJS(dist_src_exports);
 var import_universal_user_agent = __nccwpck_require__(5030);
 
 // pkg/dist-src/version.js
-var VERSION = "9.0.1";
+var VERSION = "9.0.5";
 
 // pkg/dist-src/defaults.js
 var userAgent = `octokit-endpoint.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`;
@@ -1533,12 +1533,24 @@ function lowercaseKeys(object) {
   }, {});
 }
 
+// pkg/dist-src/util/is-plain-object.js
+function isPlainObject(value) {
+  if (typeof value !== "object" || value === null)
+    return false;
+  if (Object.prototype.toString.call(value) !== "[object Object]")
+    return false;
+  const proto = Object.getPrototypeOf(value);
+  if (proto === null)
+    return true;
+  const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
+  return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
+}
+
 // pkg/dist-src/util/merge-deep.js
-var import_is_plain_object = __nccwpck_require__(3287);
 function mergeDeep(defaults, options) {
   const result = Object.assign({}, defaults);
   Object.keys(options).forEach((key) => {
-    if ((0, import_is_plain_object.isPlainObject)(options[key])) {
+    if (isPlainObject(options[key])) {
       if (!(key in defaults))
         Object.assign(result, { [key]: options[key] });
       else
@@ -1613,10 +1625,13 @@ function extractUrlVariableNames(url) {
 
 // pkg/dist-src/util/omit.js
 function omit(object, keysToOmit) {
-  return Object.keys(object).filter((option) => !keysToOmit.includes(option)).reduce((obj, key) => {
-    obj[key] = object[key];
-    return obj;
-  }, {});
+  const result = { __proto__: null };
+  for (const key of Object.keys(object)) {
+    if (keysToOmit.indexOf(key) === -1) {
+      result[key] = object[key];
+    }
+  }
+  return result;
 }
 
 // pkg/dist-src/util/url-template.js
@@ -1714,7 +1729,7 @@ function parseUrl(template) {
 }
 function expand(template, context) {
   var operators = ["+", "#", ".", "/", ";", "?", "&"];
-  return template.replace(
+  template = template.replace(
     /\{([^\{\}]+)\}|([^\{\}]+)/g,
     function(_, expression, literal) {
       if (expression) {
@@ -1744,6 +1759,11 @@ function expand(template, context) {
       }
     }
   );
+  if (template === "/") {
+    return template;
+  } else {
+    return template.replace(/\/$/, "");
+  }
 }
 
 // pkg/dist-src/parse.js
@@ -1871,7 +1891,7 @@ var import_request3 = __nccwpck_require__(6234);
 var import_universal_user_agent = __nccwpck_require__(5030);
 
 // pkg/dist-src/version.js
-var VERSION = "7.0.2";
+var VERSION = "7.1.0";
 
 // pkg/dist-src/with-defaults.js
 var import_request2 = __nccwpck_require__(6234);
@@ -2028,7 +2048,7 @@ __export(dist_src_exports, {
 module.exports = __toCommonJS(dist_src_exports);
 
 // pkg/dist-src/version.js
-var VERSION = "9.1.0";
+var VERSION = "9.2.1";
 
 // pkg/dist-src/normalize-paginated-list-response.js
 function normalizePaginatedListResponse(response) {
@@ -2189,6 +2209,8 @@ var paginatingEndpoints = [
   "GET /orgs/{org}/members/{username}/codespaces",
   "GET /orgs/{org}/migrations",
   "GET /orgs/{org}/migrations/{migration_id}/repositories",
+  "GET /orgs/{org}/organization-roles/{role_id}/teams",
+  "GET /orgs/{org}/organization-roles/{role_id}/users",
   "GET /orgs/{org}/outside_collaborators",
   "GET /orgs/{org}/packages",
   "GET /orgs/{org}/packages/{package_type}/{package_name}/versions",
@@ -2485,7 +2507,7 @@ __export(dist_src_exports, {
 module.exports = __toCommonJS(dist_src_exports);
 
 // pkg/dist-src/version.js
-var VERSION = "10.1.0";
+var VERSION = "10.4.1";
 
 // pkg/dist-src/generated/endpoints.js
 var Endpoints = {
@@ -2612,6 +2634,9 @@ var Endpoints = {
       "GET /repos/{owner}/{repo}/actions/permissions/selected-actions"
     ],
     getArtifact: ["GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}"],
+    getCustomOidcSubClaimForRepo: [
+      "GET /repos/{owner}/{repo}/actions/oidc/customization/sub"
+    ],
     getEnvironmentPublicKey: [
       "GET /repositories/{repository_id}/environments/{environment_name}/secrets/public-key"
     ],
@@ -2764,6 +2789,9 @@ var Endpoints = {
     setCustomLabelsForSelfHostedRunnerForRepo: [
       "PUT /repos/{owner}/{repo}/actions/runners/{runner_id}/labels"
     ],
+    setCustomOidcSubClaimForRepo: [
+      "PUT /repos/{owner}/{repo}/actions/oidc/customization/sub"
+    ],
     setGithubActionsDefaultWorkflowPermissionsOrganization: [
       "PUT /orgs/{org}/actions/permissions/workflow"
     ],
@@ -2833,6 +2861,7 @@ var Endpoints = {
     listWatchersForRepo: ["GET /repos/{owner}/{repo}/subscribers"],
     markNotificationsAsRead: ["PUT /notifications"],
     markRepoNotificationsAsRead: ["PUT /repos/{owner}/{repo}/notifications"],
+    markThreadAsDone: ["DELETE /notifications/threads/{thread_id}"],
     markThreadAsRead: ["PATCH /notifications/threads/{thread_id}"],
     setRepoSubscription: ["PUT /repos/{owner}/{repo}/subscription"],
     setThreadSubscription: [
@@ -3109,10 +3138,10 @@ var Endpoints = {
     updateForAuthenticatedUser: ["PATCH /user/codespaces/{codespace_name}"]
   },
   copilot: {
-    addCopilotForBusinessSeatsForTeams: [
+    addCopilotSeatsForTeams: [
       "POST /orgs/{org}/copilot/billing/selected_teams"
     ],
-    addCopilotForBusinessSeatsForUsers: [
+    addCopilotSeatsForUsers: [
       "POST /orgs/{org}/copilot/billing/selected_users"
     ],
     cancelCopilotSeatAssignmentForTeams: [
@@ -3425,9 +3454,23 @@ var Endpoints = {
       }
     ]
   },
+  oidc: {
+    getOidcCustomSubTemplateForOrg: [
+      "GET /orgs/{org}/actions/oidc/customization/sub"
+    ],
+    updateOidcCustomSubTemplateForOrg: [
+      "PUT /orgs/{org}/actions/oidc/customization/sub"
+    ]
+  },
   orgs: {
     addSecurityManagerTeam: [
       "PUT /orgs/{org}/security-managers/teams/{team_slug}"
+    ],
+    assignTeamToOrgRole: [
+      "PUT /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}"
+    ],
+    assignUserToOrgRole: [
+      "PUT /orgs/{org}/organization-roles/users/{username}/{role_id}"
     ],
     blockUser: ["PUT /orgs/{org}/blocks/{username}"],
     cancelInvitation: ["DELETE /orgs/{org}/invitations/{invitation_id}"],
@@ -3437,6 +3480,7 @@ var Endpoints = {
     convertMemberToOutsideCollaborator: [
       "PUT /orgs/{org}/outside_collaborators/{username}"
     ],
+    createCustomOrganizationRole: ["POST /orgs/{org}/organization-roles"],
     createInvitation: ["POST /orgs/{org}/invitations"],
     createOrUpdateCustomProperties: ["PATCH /orgs/{org}/properties/schema"],
     createOrUpdateCustomPropertiesValuesForRepos: [
@@ -3447,6 +3491,9 @@ var Endpoints = {
     ],
     createWebhook: ["POST /orgs/{org}/hooks"],
     delete: ["DELETE /orgs/{org}"],
+    deleteCustomOrganizationRole: [
+      "DELETE /orgs/{org}/organization-roles/{role_id}"
+    ],
     deleteWebhook: ["DELETE /orgs/{org}/hooks/{hook_id}"],
     enableOrDisableSecurityProductOnAllOrgRepos: [
       "POST /orgs/{org}/{security_product}/{enablement}"
@@ -3458,6 +3505,7 @@ var Endpoints = {
     ],
     getMembershipForAuthenticatedUser: ["GET /user/memberships/orgs/{org}"],
     getMembershipForUser: ["GET /orgs/{org}/memberships/{username}"],
+    getOrgRole: ["GET /orgs/{org}/organization-roles/{role_id}"],
     getWebhook: ["GET /orgs/{org}/hooks/{hook_id}"],
     getWebhookConfigForOrg: ["GET /orgs/{org}/hooks/{hook_id}/config"],
     getWebhookDelivery: [
@@ -3473,6 +3521,12 @@ var Endpoints = {
     listInvitationTeams: ["GET /orgs/{org}/invitations/{invitation_id}/teams"],
     listMembers: ["GET /orgs/{org}/members"],
     listMembershipsForAuthenticatedUser: ["GET /user/memberships/orgs"],
+    listOrgRoleTeams: ["GET /orgs/{org}/organization-roles/{role_id}/teams"],
+    listOrgRoleUsers: ["GET /orgs/{org}/organization-roles/{role_id}/users"],
+    listOrgRoles: ["GET /orgs/{org}/organization-roles"],
+    listOrganizationFineGrainedPermissions: [
+      "GET /orgs/{org}/organization-fine-grained-permissions"
+    ],
     listOutsideCollaborators: ["GET /orgs/{org}/outside_collaborators"],
     listPatGrantRepositories: [
       "GET /orgs/{org}/personal-access-tokens/{pat_id}/repositories"
@@ -3487,6 +3541,9 @@ var Endpoints = {
     listSecurityManagerTeams: ["GET /orgs/{org}/security-managers"],
     listWebhookDeliveries: ["GET /orgs/{org}/hooks/{hook_id}/deliveries"],
     listWebhooks: ["GET /orgs/{org}/hooks"],
+    patchCustomOrganizationRole: [
+      "PATCH /orgs/{org}/organization-roles/{role_id}"
+    ],
     pingWebhook: ["POST /orgs/{org}/hooks/{hook_id}/pings"],
     redeliverWebhookDelivery: [
       "POST /orgs/{org}/hooks/{hook_id}/deliveries/{delivery_id}/attempts"
@@ -3510,6 +3567,18 @@ var Endpoints = {
     ],
     reviewPatGrantRequestsInBulk: [
       "POST /orgs/{org}/personal-access-token-requests"
+    ],
+    revokeAllOrgRolesTeam: [
+      "DELETE /orgs/{org}/organization-roles/teams/{team_slug}"
+    ],
+    revokeAllOrgRolesUser: [
+      "DELETE /orgs/{org}/organization-roles/users/{username}"
+    ],
+    revokeOrgRoleTeam: [
+      "DELETE /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}"
+    ],
+    revokeOrgRoleUser: [
+      "DELETE /orgs/{org}/organization-roles/users/{username}/{role_id}"
     ],
     setMembershipForUser: ["PUT /orgs/{org}/memberships/{username}"],
     setPublicMembershipForAuthenticatedUser: [
@@ -3801,6 +3870,9 @@ var Endpoints = {
       {},
       { mapToData: "users" }
     ],
+    cancelPagesDeployment: [
+      "POST /repos/{owner}/{repo}/pages/deployments/{pages_deployment_id}/cancel"
+    ],
     checkAutomatedSecurityFixes: [
       "GET /repos/{owner}/{repo}/automated-security-fixes"
     ],
@@ -3836,12 +3908,15 @@ var Endpoints = {
     createForAuthenticatedUser: ["POST /user/repos"],
     createFork: ["POST /repos/{owner}/{repo}/forks"],
     createInOrg: ["POST /orgs/{org}/repos"],
+    createOrUpdateCustomPropertiesValues: [
+      "PATCH /repos/{owner}/{repo}/properties/values"
+    ],
     createOrUpdateEnvironment: [
       "PUT /repos/{owner}/{repo}/environments/{environment_name}"
     ],
     createOrUpdateFileContents: ["PUT /repos/{owner}/{repo}/contents/{path}"],
     createOrgRuleset: ["POST /orgs/{org}/rulesets"],
-    createPagesDeployment: ["POST /repos/{owner}/{repo}/pages/deployment"],
+    createPagesDeployment: ["POST /repos/{owner}/{repo}/pages/deployments"],
     createPagesSite: ["POST /repos/{owner}/{repo}/pages"],
     createRelease: ["POST /repos/{owner}/{repo}/releases"],
     createRepoRuleset: ["POST /repos/{owner}/{repo}/rulesets"],
@@ -3994,6 +4069,9 @@ var Endpoints = {
     getOrgRulesets: ["GET /orgs/{org}/rulesets"],
     getPages: ["GET /repos/{owner}/{repo}/pages"],
     getPagesBuild: ["GET /repos/{owner}/{repo}/pages/builds/{build_id}"],
+    getPagesDeployment: [
+      "GET /repos/{owner}/{repo}/pages/deployments/{pages_deployment_id}"
+    ],
     getPagesHealthCheck: ["GET /repos/{owner}/{repo}/pages/health"],
     getParticipationStats: ["GET /repos/{owner}/{repo}/stats/participation"],
     getPullRequestReviewProtection: [
@@ -4204,6 +4282,9 @@ var Endpoints = {
     ]
   },
   securityAdvisories: {
+    createFork: [
+      "POST /repos/{owner}/{repo}/security-advisories/{ghsa_id}/forks"
+    ],
     createPrivateVulnerabilityReport: [
       "POST /repos/{owner}/{repo}/security-advisories/reports"
     ],
@@ -4695,10 +4776,22 @@ var import_endpoint = __nccwpck_require__(9440);
 var import_universal_user_agent = __nccwpck_require__(5030);
 
 // pkg/dist-src/version.js
-var VERSION = "8.1.4";
+var VERSION = "8.3.1";
+
+// pkg/dist-src/is-plain-object.js
+function isPlainObject(value) {
+  if (typeof value !== "object" || value === null)
+    return false;
+  if (Object.prototype.toString.call(value) !== "[object Object]")
+    return false;
+  const proto = Object.getPrototypeOf(value);
+  if (proto === null)
+    return true;
+  const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
+  return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
+}
 
 // pkg/dist-src/fetch-wrapper.js
-var import_is_plain_object = __nccwpck_require__(3287);
 var import_request_error = __nccwpck_require__(537);
 
 // pkg/dist-src/get-buffer-response.js
@@ -4711,7 +4804,7 @@ function fetchWrapper(requestOptions) {
   var _a, _b, _c;
   const log = requestOptions.request && requestOptions.request.log ? requestOptions.request.log : console;
   const parseSuccessResponseBody = ((_a = requestOptions.request) == null ? void 0 : _a.parseSuccessResponseBody) !== false;
-  if ((0, import_is_plain_object.isPlainObject)(requestOptions.body) || Array.isArray(requestOptions.body)) {
+  if (isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body)) {
     requestOptions.body = JSON.stringify(requestOptions.body);
   }
   let headers = {};
@@ -4817,7 +4910,7 @@ function fetchWrapper(requestOptions) {
 async function getResponseData(response) {
   const contentType = response.headers.get("content-type");
   if (/application\/json/.test(contentType)) {
-    return response.json();
+    return response.json().catch(() => response.text()).catch(() => "");
   }
   if (!contentType || /^text\/|charset=utf-8$/.test(contentType)) {
     return response.text();
@@ -4827,11 +4920,17 @@ async function getResponseData(response) {
 function toErrorMessage(data) {
   if (typeof data === "string")
     return data;
+  let suffix;
+  if ("documentation_url" in data) {
+    suffix = ` - ${data.documentation_url}`;
+  } else {
+    suffix = "";
+  }
   if ("message" in data) {
     if (Array.isArray(data.errors)) {
-      return `${data.message}: ${data.errors.map(JSON.stringify).join(", ")}`;
+      return `${data.message}: ${data.errors.map(JSON.stringify).join(", ")}${suffix}`;
     }
-    return data.message;
+    return `${data.message}${suffix}`;
   }
   return `Unknown error: ${JSON.stringify(data)}`;
 }
@@ -4908,7 +5007,7 @@ var import_plugin_paginate_rest = __nccwpck_require__(4193);
 var import_plugin_rest_endpoint_methods = __nccwpck_require__(3044);
 
 // pkg/dist-src/version.js
-var VERSION = "20.0.2";
+var VERSION = "20.1.0";
 
 // pkg/dist-src/index.js
 var Octokit = import_core.Octokit.plugin(
@@ -6745,7 +6844,10 @@ var chainWithIndex = function (f) {
     return function (as) {
         var out = [];
         for (var i = 0; i < as.length; i++) {
-            out.push.apply(out, f(i, as[i]));
+            var bs = f(i, as[i]);
+            for (var j = 0; j < bs.length; j++) {
+                out.push(bs[j]);
+            }
         }
         return out;
     };
@@ -7846,7 +7948,7 @@ exports.separate = separate;
  *
  * @example
  * import { filter } from 'fp-ts/Array'
- * import { isString } from "fp-ts/lib/string";
+ * import { isString } from "fp-ts/string";
  *
  * assert.deepStrictEqual(filter(isString)(["a", 1, {}, "b", 5]), ["a", "b"]);
  * assert.deepStrictEqual(filter((x:number) => x > 0)([-3, 1, -2, 5]), [1, 5]);
@@ -7868,7 +7970,7 @@ exports.filter = filter;
  *
  * @example
  * import { partition } from 'fp-ts/Array'
- * import { isString } from "fp-ts/lib/string";
+ * import { isString } from "fp-ts/string";
  *
  * assert.deepStrictEqual(partition(isString)(["a", 1, {}, "b", 5]), { left: [1, {}, 5], right: ["a", "b"] });
  * assert.deepStrictEqual(partition((x: number) => x > 0)([-3, 1, -2, 5]), { left: [-3, -2], right: [1, 5] });
@@ -7918,7 +8020,7 @@ exports.partitionWithIndex = partitionWithIndex;
  *
  * @example
  * import { partitionMap } from 'fp-ts/Array'
- * import { Either, left, right } from "fp-ts/lib/Either";
+ * import { Either, left, right } from "fp-ts/Either";
  *
  * const upperIfString = <B>(x: B): Either<B, string> =>
  *   typeof x === "string" ? right(x.toUpperCase()) : left(x);
@@ -7937,7 +8039,7 @@ exports.partitionMap = partitionMap;
  *
  * @example
  * import { partitionMapWithIndex } from 'fp-ts/Array'
- * import { Either, left, right } from "fp-ts/lib/Either";
+ * import { Either, left, right } from "fp-ts/Either";
  *
  * const upperIfStringBefore3 = <B>(index: number, x: B): Either<B, string> =>
  *   index < 3 && typeof x === "string" ? right(x.toUpperCase()) : left(x);
@@ -8166,7 +8268,7 @@ exports.reduceRightWithIndex = RA.reduceRightWithIndex;
  *
  * @example
  * import { traverse } from 'fp-ts/Array'
- * import { Applicative, left, right } from "fp-ts/lib/Either";
+ * import { Applicative, left, right } from "fp-ts/Either";
  *
  * const f = (x: unknown) =>
  *   typeof x === "string" ? right(x.toUpperCase()) : left(new Error("not a string"));
@@ -8193,7 +8295,7 @@ exports.traverse = traverse;
  *
  * @example
  * import { sequence } from 'fp-ts/Array'
- * import { Applicative, left, right } from "fp-ts/lib/Either";
+ * import { Applicative, left, right } from "fp-ts/Either";
  *
  * assert.deepStrictEqual(sequence(Applicative)([right("a"), right("b")]), right(["a", "b"]));
  * assert.deepStrictEqual(
@@ -8217,7 +8319,7 @@ exports.sequence = sequence;
  *
  * @example
  * import { traverseWithIndex } from 'fp-ts/Array'
- * import { Applicative, left, right } from "fp-ts/lib/Either";
+ * import { Applicative, left, right } from "fp-ts/Either";
  *
  * const f = (index:number, x:unknown) =>
  *   typeof x === "string" ? right(x.toUpperCase() + index) : left(new Error("not a string"));
@@ -11036,7 +11138,12 @@ exports.toUnion = (0, exports.foldW)(function_1.identity, function_1.identity);
  * @since 2.0.0
  */
 function toError(e) {
-    return e instanceof Error ? e : new Error(String(e));
+    try {
+        return e instanceof Error ? e : new Error(String(e));
+    }
+    catch (error) {
+        return new Error();
+    }
 }
 exports.toError = toError;
 function elem(E) {
@@ -13640,8 +13747,7 @@ exports.chainOptionK = (0, FromEither_1.chainOptionK)(exports.FromEither, export
  * @category legacy
  * @since 2.13.2
  */
-exports.chainOptionKW = 
-/*#__PURE__*/ exports.chainOptionK;
+exports.chainOptionKW = exports.chainOptionK;
 /** @internal */
 var _FromEither = {
     fromEither: exports.FromEither.fromEither
@@ -17072,7 +17178,10 @@ var chainWithIndex = function (f) {
     return function (as) {
         var out = (0, exports.fromReadonlyNonEmptyArray)(f(0, (0, exports.head)(as)));
         for (var i = 1; i < as.length; i++) {
-            out.push.apply(out, f(i, as[i]));
+            var bs = f(i, as[i]);
+            for (var j = 0; j < bs.length; j++) {
+                out.push(bs[j]);
+            }
         }
         return out;
     };
@@ -21218,8 +21327,7 @@ exports.chainOptionK =
  * @category legacy
  * @since 2.13.2
  */
-exports.chainOptionKW = 
-/*#__PURE__*/ exports.chainOptionK;
+exports.chainOptionKW = exports.chainOptionK;
 /** @internal */
 var _FromEither = {
     fromEither: exports.FromEither.fromEither
@@ -23047,13 +23155,17 @@ exports.leftIO = (0, function_1.flow)(TE.leftIO, exports.fromTaskEither);
  * @category constructors
  * @since 2.13.0
  */
-var rightReaderIO = function (ma) { return (0, function_1.flow)(ma, TE.rightIO); };
+var rightReaderIO = function (ma) {
+    return (0, function_1.flow)(ma, TE.rightIO);
+};
 exports.rightReaderIO = rightReaderIO;
 /**
  * @category constructors
  * @since 2.13.0
  */
-var leftReaderIO = function (me) { return (0, function_1.flow)(me, TE.leftIO); };
+var leftReaderIO = function (me) {
+    return (0, function_1.flow)(me, TE.leftIO);
+};
 exports.leftReaderIO = leftReaderIO;
 // -------------------------------------------------------------------------------------
 // conversions
@@ -23962,8 +24074,7 @@ exports.chainOptionK =
  * @category legacy
  * @since 2.13.2
  */
-exports.chainOptionKW = 
-/*#__PURE__*/ exports.chainOptionK;
+exports.chainOptionKW = exports.chainOptionK;
 /** @internal */
 var _FromEither = {
     fromEither: exports.FromEither.fromEither
@@ -24840,7 +24951,10 @@ var chainWithIndex = function (f) {
         }
         var out = [];
         for (var i = 0; i < as.length; i++) {
-            out.push.apply(out, f(i, as[i]));
+            var bs = f(i, as[i]);
+            for (var j = 0; j < bs.length; j++) {
+                out.push(bs[j]);
+            }
         }
         return out;
     };
@@ -28391,7 +28505,10 @@ var chainWithIndex = function (f) {
     return function (as) {
         var out = _.fromReadonlyNonEmptyArray(f(0, (0, exports.head)(as)));
         for (var i = 1; i < as.length; i++) {
-            out.push.apply(out, f(i, as[i]));
+            var bs = f(i, as[i]);
+            for (var j = 0; j < bs.length; j++) {
+                out.push(bs[j]);
+            }
         }
         return out;
     };
@@ -35301,8 +35418,7 @@ exports.chainOptionK = (0, FromEither_1.chainOptionK)(exports.FromEither, export
  * @category legacy
  * @since 2.13.2
  */
-exports.chainOptionKW = 
-/*#__PURE__*/ exports.chainOptionK;
+exports.chainOptionKW = exports.chainOptionK;
 /**
  * Alias of `flatMapEither`.
  *
@@ -37562,8 +37678,7 @@ exports.chainOptionK = (0, FromEither_1.chainOptionK)(exports.FromEither, export
  * @category legacy
  * @since 2.13.2
  */
-exports.chainOptionKW = 
-/*#__PURE__*/ exports.chainOptionK;
+exports.chainOptionKW = exports.chainOptionK;
 /** @internal */
 var _FromEither = {
     fromEither: exports.FromEither.fromEither
@@ -42798,40 +42913,40 @@ var liftOption = function (F) {
 exports.liftOption = liftOption;
 /** @internal */
 var flatMapNullable = function (F, M) {
-    /*#__PURE__*/ return (0, function_1.dual)(3, function (self, f, onNullable) {
+    return /*#__PURE__*/ (0, function_1.dual)(3, function (self, f, onNullable) {
         return M.flatMap(self, (0, exports.liftNullable)(F)(f, onNullable));
     });
 };
 exports.flatMapNullable = flatMapNullable;
 /** @internal */
 var flatMapOption = function (F, M) {
-    /*#__PURE__*/ return (0, function_1.dual)(3, function (self, f, onNone) { return M.flatMap(self, (0, exports.liftOption)(F)(f, onNone)); });
+    return /*#__PURE__*/ (0, function_1.dual)(3, function (self, f, onNone) { return M.flatMap(self, (0, exports.liftOption)(F)(f, onNone)); });
 };
 exports.flatMapOption = flatMapOption;
 /** @internal */
 var flatMapEither = function (F, M) {
-    /*#__PURE__*/ return (0, function_1.dual)(2, function (self, f) {
+    return /*#__PURE__*/ (0, function_1.dual)(2, function (self, f) {
         return M.flatMap(self, function (a) { return F.fromEither(f(a)); });
     });
 };
 exports.flatMapEither = flatMapEither;
 /** @internal */
 var flatMapIO = function (F, M) {
-    /*#__PURE__*/ return (0, function_1.dual)(2, function (self, f) {
+    return /*#__PURE__*/ (0, function_1.dual)(2, function (self, f) {
         return M.flatMap(self, function (a) { return F.fromIO(f(a)); });
     });
 };
 exports.flatMapIO = flatMapIO;
 /** @internal */
 var flatMapTask = function (F, M) {
-    /*#__PURE__*/ return (0, function_1.dual)(2, function (self, f) {
+    return /*#__PURE__*/ (0, function_1.dual)(2, function (self, f) {
         return M.flatMap(self, function (a) { return F.fromTask(f(a)); });
     });
 };
 exports.flatMapTask = flatMapTask;
 /** @internal */
 var flatMapReader = function (F, M) {
-    /*#__PURE__*/ return (0, function_1.dual)(2, function (self, f) {
+    return /*#__PURE__*/ (0, function_1.dual)(2, function (self, f) {
         return M.flatMap(self, function (a) { return F.fromReader(f(a)); });
     });
 };
@@ -44334,8 +44449,11 @@ if (typeof Object.create === 'function') {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PathReporter = exports.success = exports.failure = void 0;
-var _1 = __nccwpck_require__(5428);
+/**
+ * @since 1.0.0
+ */
 var Either_1 = __nccwpck_require__(7534);
+var _1 = __nccwpck_require__(5428);
 function stringify(v) {
     if (typeof v === 'function') {
         return (0, _1.getFunctionName)(v);
@@ -44568,39 +44686,12 @@ function getPartialTypeName(inner) {
 function enumerableRecord(keys, domain, codomain, name) {
     if (name === void 0) { name = "{ [K in ".concat(domain.name, "]: ").concat(codomain.name, " }"); }
     var len = keys.length;
-    return new DictionaryType(name, function (u) { return exports.UnknownRecord.is(u) && keys.every(function (k) { return codomain.is(u[k]); }); }, function (u, c) {
-        var e = exports.UnknownRecord.validate(u, c);
-        if ((0, Either_1.isLeft)(e)) {
-            return e;
-        }
-        var o = e.right;
-        var a = {};
-        var errors = [];
-        var changed = false;
-        for (var i = 0; i < len; i++) {
-            var k = keys[i];
-            var ok = o[k];
-            var codomainResult = codomain.validate(ok, appendContext(c, k, codomain, ok));
-            if ((0, Either_1.isLeft)(codomainResult)) {
-                pushAll(errors, codomainResult.left);
-            }
-            else {
-                var vok = codomainResult.right;
-                changed = changed || vok !== ok;
-                a[k] = vok;
-            }
-        }
-        return errors.length > 0 ? (0, exports.failures)(errors) : (0, exports.success)((changed || Object.keys(o).length !== len ? a : o));
-    }, codomain.encode === exports.identity
-        ? exports.identity
-        : function (a) {
-            var s = {};
-            for (var i = 0; i < len; i++) {
-                var k = keys[i];
-                s[k] = codomain.encode(a[k]);
-            }
-            return s;
-        }, domain, codomain);
+    var props = {};
+    for (var i = 0; i < len; i++) {
+        props[keys[i]] = codomain;
+    }
+    var exactCodec = (0, exports.strict)(props, name);
+    return new DictionaryType(name, function (u) { return exactCodec.is(u); }, exactCodec.validate, exactCodec.encode, domain, codomain);
 }
 /**
  * @internal
@@ -44623,11 +44714,27 @@ function getDomainKeys(domain) {
     return undefined;
 }
 exports.getDomainKeys = getDomainKeys;
+function stripNonDomainKeys(o, domain) {
+    var keys = Object.keys(o);
+    var len = keys.length;
+    var shouldStrip = false;
+    var r = {};
+    for (var i = 0; i < len; i++) {
+        var k = keys[i];
+        if (domain.is(k)) {
+            r[k] = o[k];
+        }
+        else {
+            shouldStrip = true;
+        }
+    }
+    return shouldStrip ? r : o;
+}
 function nonEnumerableRecord(domain, codomain, name) {
     if (name === void 0) { name = "{ [K in ".concat(domain.name, "]: ").concat(codomain.name, " }"); }
     return new DictionaryType(name, function (u) {
         if (exports.UnknownRecord.is(u)) {
-            return Object.keys(u).every(function (k) { return domain.is(k) && codomain.is(u[k]); });
+            return Object.keys(u).every(function (k) { return !domain.is(k) || codomain.is(u[k]); });
         }
         return isAnyC(codomain) && Array.isArray(u);
     }, function (u, c) {
@@ -44642,7 +44749,7 @@ function nonEnumerableRecord(domain, codomain, name) {
                 var ok = u[k];
                 var domainResult = domain.validate(k, appendContext(c, k, domain, k));
                 if ((0, Either_1.isLeft)(domainResult)) {
-                    pushAll(errors, domainResult.left);
+                    changed = true;
                 }
                 else {
                     var vk = domainResult.right;
@@ -44666,10 +44773,10 @@ function nonEnumerableRecord(domain, codomain, name) {
         }
         return (0, exports.failure)(u, c);
     }, domain.encode === exports.identity && codomain.encode === exports.identity
-        ? exports.identity
+        ? function (a) { return stripNonDomainKeys(a, domain); }
         : function (a) {
             var s = {};
-            var keys = Object.keys(a);
+            var keys = Object.keys(stripNonDomainKeys(a, domain));
             var len = keys.length;
             for (var i = 0; i < len; i++) {
                 var k = keys[i];
@@ -46045,52 +46152,6 @@ function alias(codec) {
     return function () { return codec; };
 }
 exports.alias = alias;
-
-
-/***/ }),
-
-/***/ 3287:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-
-/*!
- * is-plain-object <https://github.com/jonschlinkert/is-plain-object>
- *
- * Copyright (c) 2014-2017, Jon Schlinkert.
- * Released under the MIT License.
- */
-
-function isObject(o) {
-  return Object.prototype.toString.call(o) === '[object Object]';
-}
-
-function isPlainObject(o) {
-  var ctor,prot;
-
-  if (isObject(o) === false) return false;
-
-  // If has modified constructor
-  ctor = o.constructor;
-  if (ctor === undefined) return true;
-
-  // If has modified prototype
-  prot = ctor.prototype;
-  if (isObject(prot) === false) return false;
-
-  // If constructor does not have an Object-specific method
-  if (prot.hasOwnProperty('isPrototypeOf') === false) {
-    return false;
-  }
-
-  // Most likely a plain Object
-  return true;
-}
-
-exports.isPlainObject = isPlainObject;
 
 
 /***/ }),
@@ -53411,7 +53472,7 @@ function getUserAgent() {
     return navigator.userAgent;
   }
 
-  if (typeof process === "object" && "version" in process) {
+  if (typeof process === "object" && process.version !== undefined) {
     return `Node.js/${process.version.substr(1)} (${process.platform}; ${process.arch})`;
   }
 
@@ -54958,16 +55019,32 @@ function compareRefNames(a, b) {
   return tmp
 }
 
+const memo = new Map();
 function normalizePath(path) {
+  let normalizedPath = memo.get(path);
+  if (!normalizedPath) {
+    normalizedPath = normalizePathInternal(path);
+    memo.set(path, normalizedPath);
+  }
+  return normalizedPath
+}
+
+function normalizePathInternal(path) {
+  path = path
+    .split('/./')
+    .join('/') // Replace '/./' with '/'
+    .replace(/\/{2,}/g, '/'); // Replace consecutive '/'
+
+  if (path === '/.') return '/' // if path === '/.' return '/'
+  if (path === './') return '.' // if path === './' return '.'
+
+  if (path.startsWith('./')) path = path.slice(2); // Remove leading './'
+  if (path.endsWith('/.')) path = path.slice(0, -2); // Remove trailing '/.'
+  if (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1); // Remove trailing '/'
+
+  if (path === '') return '.' // if path === '' return '.'
+
   return path
-    .replace(/\/\.\//g, '/') // Replace '/./' with '/'
-    .replace(/\/{2,}/g, '/') // Replace consecutive '/'
-    .replace(/^\/\.$/, '/') // if path === '/.' return '/'
-    .replace(/^\.\/$/, '.') // if path === './' return '.'
-    .replace(/^\.\//, '') // Remove leading './'
-    .replace(/\/\.$/, '') // Remove trailing '/.'
-    .replace(/(.+)\/$/, '$1') // Remove trailing '/'
-    .replace(/^$/, '.') // if path === '' return '.'
 }
 
 // For some reason path.posix.join is undefined in webpack
@@ -55012,7 +55089,7 @@ const schema = {
 // section starts with [ and ends with ]
 // section is alphanumeric (ASCII) with - and .
 // section is case insensitive
-// subsection is optionnal
+// subsection is optional
 // subsection is specified after section and one or more spaces
 // subsection is specified between double quotes
 const SECTION_LINE_REGEX = /^\[([A-Za-z0-9-.]+)(?: "(.*)")?\]$/;
@@ -55290,6 +55367,13 @@ const refpaths = ref => [
 // @see https://git-scm.com/docs/gitrepository-layout
 const GIT_FILES = ['config', 'description', 'index', 'shallow', 'commondir'];
 
+let lock$1;
+
+async function acquireLock(ref, callback) {
+  if (lock$1 === undefined) lock$1 = new AsyncLock();
+  return lock$1.acquire(ref, callback)
+}
+
 class GitRefManager {
   static async updateRemoteRefs({
     fs,
@@ -55396,7 +55480,9 @@ class GitRefManager {
     // are .git/refs/remotes/origin/refs/remotes/remote_mirror_3059
     // and .git/refs/remotes/origin/refs/merge-requests
     for (const [key, value] of actualRefsToWrite) {
-      await fs.write(join(gitdir, key), `${value.trim()}\n`, 'utf8');
+      await acquireLock(key, async () =>
+        fs.write(join(gitdir, key), `${value.trim()}\n`, 'utf8')
+      );
     }
     return { pruned }
   }
@@ -55407,11 +55493,15 @@ class GitRefManager {
     if (!value.match(/[0-9a-f]{40}/)) {
       throw new InvalidOidError(value)
     }
-    await fs.write(join(gitdir, ref), `${value.trim()}\n`, 'utf8');
+    await acquireLock(ref, async () =>
+      fs.write(join(gitdir, ref), `${value.trim()}\n`, 'utf8')
+    );
   }
 
   static async writeSymbolicRef({ fs, gitdir, ref, value }) {
-    await fs.write(join(gitdir, ref), 'ref: ' + `${value.trim()}\n`, 'utf8');
+    await acquireLock(ref, async () =>
+      fs.write(join(gitdir, ref), 'ref: ' + `${value.trim()}\n`, 'utf8')
+    );
   }
 
   static async deleteRef({ fs, gitdir, ref }) {
@@ -55422,7 +55512,9 @@ class GitRefManager {
     // Delete regular ref
     await Promise.all(refs.map(ref => fs.rm(join(gitdir, ref))));
     // Delete any packed ref
-    let text = await fs.read(`${gitdir}/packed-refs`, { encoding: 'utf8' });
+    let text = await acquireLock('packed-refs', async () =>
+      fs.read(`${gitdir}/packed-refs`, { encoding: 'utf8' })
+    );
     const packed = GitPackedRefs.from(text);
     const beforeSize = packed.refs.size;
     for (const ref of refs) {
@@ -55432,7 +55524,9 @@ class GitRefManager {
     }
     if (packed.refs.size < beforeSize) {
       text = packed.toString();
-      await fs.write(`${gitdir}/packed-refs`, text, { encoding: 'utf8' });
+      await acquireLock('packed-refs', async () =>
+        fs.write(`${gitdir}/packed-refs`, text, { encoding: 'utf8' })
+      );
     }
   }
 
@@ -55451,7 +55545,7 @@ class GitRefManager {
         return ref
       }
     }
-    let sha;
+
     // Is it a ref pointer?
     if (ref.startsWith('ref: ')) {
       ref = ref.slice('ref: '.length);
@@ -55467,9 +55561,12 @@ class GitRefManager {
     const allpaths = refpaths(ref).filter(p => !GIT_FILES.includes(p)); // exclude git system files (#709)
 
     for (const ref of allpaths) {
-      sha =
-        (await fs.read(`${gitdir}/${ref}`, { encoding: 'utf8' })) ||
-        packedMap.get(ref);
+      const sha = await acquireLock(
+        ref,
+        async () =>
+          (await fs.read(`${gitdir}/${ref}`, { encoding: 'utf8' })) ||
+          packedMap.get(ref)
+      );
       if (sha) {
         return GitRefManager.resolve({ fs, gitdir, ref: sha.trim(), depth })
       }
@@ -55497,7 +55594,10 @@ class GitRefManager {
     // Look in all the proper paths, in this order
     const allpaths = refpaths(ref);
     for (const ref of allpaths) {
-      if (await fs.exists(`${gitdir}/${ref}`)) return ref
+      const refExists = await acquireLock(ref, async () =>
+        fs.exists(`${gitdir}/${ref}`)
+      );
+      if (refExists) return ref
       if (packedMap.has(ref)) return ref
     }
     // Do we give up?
@@ -55548,7 +55648,9 @@ class GitRefManager {
   }
 
   static async packedRefs({ fs, gitdir }) {
-    const text = await fs.read(`${gitdir}/packed-refs`, { encoding: 'utf8' });
+    const text = await acquireLock('packed-refs', async () =>
+      fs.read(`${gitdir}/packed-refs`, { encoding: 'utf8' })
+    );
     const packed = GitPackedRefs.from(text);
     return packed.refs
   }
@@ -55967,6 +56069,7 @@ class StreamReader {
     let { done, value } = await this.stream.next();
     if (done) {
       this._ended = true;
+      if (!value) return Buffer.alloc(0)
     }
     if (value) {
       value = Buffer.from(value);
@@ -56995,7 +57098,7 @@ class IndexResetError extends BaseError {
    */
   constructor(filepath) {
     super(
-      `Could not merge index: Entry for '${filepath}' is not up to date. Either reset the index entry to HEAD, or stage your unstaged chages.`
+      `Could not merge index: Entry for '${filepath}' is not up to date. Either reset the index entry to HEAD, or stage your unstaged changes.`
     );
     this.code = this.name = IndexResetError.code;
     this.data = { filepath };
@@ -57994,7 +58097,7 @@ class FileSystem {
 
   /**
    * Return true if a file exists, false if it doesn't exist.
-   * Rethrows errors that aren't related to file existance.
+   * Rethrows errors that aren't related to file existence.
    */
   async exists(filepath, options = {}) {
     try {
@@ -58138,7 +58241,7 @@ class FileSystem {
 
   /**
    * Return the Stats of a file/symlink if it exists, otherwise returns null.
-   * Rethrows errors that aren't related to file existance.
+   * Rethrows errors that aren't related to file existence.
    */
   async lstat(filename) {
     try {
@@ -58154,7 +58257,7 @@ class FileSystem {
 
   /**
    * Reads the contents of a symlink if it exists, otherwise returns null.
-   * Rethrows errors that aren't related to file existance.
+   * Rethrows errors that aren't related to file existence.
    */
   async readlink(filename, opts = { encoding: 'buffer' }) {
     // Note: FileSystem.readlink returns a buffer by default
@@ -58314,7 +58417,7 @@ async function abortMerge({
 }
 
 // I'm putting this in a Manager because I reckon it could benefit
-// from a LOT of cacheing.
+// from a LOT of caching.
 class GitIgnoreManager {
   static async isIgnored({ fs, dir, gitdir = join(dir, '.git'), filepath }) {
     // ALWAYS ignore ".git" folders.
@@ -58405,13 +58508,14 @@ async function browserDeflate(buffer) {
 function testCompressionStream() {
   try {
     const cs = new CompressionStream('deflate');
+    cs.writable.close();
     // Test if `Blob.stream` is present. React Native does not have the `stream` method
-    new Blob([]).stream();
-    if (cs) return true
+    const stream = new Blob([]).stream();
+    stream.cancel();
+    return true
   } catch (_) {
-    // no bother
+    return false
   }
-  return false
 }
 
 async function _writeObject({
@@ -59298,7 +59402,7 @@ async function _annotatedTag({
  * @param {string} [args.tagger.email] - Default is `user.email` config.
  * @param {number} [args.tagger.timestamp=Math.floor(Date.now()/1000)] - Set the tagger timestamp field. This is the integer number of seconds since the Unix epoch (1970-01-01 00:00:00).
  * @param {number} [args.tagger.timezoneOffset] - Set the tagger timezone offset field. This is the difference, in minutes, from the current timezone to UTC. Default is `(new Date()).getTimezoneOffset()`.
- * @param {string} [args.gpgsig] - The gpgsig attatched to the tag object. (Mutually exclusive with the `signingKey` option.)
+ * @param {string} [args.gpgsig] - The gpgsig attached to the tag object. (Mutually exclusive with the `signingKey` option.)
  * @param {string} [args.signingKey] - Sign the tag object using this private PGP key. (Mutually exclusive with the `gpgsig` option.)
  * @param {boolean} [args.force = false] - Instead of throwing an error if a tag named `ref` already exists, overwrite the existing tag. Note that this option does not modify the original tag object itself.
  * @param {object} [args.cache] - a [cache](cache.md) object
@@ -59793,7 +59897,7 @@ async function analyze({
 
       // This is a kind of silly pattern but it worked so well for me in the past
       // and it makes intuitively demonstrating exhaustiveness so *easy*.
-      // This checks for the presense and/or absence of each of the 3 entries,
+      // This checks for the presence and/or absence of each of the 3 entries,
       // converts that to a 3-bit binary representation, and then handles
       // every possible combination (2^3 or 8 cases) with a lookup table.
       const key = [!!stage, !!commit, !!workdir].map(Number).join('');
@@ -60274,7 +60378,7 @@ of the line, the pkt-len, indicates the total length of the line,
 in hexadecimal.  The pkt-len includes the 4 bytes used to contain
 the length's hexadecimal representation.
 
-A pkt-line MAY contain binary data, so implementors MUST ensure
+A pkt-line MAY contain binary data, so implementers MUST ensure
 pkt-line parsing/formatting routines are 8-bit clean.
 
 A non-binary line SHOULD BE terminated by an LF, which if present
@@ -60349,7 +60453,7 @@ class GitPktLine {
         if (buffer == null) return true
         return buffer
       } catch (err) {
-        console.log('error', err);
+        stream.error = err;
         return true
       }
     }
@@ -60421,14 +60525,17 @@ async function parseRefsAdResponse(stream, { service }) {
 
   const [firstRef, capabilitiesLine] = splitAndAssert(lineTwo, '\x00', '\\x00');
   capabilitiesLine.split(' ').map(x => capabilities.add(x));
-  const [ref, name] = splitAndAssert(firstRef, ' ', ' ');
-  refs.set(name, ref);
-  while (true) {
-    const line = await read();
-    if (line === true) break
-    if (line !== null) {
-      const [ref, name] = splitAndAssert(line.toString('utf8'), ' ', ' ');
-      refs.set(name, ref);
+  // see no-refs in https://git-scm.com/docs/pack-protocol#_reference_discovery (since git 2.41.0)
+  if (firstRef !== '0000000000000000000000000000000000000000 capabilities^{}') {
+    const [ref, name] = splitAndAssert(firstRef, ' ', ' ');
+    refs.set(name, ref);
+    while (true) {
+      const line = await read();
+      if (line === true) break
+      if (line !== null) {
+        const [ref, name] = splitAndAssert(line.toString('utf8'), ' ', ' ');
+        refs.set(name, ref);
+      }
     }
   }
   // Symrefs are thrown into the "capabilities" unfortunately.
@@ -60454,7 +60561,7 @@ function splitAndAssert(line, sep, expected) {
   return split
 }
 
-// Try to accomodate known CORS proxy implementations:
+// Try to accommodate known CORS proxy implementations:
 // - https://jcubic.pl/proxy.php?  <-- uses query string
 // - https://cors.isomorphic-git.org  <-- uses path
 const corsProxify = (corsProxy, url) =>
@@ -60708,14 +60815,14 @@ class GitRemoteManager {
   }
 }
 
-let lock$1 = null;
+let lock$2 = null;
 
 class GitShallowManager {
   static async read({ fs, gitdir }) {
-    if (lock$1 === null) lock$1 = new AsyncLock();
+    if (lock$2 === null) lock$2 = new AsyncLock();
     const filepath = join(gitdir, 'shallow');
     const oids = new Set();
-    await lock$1.acquire(filepath, async function() {
+    await lock$2.acquire(filepath, async function() {
       const text = await fs.read(filepath, { encoding: 'utf8' });
       if (text === null) return oids // no file
       if (text.trim() === '') return oids // empty file
@@ -60728,18 +60835,18 @@ class GitShallowManager {
   }
 
   static async write({ fs, gitdir, oids }) {
-    if (lock$1 === null) lock$1 = new AsyncLock();
+    if (lock$2 === null) lock$2 = new AsyncLock();
     const filepath = join(gitdir, 'shallow');
     if (oids.size > 0) {
       const text = [...oids].join('\n') + '\n';
-      await lock$1.acquire(filepath, async function() {
+      await lock$2.acquire(filepath, async function() {
         await fs.write(filepath, text, {
           encoding: 'utf8',
         });
       });
     } else {
       // No shallows
-      await lock$1.acquire(filepath, async function() {
+      await lock$2.acquire(filepath, async function() {
         await fs.rm(filepath);
       });
     }
@@ -60826,8 +60933,8 @@ function filterCapabilities(server, client) {
 
 const pkg = {
   name: 'isomorphic-git',
-  version: '1.25.0',
-  agent: 'git/isomorphic-git@1.25.0',
+  version: '1.25.7',
+  agent: 'git/isomorphic-git@1.25.7',
 };
 
 class FIFO {
@@ -60858,8 +60965,8 @@ class FIFO {
   }
 
   destroy(err) {
-    this._ended = true;
     this.error = err;
+    this.end();
   }
 
   async next() {
@@ -60954,7 +61061,7 @@ class GitSideBand {
       if (line === true) {
         packetlines.end();
         progress.end();
-        packfile.end();
+        input.error ? packfile.destroy(input.error) : packfile.end();
         return
       }
       // Examine first byte to determine which output "stream" to use
@@ -60973,12 +61080,14 @@ class GitSideBand {
           // fatal error message just before stream aborts
           const error = line.slice(1);
           progress.write(error);
+          packetlines.end();
+          progress.end();
           packfile.destroy(new Error(error.toString('utf8')));
           return
         }
         default: {
           // Not part of the side-band-64k protocol
-          packetlines.write(line.slice(0));
+          packetlines.write(line);
         }
       }
       // Careful not to blow up the stack.
@@ -61091,9 +61200,20 @@ async function parseUploadPackResponse(stream) {
       } else if (line.startsWith('NAK')) {
         nak = true;
         done = true;
+      } else {
+        done = true;
+        nak = true;
       }
       if (done) {
-        resolve({ shallows, unshallows, acks, nak, packfile, progress });
+        stream.error
+          ? reject(stream.error)
+          : resolve({ shallows, unshallows, acks, nak, packfile, progress });
+      }
+    }).finally(() => {
+      if (!done) {
+        stream.error
+          ? reject(stream.error)
+          : resolve({ shallows, unshallows, acks, nak, packfile, progress });
       }
     });
   })
@@ -61459,6 +61579,7 @@ async function _fetch({
     });
   }
   const packfile = Buffer.from(await collect(response.packfile));
+  if (raw.body.error) throw raw.body.error
   const packfileSha = packfile.slice(-20).toString('hex');
   const res = {
     defaultBranch: response.HEAD,
@@ -64404,12 +64525,12 @@ async function writeListRefsRequest({ prefix, symrefs, peelTags }) {
  * Hard numbers vary by situation, but here's some numbers from my machine:
  *
  * Using isomorphic-git in a browser, with a CORS proxy, listing only the branches (refs/heads) of https://github.com/isomorphic-git/isomorphic-git
- * - Protocol Version 1 took ~300ms and transfered 84 KB.
- * - Protocol Version 2 took ~500ms and transfered 4.1 KB.
+ * - Protocol Version 1 took ~300ms and transferred 84 KB.
+ * - Protocol Version 2 took ~500ms and transferred 4.1 KB.
  *
  * Using isomorphic-git in a browser, with a CORS proxy, listing only the branches (refs/heads) of https://gitlab.com/gitlab-org/gitlab
- * - Protocol Version 1 took ~4900ms and transfered 9.41 MB.
- * - Protocol Version 2 took ~1280ms and transfered 433 KB.
+ * - Protocol Version 1 took ~4900ms and transferred 9.41 MB.
+ * - Protocol Version 2 took ~1280ms and transferred 433 KB.
  *
  * Finally, there is a fun quirk regarding the `symrefs` parameter.
  * Protocol Version 1 will generally only return the `HEAD` symref and not others.
@@ -67365,6 +67486,8 @@ async function getHeadTree({ fs, cache, gitdir }) {
  *   ["g.txt", 1, 2, 3], // modified, staged, with unstaged changes
  *   ["h.txt", 1, 0, 1], // deleted, unstaged
  *   ["i.txt", 1, 0, 0], // deleted, staged
+ *   ["j.txt", 1, 2, 0], // deleted, staged, with unstaged-modified changes (new file of the same name)
+ *   ["k.txt", 1, 1, 0], // deleted, staged, with unstaged changes (new file of the same name)
  * ]
  * ```
  *
