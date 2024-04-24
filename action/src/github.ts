@@ -36,7 +36,10 @@ export interface GitHubController {
     task: string;
     auto_merge: boolean;
     required_contexts: [];
-    payload: string | { [key: string]: unknown };
+    payload: {
+      docker_tag: string;
+      repository_name?: string;
+    };
     environment: string;
     transient_environment: boolean;
     production_environment: boolean;
@@ -109,6 +112,10 @@ export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
         owner,
         repo,
         ...params,
+        payload: {
+          ...params.payload,
+          repository_name: params.payload.repository_name ?? repo,
+        },
       });
     },
   };

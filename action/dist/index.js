@@ -1123,6 +1123,10 @@ const REAL_GITHUB = ({ token, githubRepo }) => {
                 owner,
                 repo,
                 ...params,
+                payload: {
+                    ...params.payload,
+                    repository_name: params.payload.repository_name ?? repo,
+                },
             });
         },
     };
