@@ -250,10 +250,10 @@ export const runAction = async ({
         pr.user?.type.toLowerCase() === 'bot')
         ? 'comment'
         : pr.user?.id === DEPENDABOT_USER_ID ||
-          (pr.user?.login.startsWith(DEPENDABOT_USER_LOGIN) &&
-            pr.user?.type.toLowerCase() === 'bot')
-        ? 'none'
-        : 'review';
+            (pr.user?.login.startsWith(DEPENDABOT_USER_LOGIN) &&
+              pr.user?.type.toLowerCase() === 'bot')
+          ? 'none'
+          : 'review';
 
     type BuildAndPushDockerImageCheckTagCondition =
       | {

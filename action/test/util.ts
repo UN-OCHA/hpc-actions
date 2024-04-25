@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
-import * as path from 'node:path';
+import path from 'node:path';
 
 const ROOT_TMP_DIR = path.join(
   tmpdir(),
