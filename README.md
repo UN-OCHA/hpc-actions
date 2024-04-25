@@ -123,8 +123,8 @@ must be followed:
   * Update the version in `package.json` to match the new branch name.
   * Push this branch to GitHub.
   * Open a pull request that merges `release/<version>` into the staging branch
-    (either `env/stage` or `env/staging` as neccesary).
-  * Restart the workflow if neccesary, this will:
+    (either `env/stage` or `env/staging` as necessary).
+  * Restart the workflow if necessary, this will:
     * Build the image with the new tag (with `-pre` appended),
       and push it to DockerHub
     * Run the CI / Unit Tests
@@ -149,7 +149,7 @@ must be followed:
   * Once checks pass, merge the pull request, this will:
     * Create the tag / release on GitHub.
     * Trigger a build of the docker image in GitHub Actions
-      (if neccesary, usually not as it should reuse and retag the image on stage).
+      (if necessary, usually not as it should reuse and retag the image on stage).
     * Open a "mergeback" Pull Request, to merge the changes back into develop.
   * After the checks are complete:
     * deploy to the environment using the appropriate method.
