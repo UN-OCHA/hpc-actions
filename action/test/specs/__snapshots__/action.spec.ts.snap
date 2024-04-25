@@ -1101,6 +1101,121 @@ exports[`action runAction push to production or staging env/prod docker Existing
 ]
 `;
 
+exports[`action runAction push to production or staging env/prod docker Multiple non-existant images 1`] = `
+[
+  [
+    "##[info] Handling push to branch env/prod",
+  ],
+  [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  [
+    "##[info] Creating and pushing new tag v1.2.0",
+  ],
+  [
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
+  ],
+  [
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
+  ],
+  [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  [
+    "##[info] Image with tag v1.2.0 does not yet exist",
+  ],
+  [
+    "##[info] Checking for existing docker image with tag v1.2.0-pre",
+  ],
+  [
+    "##[info] Image with tag v1.2.0 does not yet exist",
+  ],
+  [
+    "##[info] Checking for existing docker image with tag v1.2.0-pre",
+  ],
+  [
+    "##[info] No image exists with this tag",
+  ],
+  [
+    "##[info] Building new image",
+  ],
+  [
+    "##[info] No image exists with this tag",
+  ],
+  [
+    "##[info] Building new image",
+  ],
+  [
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
+  ],
+  [
+    "##[info] Image built, checking tag v1.2.0 is unchanged",
+  ],
+  [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  [
+    "##[info] Pushing image to docker repository hpc-actions/unit-test-1",
+  ],
+  [
+    "##[info] Image hpc-actions/unit-test-1:v1.2.0 pushed",
+  ],
+  [
+    "##[info] Tag is unchanged, okay to continue",
+  ],
+  [
+    "##[info] Pushing image to docker repository hpc-actions/unit-test-2",
+  ],
+  [
+    "##[info] Image hpc-actions/unit-test-2:v1.2.0 pushed",
+  ],
+  [
+    "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
+  ],
+  [
+    "##[info] Opening Mergeback Pull Request",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/prod docker Multiple non-existant images 2`] = `
+{
+  "getMetadata": [],
+  "pullImage": [
+    [
+      "v1.2.0",
+    ],
+    [
+      "v1.2.0",
+    ],
+    [
+      "v1.2.0-pre",
+    ],
+    [
+      "v1.2.0-pre",
+    ],
+  ],
+  "pushImage": [
+    [
+      "v1.2.0",
+    ],
+    [
+      "v1.2.0",
+    ],
+  ],
+  "retagImage": [],
+}
+`;
+
 exports[`action runAction push to production or staging env/prod docker Non-Existant Image (tag changed) 1`] = `
 [
   [
@@ -1843,6 +1958,118 @@ exports[`action runAction push to production or staging env/staging docker Exist
     "v1.2.0-pre",
   ],
 ]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Multiple non-existant images 1`] = `
+[
+  [
+    "##[info] Handling push to branch env/staging",
+  ],
+  [
+    "##[info] Checking if there is an existing tag for v1.2.0",
+  ],
+  [
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
+  ],
+  [
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
+  ],
+  [
+    "##[info] Checking for existing docker image with tag v1.2.0-pre",
+  ],
+  [
+    "##[info] Checking for existing docker image with tag v1.2.0-pre",
+  ],
+  [
+    "##[info] Image with tag v1.2.0-pre does not yet exist",
+  ],
+  [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  [
+    "##[info] Image with tag v1.2.0-pre does not yet exist",
+  ],
+  [
+    "##[info] Checking for existing docker image with tag v1.2.0",
+  ],
+  [
+    "##[info] No image exists with this tag",
+  ],
+  [
+    "##[info] Building new image",
+  ],
+  [
+    "##[info] No image exists with this tag",
+  ],
+  [
+    "##[info] Building new image",
+  ],
+  [
+    "##[info] Image built, checking tag v1.2.0 still does not exist",
+  ],
+  [
+    "##[info] Image built, checking tag v1.2.0 still does not exist",
+  ],
+  [
+    "##[info] Tag has not been created, okay to continue",
+  ],
+  [
+    "##[info] Pushing image to docker repository hpc-actions/unit-test-1",
+  ],
+  [
+    "##[info] Image hpc-actions/unit-test-1:v1.2.0-pre pushed",
+  ],
+  [
+    "##[info] Tag has not been created, okay to continue",
+  ],
+  [
+    "##[info] Pushing image to docker repository hpc-actions/unit-test-2",
+  ],
+  [
+    "##[info] Image hpc-actions/unit-test-2:v1.2.0-pre pushed",
+  ],
+  [
+    "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
+  ],
+  [
+    "##[info] Opening Mergeback Pull Request",
+  ],
+]
+`;
+
+exports[`action runAction push to production or staging env/staging docker Multiple non-existant images 2`] = `
+{
+  "getMetadata": [],
+  "pullImage": [
+    [
+      "v1.2.0-pre",
+    ],
+    [
+      "v1.2.0-pre",
+    ],
+    [
+      "v1.2.0",
+    ],
+    [
+      "v1.2.0",
+    ],
+  ],
+  "pushImage": [
+    [
+      "v1.2.0-pre",
+    ],
+    [
+      "v1.2.0-pre",
+    ],
+  ],
+  "retagImage": [],
+}
 `;
 
 exports[`action runAction push to production or staging env/staging docker Non-Existant Image (tag changed) 1`] = `
