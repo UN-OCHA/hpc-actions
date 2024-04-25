@@ -35,7 +35,7 @@ const DEFAULT_CONFIG: Config = {
         commitSha: '',
         treeSha: '',
       },
-      repository: '',
+      repository: 'hpc-actions/unit-test',
     },
   ],
   ci: [],

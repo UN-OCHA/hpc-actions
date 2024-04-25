@@ -22,7 +22,10 @@ exports[`action runAction push to env/<dev> branch Valid Push and Build 1`] = `
     "##[info] Handling push to branch env/dev",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Skipping check for existing image with tag env-dev, building new image",
@@ -31,10 +34,10 @@ exports[`action runAction push to env/<dev> branch Valid Push and Build 1`] = `
     "##[info] Image built",
   ],
   [
-    "##[info] Pushing image to docker repository",
+    "##[info] Pushing image to docker repository hpc-actions/unit-test",
   ],
   [
-    "##[info] Image Pushed",
+    "##[info] Image hpc-actions/unit-test:env-dev pushed",
   ],
 ]
 `;
@@ -117,7 +120,10 @@ exports[`action runAction push to hotfix/<name> branch Successful hotfix (self) 
     "##[info] Checking if there is an existing tag for v1.2.1",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Skipping check for existing image with tag v1.2.1-pre, building new image",
@@ -129,10 +135,10 @@ exports[`action runAction push to hotfix/<name> branch Successful hotfix (self) 
     "##[info] Tag has not been created, okay to continue",
   ],
   [
-    "##[info] Pushing image to docker repository",
+    "##[info] Pushing image to docker repository hpc-actions/unit-test",
   ],
   [
-    "##[info] Image Pushed",
+    "##[info] Image hpc-actions/unit-test:v1.2.1-pre pushed",
   ],
   [
     "##[info] Running CI Checks",
@@ -157,7 +163,7 @@ exports[`action runAction push to hotfix/<name> branch Successful hotfix (self) 
 [
   [
     {
-      "body": "Docker image has been successfully built and pushed as: \`:v1.2.1-pre\`
+      "body": "Docker image has been successfully built and pushed as: \`hpc-actions/unit-test:v1.2.1-pre\`
 
 Please deploy this image to a development environment, and test it is working as expected before merging this pull request.",
       "pullRequestNumber": 321,
@@ -188,7 +194,10 @@ exports[`action runAction push to hotfix/<name> branch Successful hotfix 1`] = `
     "##[info] Checking if there is an existing tag for v1.2.1",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Skipping check for existing image with tag v1.2.1-pre, building new image",
@@ -200,10 +209,10 @@ exports[`action runAction push to hotfix/<name> branch Successful hotfix 1`] = `
     "##[info] Tag has not been created, okay to continue",
   ],
   [
-    "##[info] Pushing image to docker repository",
+    "##[info] Pushing image to docker repository hpc-actions/unit-test",
   ],
   [
-    "##[info] Image Pushed",
+    "##[info] Image hpc-actions/unit-test:v1.2.1-pre pushed",
   ],
   [
     "##[info] Running CI Checks",
@@ -228,7 +237,7 @@ exports[`action runAction push to hotfix/<name> branch Successful hotfix 3`] = `
 [
   [
     {
-      "body": "Docker image has been successfully built and pushed as: \`:v1.2.1-pre\`
+      "body": "Docker image has been successfully built and pushed as: \`hpc-actions/unit-test:v1.2.1-pre\`
 
 Please deploy this image to a development environment, and test it is working as expected before merging this pull request.",
       "pullRequestNumber": 321,
@@ -297,7 +306,10 @@ exports[`action runAction push to hotfix/<name> branch Tag created during build 
     "##[info] Checking if there is an existing tag for v1.2.1",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Skipping check for existing image with tag v1.2.1-pre, building new image",
@@ -324,7 +336,7 @@ exports[`action runAction push to hotfix/<name> branch Tag created during build 
     {
       "body": "During the build of the docker image, the tag v1.2.1-pre was created, and so the workflow has been aborted, and the docker image has not been pushed.
 
-Please chose a new version and update the pull request.",
+Please choose a new version and update the pull request.",
       "pullRequestNumber": 321,
       "state": "reject",
     },
@@ -685,7 +697,10 @@ exports[`action runAction push to production or staging env/prod deployments + m
     "##[info] Creating and pushing new tag v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -709,10 +724,10 @@ exports[`action runAction push to production or staging env/prod deployments + m
     "##[info] Tag is unchanged, okay to continue",
   ],
   [
-    "##[info] Pushing image to docker repository",
+    "##[info] Pushing image to docker repository hpc-actions/unit-test",
   ],
   [
-    "##[info] Image Pushed",
+    "##[info] Image hpc-actions/unit-test:v1.2.0 pushed",
   ],
   [
     "##[info] Creating prod deployment",
@@ -756,7 +771,10 @@ exports[`action runAction push to production or staging env/prod deployments + m
     "##[info] Creating and pushing new tag v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -780,10 +798,10 @@ exports[`action runAction push to production or staging env/prod deployments + m
     "##[info] Tag is unchanged, okay to continue",
   ],
   [
-    "##[info] Pushing image to docker repository",
+    "##[info] Pushing image to docker repository hpc-actions/unit-test",
   ],
   [
-    "##[info] Image Pushed",
+    "##[info] Image hpc-actions/unit-test:v1.2.0 pushed",
   ],
   [
     "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
@@ -824,7 +842,10 @@ exports[`action runAction push to production or staging env/prod docker Existing
     "##[info] Creating and pushing new tag v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -866,7 +887,10 @@ exports[`action runAction push to production or staging env/prod docker Existing
     "##[info] The tag is for the current commit, okay to continue",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -916,7 +940,10 @@ exports[`action runAction push to production or staging env/prod docker Existing
     "##[info] Creating and pushing new tag v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -966,7 +993,10 @@ exports[`action runAction push to production or staging env/prod docker Existing
     "##[info] Creating and pushing new tag v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -1023,7 +1053,10 @@ exports[`action runAction push to production or staging env/prod docker Existing
     "##[info] Creating and pushing new tag v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -1080,7 +1113,10 @@ exports[`action runAction push to production or staging env/prod docker Non-Exis
     "##[info] Creating and pushing new tag v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -1131,7 +1167,10 @@ exports[`action runAction push to production or staging env/prod docker Non-Exis
     "##[info] Creating and pushing new tag v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -1155,10 +1194,10 @@ exports[`action runAction push to production or staging env/prod docker Non-Exis
     "##[info] Tag is unchanged, okay to continue",
   ],
   [
-    "##[info] Pushing image to docker repository",
+    "##[info] Pushing image to docker repository hpc-actions/unit-test",
   ],
   [
-    "##[info] Image Pushed",
+    "##[info] Image hpc-actions/unit-test:v1.2.0 pushed",
   ],
   [
     "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
@@ -1201,7 +1240,10 @@ exports[`action runAction push to production or staging env/prod mergeback 1`] =
     "##[info] Creating and pushing new tag v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -1225,10 +1267,10 @@ exports[`action runAction push to production or staging env/prod mergeback 1`] =
     "##[info] Tag is unchanged, okay to continue",
   ],
   [
-    "##[info] Pushing image to docker repository",
+    "##[info] Pushing image to docker repository hpc-actions/unit-test",
   ],
   [
-    "##[info] Image Pushed",
+    "##[info] Image hpc-actions/unit-test:v1.2.0 pushed",
   ],
   [
     "##[info] Creating and pushing mergeback Branch: mergeback/prod/1.2.0",
@@ -1286,7 +1328,10 @@ exports[`action runAction push to production or staging env/prod tagging Existin
     "##[info] The tag is for the current commit, okay to continue",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -1309,7 +1354,10 @@ exports[`action runAction push to production or staging env/prod tagging Existin
     "##[info] The current tree matches the existing tag, okay to continue",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -1329,7 +1377,10 @@ exports[`action runAction push to production or staging env/prod tagging Non-Exi
     "##[info] Creating and pushing new tag v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0",
@@ -1346,7 +1397,10 @@ exports[`action runAction push to production or staging env/staging deployments 
     "##[info] Checking if there is an existing tag for v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0-pre",
@@ -1370,10 +1424,10 @@ exports[`action runAction push to production or staging env/staging deployments 
     "##[info] Tag has not been created, okay to continue",
   ],
   [
-    "##[info] Pushing image to docker repository",
+    "##[info] Pushing image to docker repository hpc-actions/unit-test",
   ],
   [
-    "##[info] Image Pushed",
+    "##[info] Image hpc-actions/unit-test:v1.2.0-pre pushed",
   ],
   [
     "##[info] Creating staging deployment",
@@ -1414,7 +1468,10 @@ exports[`action runAction push to production or staging env/staging deployments 
     "##[info] Checking if there is an existing tag for v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0-pre",
@@ -1438,10 +1495,10 @@ exports[`action runAction push to production or staging env/staging deployments 
     "##[info] Tag has not been created, okay to continue",
   ],
   [
-    "##[info] Pushing image to docker repository",
+    "##[info] Pushing image to docker repository hpc-actions/unit-test",
   ],
   [
-    "##[info] Image Pushed",
+    "##[info] Image hpc-actions/unit-test:v1.2.0-pre pushed",
   ],
   [
     "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
@@ -1479,7 +1536,10 @@ exports[`action runAction push to production or staging env/staging docker Exist
     "##[info] Checking if there is an existing tag for v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0-pre",
@@ -1539,7 +1599,10 @@ exports[`action runAction push to production or staging env/staging docker Exist
     "##[info] The tag is for the current commit, okay to continue",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0-pre",
@@ -1566,7 +1629,7 @@ exports[`action runAction push to production or staging env/staging docker Exist
     "##[info] Tag is unchanged, okay to continue",
   ],
   [
-    "##[info] Pushing image to docker repository",
+    "##[info] Pushing image to docker repository hpc-actions/unit-test",
   ],
 ]
 `;
@@ -1611,7 +1674,10 @@ exports[`action runAction push to production or staging env/staging docker Exist
     "##[info] Checking if there is an existing tag for v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0-pre",
@@ -1638,7 +1704,7 @@ exports[`action runAction push to production or staging env/staging docker Exist
     "##[info] Tag has not been created, okay to continue",
   ],
   [
-    "##[info] Pushing image to docker repository",
+    "##[info] Pushing image to docker repository hpc-actions/unit-test",
   ],
 ]
 `;
@@ -1683,7 +1749,10 @@ exports[`action runAction push to production or staging env/staging docker Exist
     "##[info] Checking if there is an existing tag for v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0-pre",
@@ -1737,7 +1806,10 @@ exports[`action runAction push to production or staging env/staging docker Exist
     "##[info] Checking if there is an existing tag for v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0-pre",
@@ -1782,7 +1854,10 @@ exports[`action runAction push to production or staging env/staging docker Non-E
     "##[info] Checking if there is an existing tag for v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0-pre",
@@ -1830,7 +1905,10 @@ exports[`action runAction push to production or staging env/staging docker Non-E
     "##[info] Checking if there is an existing tag for v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0-pre",
@@ -1854,10 +1932,10 @@ exports[`action runAction push to production or staging env/staging docker Non-E
     "##[info] Tag has not been created, okay to continue",
   ],
   [
-    "##[info] Pushing image to docker repository",
+    "##[info] Pushing image to docker repository hpc-actions/unit-test",
   ],
   [
-    "##[info] Image Pushed",
+    "##[info] Image hpc-actions/unit-test:v1.2.0-pre pushed",
   ],
   [
     "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
@@ -1897,7 +1975,10 @@ exports[`action runAction push to production or staging env/staging mergeback 1`
     "##[info] Checking if there is an existing tag for v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0-pre",
@@ -1921,10 +2002,10 @@ exports[`action runAction push to production or staging env/staging mergeback 1`
     "##[info] Tag has not been created, okay to continue",
   ],
   [
-    "##[info] Pushing image to docker repository",
+    "##[info] Pushing image to docker repository hpc-actions/unit-test",
   ],
   [
-    "##[info] Image Pushed",
+    "##[info] Image hpc-actions/unit-test:v1.2.0-pre pushed",
   ],
   [
     "##[info] Creating and pushing mergeback Branch: mergeback/staging/1.2.0",
@@ -1982,7 +2063,10 @@ exports[`action runAction push to production or staging env/staging tagging Exis
     "##[info] The tag is for the current commit, okay to continue",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0-pre",
@@ -2005,7 +2089,10 @@ exports[`action runAction push to production or staging env/staging tagging Exis
     "##[info] The current tree matches the existing tag, okay to continue",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0-pre",
@@ -2022,7 +2109,10 @@ exports[`action runAction push to production or staging env/staging tagging Non-
     "##[info] Checking if there is an existing tag for v1.2.0",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Checking for existing docker image with tag v1.2.0-pre",
@@ -2072,7 +2162,10 @@ exports[`action runAction push to release/<name> branch Successful release 1`] =
     "##[info] Checking if there is an existing tag for v1.2.1",
   ],
   [
-    "##[info] Logging in to docker",
+    "##[info] Initializing Docker controller",
+  ],
+  [
+    "##[info] Logging in to Docker",
   ],
   [
     "##[info] Skipping check for existing image with tag v1.2.1-pre, building new image",
@@ -2084,10 +2177,10 @@ exports[`action runAction push to release/<name> branch Successful release 1`] =
     "##[info] Tag has not been created, okay to continue",
   ],
   [
-    "##[info] Pushing image to docker repository",
+    "##[info] Pushing image to docker repository hpc-actions/unit-test",
   ],
   [
-    "##[info] Image Pushed",
+    "##[info] Image hpc-actions/unit-test:v1.2.1-pre pushed",
   ],
   [
     "##[info] Running CI Checks",
@@ -2112,7 +2205,7 @@ exports[`action runAction push to release/<name> branch Successful release 3`] =
 [
   [
     {
-      "body": "Docker image has been successfully built and pushed as: \`:v1.2.1-pre\`
+      "body": "Docker image has been successfully built and pushed as: \`hpc-actions/unit-test:v1.2.1-pre\`
 
 Please deploy this image to a development environment, and test it is working as expected before merging this pull request.",
       "pullRequestNumber": 321,
