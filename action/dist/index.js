@@ -43,11 +43,11 @@ const config_1 = __nccwpck_require__(6816);
 const docker_1 = __nccwpck_require__(9610);
 const github_1 = __nccwpck_require__(5865);
 const exec = (0, node_util_1.promisify)(child_process.exec);
-const GITHUB_ACTIONS_USER_ID = 41898282;
+const GITHUB_ACTIONS_USER_ID = 41_898_282;
 const GITHUB_ACTIONS_USER_LOGIN = 'github-actions';
-const DEPENDABOT_USER_ID = 49699333;
+const DEPENDABOT_USER_ID = 49_699_333;
 const DEPENDABOT_USER_LOGIN = 'dependabot';
-const UNOCHA_HPC_USER_ID = 90184116;
+const UNOCHA_HPC_USER_ID = 90_184_116;
 const BRANCH_EXTRACT = /^refs\/heads\/(.*)$/;
 const determineMode = (config, branch) => {
     if (branch === 'env/prod') {
@@ -43842,6 +43842,14 @@ const cleanRangeBackSlash = slashes => {
 
 // '`foo/`' should not continue with the '`..`'
 const REPLACERS = [
+
+  [
+    // remove BOM
+    // TODO:
+    // Other similar zero-width characters?
+    /^\uFEFF/,
+    () => EMPTY
+  ],
 
   // > Trailing spaces are ignored unless they are quoted with backslash ("\")
   [
