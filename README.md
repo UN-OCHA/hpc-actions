@@ -126,7 +126,7 @@ must be followed:
     (either `env/stage` or `env/staging` as necessary).
   * Restart the workflow if necessary, this will:
     * Build the image with the new tag (with `-pre` appended),
-      and push it to DockerHub
+      and push it to AWS ECR
     * Run the CI / Unit Tests
     * Post a comment on the pull request when the workflow has finished successfully
   * Once the workflow is complete, merge the pull request, this will automatically:
@@ -211,7 +211,7 @@ and acts as a roadmap.
       * Run the docker build
       * Fetch the git tag to check the git tree hash has not been changed
         *(this will only happen with rapid concurrent pushes)*
-      * Push the image to DockerHub, using the version as the tag
+      * Push the image to AWS ECR, using the version as the tag
     * If there is
       * get the git tree sha that was used to build the image from the docker metadata
       * check that the git tree-sha of image matches the current tree-sha
@@ -226,7 +226,7 @@ and acts as a roadmap.
       (if the current branch is `env/<stage|staging>`).
 * Pushes to `env/<name>` (non-staging/production branches):
   * Run the docker build
-  * Push the image to DockerHub, using the name of the environment as a tag.
+  * Push the image to AWS ECR, using the name of the environment as a tag.
 * Pushes to `hotfix/<name>`:
   * Check if there is an open pull request for this branch:
     * If there is not: fail
@@ -244,7 +244,7 @@ and acts as a roadmap.
           on-top of the tracking branch.
       * Run CI Tasks (unit-tests etc…)
       * Run the docker build
-      * Push the image to DockerHub,
+      * Push the image to AWS ECR,
         using the version as the tag
         (regardless of whether the image already exists)
         * This allows us to deploy this image to a dev environment,
@@ -274,7 +274,7 @@ and acts as a roadmap.
             `develop` before branching off the `release/` branch).
       * Run CI Tasks (unit-tests etc…)
       * Run the docker build
-      * Push the image to DockerHub,
+      * Push the image to AWS ECR,
         using the version as the tag
         (regardless of whether the image already exists)
         * This allows us to deploy this image to a dev environment,
@@ -323,7 +323,7 @@ this:
         "commitSha": "HPC_ACTIONS_COMMIT_SHA",
         "treeSha": "HPC_ACTIONS_TREE_SHA"
       },
-      "repository": "dockerhub-org/repo"
+      "repository": "aws-ecr-org/repo"
     }
   ],
   "ci": [],
