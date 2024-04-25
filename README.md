@@ -312,7 +312,7 @@ this:
 
 ```json
 {
-  "stagingEnvironmentBranch": "env/staging",
+  "stagingEnvironmentBranch": "env/stage",
   "repoType": "node",
   "developmentEnvironmentBranches": [],
   "dockerImages": [
