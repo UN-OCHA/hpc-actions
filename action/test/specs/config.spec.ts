@@ -80,9 +80,11 @@ describe('config', () => {
       dockerImages: [
         {
           dockerfilePath: '.',
+          appName: 'unit-test',
           args: {
             commitSha: '',
             treeSha: '',
+            appToBuild: '',
           },
           environmentVariables: {
             commitSha: '',
@@ -119,9 +121,11 @@ describe('config', () => {
       dockerImages: [
         {
           dockerfilePath: '.',
+          appName: 'unit-test',
           args: {
             commitSha: '',
             treeSha: '',
+            appToBuild: '',
           },
           environmentVariables: {
             commitSha: '',
@@ -157,9 +161,11 @@ describe('config', () => {
       dockerImages: [
         {
           dockerfilePath: '.',
+          appName: 'unit-test',
           args: {
             commitSha: '',
             treeSha: '',
+            appToBuild: '',
           },
           environmentVariables: {
             commitSha: '',

@@ -23,9 +23,11 @@ describe('docker', () => {
 
     const docker = REAL_DOCKER({
       dockerfilePath: './docker',
+      appName: 'unit-test',
       args: {
         commitSha: 'COMMIT_SHA',
         treeSha: 'TREE_SHA',
+        appToBuild: 'APP_TO_BUILD',
       },
       environmentVariables: {
         commitSha: 'HPC_ACTIONS_COMMIT_SHA',
@@ -43,6 +45,7 @@ describe('docker', () => {
         args: {
           commitSha: 'foo',
           treeSha: 'bar',
+          appToBuild: 'unit-test',
         },
         logger,
       })

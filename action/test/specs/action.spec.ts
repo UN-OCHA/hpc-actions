@@ -30,6 +30,7 @@ const DEFAULT_CONFIG: Config = {
       args: {
         commitSha: '',
         treeSha: '',
+        appToBuild: '',
       },
       environmentVariables: {
         commitSha: '',
@@ -956,6 +957,12 @@ describe('action', () => {
               // Run action
               const config: Config = {
                 ...DEFAULT_CONFIG,
+                dockerImages: [
+                  {
+                    ...DEFAULT_CONFIG.dockerImages[0],
+                    appName: 'unit-test',
+                  },
+                ],
                 deployments: {
                   environments: [
                     {
@@ -1003,7 +1010,7 @@ describe('action', () => {
                     environment: env,
                     payload: {
                       docker_tag: env === 'prod' ? 'v1.2.0' : 'v1.2.0-pre',
-                      repository_name: undefined,
+                      repository_name: 'unit-test',
                     },
                     production_environment: env === 'prod',
                     // TODO: test this more thoroughly
