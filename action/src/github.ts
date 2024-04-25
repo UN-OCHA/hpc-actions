@@ -95,8 +95,8 @@ export const REAL_GITHUB: GitHubInit = ({ token, githubRepo }) => {
           state === 'approve'
             ? 'APPROVE'
             : state === 'comment-only'
-            ? 'COMMENT'
-            : 'REQUEST_CHANGES',
+              ? 'COMMENT'
+              : 'REQUEST_CHANGES',
       });
     },
     commentOnPullRequest: async ({ pullRequestNumber, body }) => {
