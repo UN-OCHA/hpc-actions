@@ -13,6 +13,7 @@ The outlined workflow and actions are designed to:
   * Have a clear distinction between environment tracking,
     main development, hotfix and feature branches.
 * Allow us to know exactly what is deployed to each environment.
+  From monorepo repositories, multiple apps can be deployed simultaneously
 * Avoid pushing tags multiple times with different HEADs
 * Ensure that all changes have been given enough review,
   and pass unit-tests and code-quality checks before being deployed.
@@ -110,8 +111,8 @@ must be followed:
       git push -f origin env/blue.dev
       ```
 
-    * This will GitHub Actions to build and push the docker image,
-      and trigger the deployment automatically
+    * This will cause GitHub Actions to build and push the docker image
+      (or multiple Docker images in a monorepo), and trigger the deployment(s) automatically.
 
 * **Staging Environment:**
 
@@ -123,14 +124,14 @@ must be followed:
   * Update the version in `package.json` to match the new branch name.
   * Push this branch to GitHub.
   * Open a pull request that merges `release/<version>` into the staging branch
-    (either `env/stage` or `env/staging` as neccesary).
-  * Restart the workflow if neccesary, this will:
+    (either `env/stage` or `env/staging` as necessary).
+  * Restart the workflow if necessary, this will:
     * Build the image with the new tag (with `-pre` appended),
-      and push it to DockerHub
+      and push it to AWS ECR
     * Run the CI / Unit Tests
     * Post a comment on the pull request when the workflow has finished successfully
   * Once the workflow is complete, merge the pull request, this will automatically:
-    * Trigger an automated deployment to the stage environment (if configured)
+    * Trigger an automated deployment(s) to the stage environment (if configured)
     * Open a "mergeback" Pull Request, to merge the changes back into `develop`.
       * Please approve and merge this pull request ASAP
     * (note that tags are not created when deploying to staging envs, only prod)
@@ -147,9 +148,9 @@ must be followed:
       and ensure that changes from `env/prod` are merged back into
       `env/<stage|staging>`, at which point the conflicts should be solved.
   * Once checks pass, merge the pull request, this will:
-    * Create the tag / release on GitHub.
-    * Trigger a build of the docker image in GitHub Actions
-      (if neccesary, usually not as it should reuse and retag the image on stage).
+    * Create the tag and release(s) (potentially multiple in a monorepo) on GitHub.
+    * Trigger a build of the docker image(s) in GitHub Actions
+      (if necessary, usually not as it should reuse and retag the image on stage).
     * Open a "mergeback" Pull Request, to merge the changes back into develop.
   * After the checks are complete:
     * deploy to the environment using the appropriate method.
@@ -211,7 +212,8 @@ and acts as a roadmap.
       * Run the docker build
       * Fetch the git tag to check the git tree hash has not been changed
         *(this will only happen with rapid concurrent pushes)*
-      * Push the image to DockerHub, using the version as the tag
+      * Push the image to AWS ECR, using the version as the tag
+      * In monorepo, multiple images can be built and pushed to a remote Docker repository
     * If there is
       * get the git tree sha that was used to build the image from the docker metadata
       * check that the git tree-sha of image matches the current tree-sha
@@ -226,7 +228,8 @@ and acts as a roadmap.
       (if the current branch is `env/<stage|staging>`).
 * Pushes to `env/<name>` (non-staging/production branches):
   * Run the docker build
-  * Push the image to DockerHub, using the name of the environment as a tag.
+  * Push the image to AWS ECR, using the name of the environment as a tag
+  * Do this for every app in a monorepo
 * Pushes to `hotfix/<name>`:
   * Check if there is an open pull request for this branch:
     * If there is not: fail
@@ -244,7 +247,7 @@ and acts as a roadmap.
           on-top of the tracking branch.
       * Run CI Tasks (unit-tests etc…)
       * Run the docker build
-      * Push the image to DockerHub,
+      * Push the image to AWS ECR,
         using the version as the tag
         (regardless of whether the image already exists)
         * This allows us to deploy this image to a dev environment,
@@ -254,6 +257,7 @@ and acts as a roadmap.
           and the final deployment!
         * It also allows for updating the hotfixes with changes if it needs to
           be corrected.
+      * In monorepo, multiple images can be built and pushed to a remote Docker repository
 * Pushes to `release/<version>`:
   * Check if there is an open pull request for this branch:
     * If there is not: fail
@@ -274,7 +278,7 @@ and acts as a roadmap.
             `develop` before branching off the `release/` branch).
       * Run CI Tasks (unit-tests etc…)
       * Run the docker build
-      * Push the image to DockerHub,
+      * Push the image to AWS ECR,
         using the version as the tag
         (regardless of whether the image already exists)
         * This allows us to deploy this image to a dev environment,
@@ -284,6 +288,7 @@ and acts as a roadmap.
           and the final deployment!
         * It also allows for updating the release with changes if it needs to
           be corrected.
+      * In monorepo, multiple images can be built and pushed to a remote Docker repository
 * Pushes to `develop`:
   * Do nothing
 * Pushes to all other branches
@@ -307,21 +312,39 @@ this:
 
 ```json
 {
-  "stagingEnvironmentBranch": "env/staging",
+  "stagingEnvironmentBranch": "env/stage",
   "repoType": "node",
   "developmentEnvironmentBranches": [],
-  "docker": {
-    "path": "docker",
-    "args": {
+  "dockerImages": [
+    {
+      "dockerfilePath": "docker-1",
+      "appName": "hpc-app-1",
+      "args": {
         "commitSha": "COMMIT_SHA",
-        "treeSha": "TREE_SHA"
-    },
+        "treeSha": "TREE_SHA",
+        "appToBuild": "APP_TO_BUILD"
+      },
       "environmentVariables": {
         "commitSha": "HPC_ACTIONS_COMMIT_SHA",
         "treeSha": "HPC_ACTIONS_TREE_SHA"
+      },
+      "repository": "aws-ecr-org/repo-1"
     },
-    "repository": "dockerhub-org/repo",
-  },
+    {
+      "dockerfilePath": "docker-2",
+      "appName": "hpc-app-2",
+      "args": {
+        "commitSha": "COMMIT_SHA",
+        "treeSha": "TREE_SHA",
+        "appToBuild": "APP_TO_BUILD"
+      },
+      "environmentVariables": {
+        "commitSha": "HPC_ACTIONS_COMMIT_SHA",
+        "treeSha": "HPC_ACTIONS_TREE_SHA"
+      },
+      "repository": "aws-ecr-org/repo-2"
+    }
+  ],
   "ci": [],
   "mergebackLabels": ["mergeback"]
 }
@@ -367,6 +390,7 @@ you need to also add the following lines to your `Dockerfile`:
 ```Dockerfile
 ARG COMMIT_SHA
 ARG TREE_SHA
+ARG APP_TO_BUILD # Optional
 ENV HPC_ACTIONS_COMMIT_SHA $COMMIT_SHA
 ENV HPC_ACTIONS_TREE_SHA $TREE_SHA
 ```

@@ -18,7 +18,7 @@ import { promises as fs } from 'node:fs';
 export interface Env {
   /**
    * The path to the configuration json file,
-   * that adheres to the specification set out by CONFIG above.
+   * that adheres to the specification set out by CONFIG below.
    */
   CONFIG_FILE?: string;
   /**
@@ -33,6 +33,14 @@ export interface Env {
    * Token to use when interacting with the GitHub API
    */
   GITHUB_TOKEN?: string;
+  /**
+   * Environment variable coming from "apps-to-build" `inputs` argument
+   * of this action. When you specify an input in a workflow file or use a
+   * default input value, GitHub creates an environment variable for the input
+   * with the name `INPUT_<VARIABLE_NAME>`. The environment variable created
+   * converts input names to uppercase letters and replaces spaces with `_` characters.
+   */
+  'INPUT_APPS-TO-BUILD'?: string;
 
   // Implicit environment variables passed by GitHub
   GITHUB_REPOSITORY?: string;
@@ -51,21 +59,29 @@ const DOCKER_CONFIG = t.intersection([
     /**
      * Where in the repository should the build be run from
      */
-    path: t.string,
+    dockerfilePath: t.string,
     /**
      * What are the names of the build arguments that the docker image
      * expects to be supplied
      */
-    args: t.type({
-      /**
-       * What is the name of the build argument that expects the commit sha
-       */
-      commitSha: t.string,
-      /**
-       * What is the name of the build argument that expects the tree sha
-       */
-      treeSha: t.string,
-    }),
+    args: t.intersection([
+      t.type({
+        /**
+         * What is the name of the build argument that expects the commit sha
+         */
+        commitSha: t.string,
+        /**
+         * What is the name of the build argument that expects the tree sha
+         */
+        treeSha: t.string,
+      }),
+      t.partial({
+        /**
+         * What is the name of the build argument used to specify application to build.
+         */
+        appToBuild: t.string,
+      }),
+    ]),
     /**
      * What are the names of the environment variables where important bits of
      * information are stored
@@ -87,6 +103,10 @@ const DOCKER_CONFIG = t.intersection([
   }),
   // Optional config
   t.partial({
+    /**
+     * Name of the application
+     */
+    appName: t.string,
     /**
      * If provided, use the given registry instead of Docker Hub.
      *
@@ -128,9 +148,9 @@ const CONFIG = t.intersection([
       node: null,
     }),
     /**
-     * Configuration for the docker image build and publication
+     * Configuration for the docker images to be built and published
      */
-    docker: DOCKER_CONFIG,
+    dockerImages: t.array(DOCKER_CONFIG),
   }),
   // Optional config
   t.partial({
@@ -208,16 +228,18 @@ export const getConfig = async (env: Env): Promise<Config> => {
       );
     }
   }
-  if (
-    config.right.docker.registry &&
-    !config.right.docker.repository.startsWith(
-      `${config.right.docker.registry}/`
-    )
-  ) {
-    throw new Error(
-      'Invalid Configuration: Docker repository must start with: ' +
-        `${config.right.docker.registry}/`
-    );
+
+  for (const dockerConfig of config.right.dockerImages) {
+    if (
+      dockerConfig.registry &&
+      !dockerConfig.repository.startsWith(`${dockerConfig.registry}/`)
+    ) {
+      throw new Error(
+        'Invalid Configuration: Docker repository must start with: ' +
+          `${dockerConfig.registry}/`
+      );
+    }
   }
+
   return config.right;
 };

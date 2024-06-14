@@ -6,7 +6,7 @@ import * as util from '../util';
 import { REAL_DOCKER } from '../../src/docker';
 
 const DOCKER_FILE = `
-FROM alpine:3.16
+FROM alpine:3.19
 
 ARG COMMIT_SHA
 ARG TREE_SHA
@@ -22,10 +22,12 @@ describe('docker', () => {
     await fs.writeFile(path.join(dir, 'docker', 'Dockerfile'), DOCKER_FILE);
 
     const docker = REAL_DOCKER({
-      path: './docker',
+      dockerfilePath: './docker',
+      appName: 'unit-test',
       args: {
         commitSha: 'COMMIT_SHA',
         treeSha: 'TREE_SHA',
+        appToBuild: 'APP_TO_BUILD',
       },
       environmentVariables: {
         commitSha: 'HPC_ACTIONS_COMMIT_SHA',
@@ -40,9 +42,10 @@ describe('docker', () => {
       .runBuild({
         cwd: dir,
         tag: 'some-tag',
-        meta: {
+        args: {
           commitSha: 'foo',
           treeSha: 'bar',
+          appToBuild: 'unit-test',
         },
         logger,
       })
