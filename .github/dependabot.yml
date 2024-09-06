@@ -1,0 +1,25 @@
+# Documentation for all configuration options:
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+      time: '11:00'
+      timezone: 'Europe/Zurich'
+    open-pull-requests-limit: 10
+    reviewers:
+      - '@UN-OCHA/hpc-js-reviewers'
+    groups:
+      jest:
+        applies-to: version-updates
+        patterns:
+          - 'jest'
+          - '@types/jest'
+          - 'ts-jest'
+    ignore:
+      # Since `v21.0.0`, package `@octokit/rest` is ESM
+      - dependency-name: '@octokit/rest'
+        update-types: [version-update:semver-major]
