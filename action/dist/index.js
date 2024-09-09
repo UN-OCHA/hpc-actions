@@ -179,14 +179,9 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
             throw new Error(`Unsupported repo type: ${config.repoType}`);
         };
         // Get remote information
-        const remotes = await isomorphic_git_1.default
-            .listRemotes({
+        const remotes = await isomorphic_git_1.default.listRemotes({
             fs: node_fs_1.default,
             dir,
-        })
-            .catch(() => {
-            // Assume that not in git repository
-            throw new Error('Action not run within git repository');
         });
         if (remotes.length !== 1) {
             throw new Error('Exactly 1 remote expected in repository');
@@ -54540,18 +54535,18 @@ class GitIndex {
   }
 }
 
-function compareStats(entry, stats) {
+function compareStats(entry, stats, filemode = true, trustino = true) {
   // Comparison based on the description in Paragraph 4 of
   // https://www.kernel.org/pub/software/scm/git/docs/technical/racy-git.txt
   const e = normalizeStats(entry);
   const s = normalizeStats(stats);
   const staleness =
-    e.mode !== s.mode ||
+    (filemode && e.mode !== s.mode) ||
     e.mtimeSeconds !== s.mtimeSeconds ||
     e.ctimeSeconds !== s.ctimeSeconds ||
     e.uid !== s.uid ||
     e.gid !== s.gid ||
-    e.ino !== s.ino ||
+    (trustino && e.ino !== s.ino) ||
     e.size !== s.size;
   return staleness
 }
@@ -55256,26 +55251,28 @@ class GitConfig {
   constructor(text) {
     let section = null;
     let subsection = null;
-    this.parsedConfig = text.split('\n').map(line => {
-      let name = null;
-      let value = null;
+    this.parsedConfig = text
+      ? text.split('\n').map(line => {
+          let name = null;
+          let value = null;
 
-      const trimmedLine = line.trim();
-      const extractedSection = extractSectionLine(trimmedLine);
-      const isSection = extractedSection != null;
-      if (isSection) {
-        ;[section, subsection] = extractedSection;
-      } else {
-        const extractedVariable = extractVariableLine(trimmedLine);
-        const isVariable = extractedVariable != null;
-        if (isVariable) {
-          ;[name, value] = extractedVariable;
-        }
-      }
+          const trimmedLine = line.trim();
+          const extractedSection = extractSectionLine(trimmedLine);
+          const isSection = extractedSection != null;
+          if (isSection) {
+            ;[section, subsection] = extractedSection;
+          } else {
+            const extractedVariable = extractVariableLine(trimmedLine);
+            const isVariable = extractedVariable != null;
+            if (isVariable) {
+              ;[name, value] = extractedVariable;
+            }
+          }
 
-      const path = getPath(section, subsection, name);
-      return { line, isSection, section, subsection, name, value, path }
-    });
+          const path = getPath(section, subsection, name);
+          return { line, isSection, section, subsection, name, value, path }
+        })
+      : [];
   }
 
   static from(text) {
@@ -57808,17 +57805,22 @@ class GitWalkerFs {
 
   async content(entry) {
     if (entry._content === false) {
-      const { fs, dir } = this;
+      const { fs, dir, gitdir } = this;
       if ((await entry.type()) === 'tree') {
         entry._content = undefined;
       } else {
-        const content = await fs.read(`${dir}/${entry._fullpath}`);
+        const config = await GitConfigManager.get({ fs, gitdir });
+        const autocrlf = (await config.get('core.autocrlf')) || false;
+        const content = await fs.read(`${dir}/${entry._fullpath}`, {
+          encoding: 'utf8',
+          autocrlf,
+        });
         // workaround for a BrowserFS edge case
         entry._actualSize = content.length;
         if (entry._stat && entry._stat.size === -1) {
           entry._stat.size = entry._actualSize;
         }
-        entry._content = new Uint8Array(content);
+        entry._content = new TextEncoder().encode(content);
       }
     }
     return entry._content
@@ -57834,7 +57836,10 @@ class GitWalkerFs {
       ) {
         const stage = index.entriesMap.get(entry._fullpath);
         const stats = await entry.stat();
-        if (!stage || compareStats(stats, stage)) {
+        const config = await GitConfigManager.get({ fs, gitdir });
+        const filemode = await config.get('core.filemode');
+        const trustino = !(process.platform === 'win32');
+        if (!stage || compareStats(stats, stage, filemode, trustino)) {
           const content = await entry.content();
           if (content === undefined) {
             oid = undefined;
@@ -57848,8 +57853,8 @@ class GitWalkerFs {
             if (
               stage &&
               oid === stage.oid &&
-              stats.mode === stage.mode &&
-              compareStats(stats, stage)
+              (!filemode || stats.mode === stage.mode) &&
+              compareStats(stats, stage, filemode, trustino)
             ) {
               index.insert({
                 filepath: entry._fullpath,
@@ -58186,6 +58191,9 @@ class FileSystem {
   async read(filepath, options = {}) {
     try {
       let buffer = await this._readFile(filepath, options);
+      if (typeof buffer === 'string' && options.autocrlf) {
+        buffer = buffer.replace(/\r\n/g, '\n');
+      }
       // Convert plain ArrayBuffers to Buffers
       if (typeof buffer !== 'string') {
         buffer = Buffer.from(buffer);
@@ -58716,11 +58724,21 @@ async function addToIndex({
         }
       }
     } else {
+      const config = await GitConfigManager.get({ fs, gitdir });
+      const autocrlf = (await config.get('core.autocrlf')) || false;
       const object = stats.isSymbolicLink()
         ? await fs.readlink(join(dir, currentFilepath)).then(posixifyPathBuffer)
-        : await fs.read(join(dir, currentFilepath));
+        : await fs.read(join(dir, currentFilepath), {
+            encoding: 'utf8',
+            autocrlf,
+          });
       if (object === null) throw new NotFoundError(currentFilepath)
-      const oid = await _writeObject({ fs, gitdir, type: 'blob', object });
+      const oid = await _writeObject({
+        fs,
+        gitdir,
+        type: 'blob',
+        object: new TextEncoder().encode(object),
+      });
       index.insert({ filepath: currentFilepath, stats, oid });
     }
   });
@@ -60995,8 +61013,8 @@ function filterCapabilities(server, client) {
 
 const pkg = {
   name: 'isomorphic-git',
-  version: '1.25.7',
-  agent: 'git/isomorphic-git@1.25.7',
+  version: '1.25.8',
+  agent: 'git/isomorphic-git@1.25.8',
 };
 
 class FIFO {
