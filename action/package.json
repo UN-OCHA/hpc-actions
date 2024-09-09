@@ -30,6 +30,6 @@
     "@octokit/rest": "^20.1.0",
     "fp-ts": "^2.16.9",
     "io-ts": "^2.2.21",
-    "isomorphic-git": "1.25.8"
+    "isomorphic-git": "^1.27.1"
   }
 }
