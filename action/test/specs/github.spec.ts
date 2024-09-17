@@ -1,4 +1,4 @@
-import octokit = require('@octokit/rest');
+import * as octokit from '@octokit/rest';
 import * as github from '../../src/github';
 
 jest.mock('@octokit/rest');
