@@ -427,9 +427,9 @@ const runAction = async ({ env, dir = process.cwd(), logger = console, dockerIni
                 await failWithPRComment({
                     error: `Tag already exists for version ${tag}, aborting.`,
                     pullRequest,
-                    comment: `There is already a tag for version ${tag},` +
+                    comment: `There is already a tag for version ${tag}, ` +
                         "so we can't create another release with the same version.\n\n" +
-                        `Please update the version in \`${file}\`\n\n to something ` +
+                        `Please update the version in \`${file}\` to something ` +
                         'that has not yet had peen deployed to `env/prod` ' +
                         `or \`${config.stagingEnvironmentBranch}\`.`,
                 });

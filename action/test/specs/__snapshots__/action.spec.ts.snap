@@ -285,11 +285,9 @@ exports[`action runAction push to hotfix/<name> branch Tag already exists 3`] = 
 [
   [
     {
-      "body": "There is already a tag for version v1.2.1,so we can't create another release with the same version.
+      "body": "There is already a tag for version v1.2.1, so we can't create another release with the same version.
 
-Please update the version in \`package.json\`
-
- to something that has not yet had peen deployed to \`env/prod\` or \`env/staging\`.",
+Please update the version in \`package.json\` to something that has not yet had peen deployed to \`env/prod\` or \`env/staging\`.",
       "pullRequestNumber": 321,
       "state": "reject",
     },
