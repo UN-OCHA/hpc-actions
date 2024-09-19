@@ -225,15 +225,10 @@ export const runAction = async ({
 
     // Get remote information
 
-    const remotes = await git
-      .listRemotes({
-        fs,
-        dir,
-      })
-      .catch(() => {
-        // Assume that not in git repository
-        throw new Error('Action not run within git repository');
-      });
+    const remotes = await git.listRemotes({
+      fs,
+      dir,
+    });
     if (remotes.length !== 1) {
       throw new Error('Exactly 1 remote expected in repository');
     }

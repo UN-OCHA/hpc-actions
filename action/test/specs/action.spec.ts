@@ -90,23 +90,6 @@ describe('action', () => {
       testCompleteDockerController;
     const testCompleteGitHubInit: GitHubInit = () => testCompleteGitHub;
 
-    it('Not in GitHub Repo', async () => {
-      const dir = await util.createTmpDir();
-      await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG));
-      await fs.promises.writeFile(EVENT_FILE, JSON.stringify(DEFAULT_PUSH_ENV));
-      await action
-        .runAction({
-          env: DEFAULT_ENV,
-          dir,
-        })
-        .then(() => {
-          throw new Error('Expected error to be thrown');
-        })
-        .catch((error: Error) => {
-          expect(error.message).toEqual('Action not run within git repository');
-        });
-    });
-
     it('Missing remote', async () => {
       const dir = await util.createTmpDir();
       await git.init({ fs, dir });
