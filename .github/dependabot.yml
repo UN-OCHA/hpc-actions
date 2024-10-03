@@ -17,10 +17,16 @@ updates:
       jest:
         applies-to: version-updates
         patterns:
-          - 'jest'
-          - '@types/jest'
-          - 'ts-jest'
+          - '*jest'
     ignore:
       # Since `v21.0.0`, package `@octokit/rest` is ESM
       - dependency-name: '@octokit/rest'
         update-types: [version-update:semver-major]
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+      time: '11:00'
+      timezone: 'Europe/Zurich'
+    reviewers:
+      - '@UN-OCHA/hpc-js-reviewers'
