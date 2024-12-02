@@ -75,7 +75,7 @@ jobs:
           cd action
           npm run test -- --coverage
       - name: Submit to CodeCov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./action/.coverage/lcov.info
