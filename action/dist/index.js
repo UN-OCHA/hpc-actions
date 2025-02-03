@@ -54498,6 +54498,11 @@ var diff3Merge = _interopDefault(__nccwpck_require__(1832));
  */
 
 /**
+ * @typedef {'push' | 'pop' | 'apply' | 'drop' | 'list' | 'clear'} StashOp the type of stash ops
+ */
+
+/**
+ * @typedef {'equal' | 'modify' | 'add' | 'remove' | 'unknown'} StashChangeType - when compare WORDIR to HEAD, 'remove' could mean 'untracked'
  * @typedef {Object} ClientRef
  * @property {string} ref The name of the ref
  * @property {string} oid The SHA-1 object id the ref points to
@@ -58754,7 +58759,11 @@ class FileSystem {
       await this._stat(filepath);
       return true
     } catch (err) {
-      if (err.code === 'ENOENT' || err.code === 'ENOTDIR') {
+      if (
+        err.code === 'ENOENT' ||
+        err.code === 'ENOTDIR' ||
+        (err.code || '').includes('ENS')
+      ) {
         return false
       } else {
         console.log('Unhandled error in "FileSystem.exists()" function', err);
@@ -58907,7 +58916,7 @@ class FileSystem {
       const stats = await this._lstat(filename);
       return stats
     } catch (err) {
-      if (err.code === 'ENOENT') {
+      if (err.code === 'ENOENT' || (err.code || '').includes('ENS')) {
         return null
       }
       throw err
@@ -58925,7 +58934,7 @@ class FileSystem {
       const link = await this._readlink(filename, opts);
       return Buffer.isBuffer(link) ? link : Buffer.from(link)
     } catch (err) {
-      if (err.code === 'ENOENT') {
+      if (err.code === 'ENOENT' || (err.code || '').includes('ENS')) {
         return null
       }
       throw err
@@ -61783,8 +61792,8 @@ function filterCapabilities(server, client) {
 
 const pkg = {
   name: 'isomorphic-git',
-  version: '1.27.2',
-  agent: 'git/isomorphic-git@1.27.2',
+  version: '1.29.0',
+  agent: 'git/isomorphic-git@1.29.0',
 };
 
 class FIFO {
@@ -65249,6 +65258,40 @@ async function listNotes({
 // @ts-check
 
 /**
+ * List refs
+ *
+ * @param {object} args
+ * @param {FsClient} args.fs - a file system client
+ * @param {string} [args.dir] - The [working tree](dir-vs-gitdir.md) directory path
+ * @param {string} [args.gitdir=join(dir,'.git')] - [required] The [git directory](dir-vs-gitdir.md) path
+ * @param {string} [args.filepath] - [required] The refs path to list
+ *
+ * @returns {Promise<Array<string>>} Resolves successfully with an array of ref names below the supplied `filepath`
+ *
+ * @example
+ * let refs = await git.listRefs({ fs, dir: '/tutorial', filepath: 'refs/heads' })
+ * console.log(refs)
+ *
+ */
+async function listRefs({
+  fs,
+  dir,
+  gitdir = pathBrowserify.join(dir, '.git'),
+  filepath,
+}) {
+  try {
+    assertParameter('fs', fs);
+    assertParameter('gitdir', gitdir);
+    return GitRefManager.listRefs({ fs: new FileSystem(fs), gitdir, filepath })
+  } catch (err) {
+    err.caller = 'git.listRefs';
+    throw err
+  }
+}
+
+// @ts-check
+
+/**
  * @param {object} args
  * @param {import('../models/FileSystem.js').FileSystem} args.fs
  * @param {string} args.gitdir
@@ -68073,6 +68116,781 @@ async function setConfig({
 // @ts-check
 
 /**
+ * @param {object} args
+ * @param {import('../models/FileSystem.js').FileSystem} args.fs
+ * @param {string} args.gitdir
+ * @param {CommitObject} args.commit
+ *
+ * @returns {Promise<string>}
+ * @see CommitObject
+ *
+ */
+async function _writeCommit({ fs, gitdir, commit }) {
+  // Convert object to buffer
+  const object = GitCommit.from(commit).toObject();
+  const oid = await _writeObject({
+    fs,
+    gitdir,
+    type: 'commit',
+    object,
+    format: 'content',
+  });
+  return oid
+}
+
+class GitRefStash {
+  // constructor removed
+
+  static get timezoneOffsetForRefLogEntry() {
+    const offsetMinutes = new Date().getTimezoneOffset();
+    const offsetHours = Math.abs(Math.floor(offsetMinutes / 60));
+    const offsetMinutesFormatted = Math.abs(offsetMinutes % 60)
+      .toString()
+      .padStart(2, '0');
+    const sign = offsetMinutes > 0 ? '-' : '+';
+    return `${sign}${offsetHours
+      .toString()
+      .padStart(2, '0')}${offsetMinutesFormatted}`
+  }
+
+  static createStashReflogEntry(author, stashCommit, message) {
+    const nameNoSpace = author.name.replace(/\s/g, '');
+    const z40 = '0000000000000000000000000000000000000000'; // hard code for now, works with `git stash list`
+    const timestamp = Math.floor(Date.now() / 1000);
+    const timezoneOffset = GitRefStash.timezoneOffsetForRefLogEntry;
+    return `${z40} ${stashCommit} ${nameNoSpace} ${author.email} ${timestamp} ${timezoneOffset}\t${message}\n`
+  }
+
+  static getStashReflogEntry(reflogString, parsed = false) {
+    const reflogLines = reflogString.split('\n');
+    const entries = reflogLines
+      .filter(l => l)
+      .reverse()
+      .map((line, idx) =>
+        parsed ? `stash@{${idx}}: ${line.split('\t')[1]}` : line
+      );
+    return entries
+  }
+}
+
+const _TreeMap = {
+  stage: STAGE,
+  workdir: WORKDIR,
+};
+
+let lock$3;
+async function acquireLock$1(ref, callback) {
+  if (lock$3 === undefined) lock$3 = new AsyncLock();
+  return lock$3.acquire(ref, callback)
+}
+
+// make sure filepath, blob type and blob object (from loose objects) plus oid are in sync and valid
+async function checkAndWriteBlob(fs, gitdir, dir, filepath, oid = null) {
+  const currentFilepath = pathBrowserify.join(dir, filepath);
+  const stats = await fs.lstat(currentFilepath);
+  if (!stats) throw new NotFoundError(currentFilepath)
+  if (stats.isDirectory())
+    throw new InternalError(
+      `${currentFilepath}: file expected, but found directory`
+    )
+
+  // Look for it in the loose object directory.
+  const objContent = oid
+    ? await readObjectLoose({ fs, gitdir, oid })
+    : undefined;
+  let retOid = objContent ? oid : undefined;
+  if (!objContent) {
+    await acquireLock$1({ fs, gitdir, currentFilepath }, async () => {
+      const object = stats.isSymbolicLink()
+        ? await fs.readlink(currentFilepath).then(posixifyPathBuffer)
+        : await fs.read(currentFilepath);
+
+      if (object === null) throw new NotFoundError(currentFilepath)
+
+      retOid = await _writeObject({ fs, gitdir, type: 'blob', object });
+    });
+  }
+
+  return retOid
+}
+
+async function processTreeEntries({ fs, dir, gitdir, entries }) {
+  // make sure each tree entry has valid oid
+  async function processTreeEntry(entry) {
+    if (entry.type === 'tree') {
+      if (!entry.oid) {
+        // Process children entries if the current entry is a tree
+        const children = await Promise.all(entry.children.map(processTreeEntry));
+        // Write the tree with the processed children
+        entry.oid = await _writeTree({
+          fs,
+          gitdir,
+          tree: children,
+        });
+        entry.mode = 0o40000; // directory
+      }
+    } else if (entry.type === 'blob') {
+      entry.oid = await checkAndWriteBlob(
+        fs,
+        gitdir,
+        dir,
+        entry.path,
+        entry.oid
+      );
+      entry.mode = 0o100644; // file
+    }
+
+    // remove path from entry.path
+    entry.path = entry.path.split('/').pop();
+    return entry
+  }
+
+  return Promise.all(entries.map(processTreeEntry))
+}
+
+async function writeTreeChanges({
+  fs,
+  dir,
+  gitdir,
+  treePair, // [TREE({ ref: 'HEAD' }), 'STAGE'] would be the equivalent of `git write-tree`
+}) {
+  const isStage = treePair[1] === 'stage';
+  const trees = treePair.map(t => (typeof t === 'string' ? _TreeMap[t]() : t));
+
+  const changedEntries = [];
+  // transform WalkerEntry objects into the desired format
+  const map = async (filepath, [head, stage]) => {
+    if (
+      filepath === '.' ||
+      (await GitIgnoreManager.isIgnored({ fs, dir, gitdir, filepath }))
+    ) {
+      return
+    }
+
+    if (stage) {
+      if (
+        !head ||
+        ((await head.oid()) !== (await stage.oid()) &&
+          (await stage.oid()) !== undefined)
+      ) {
+        changedEntries.push([head, stage]);
+      }
+      return {
+        mode: await stage.mode(),
+        path: filepath,
+        oid: await stage.oid(),
+        type: await stage.type(),
+      }
+    }
+  };
+
+  // combine mapped entries with their parent results
+  const reduce = async (parent, children) => {
+    children = children.filter(Boolean); // Remove undefined entries
+    if (!parent) {
+      return children.length > 0 ? children : undefined
+    } else {
+      parent.children = children;
+      return parent
+    }
+  };
+
+  // if parent is skipped, skip the children
+  const iterate = async (walk, children) => {
+    const filtered = [];
+    for (const child of children) {
+      const [head, stage] = child;
+      if (isStage) {
+        if (stage) {
+          // for deleted file in work dir, it also needs to be added on stage
+          if (await fs.exists(`${dir}/${stage.toString()}`)) {
+            filtered.push(child);
+          } else {
+            changedEntries.push([null, stage]); // record the change (deletion) while stop the iteration
+          }
+        }
+      } else if (head) {
+        // for deleted file in workdir, "stage" (workdir in our case) will be undefined
+        if (!stage) {
+          changedEntries.push([head, null]); // record the change (deletion) while stop the iteration
+        } else {
+          filtered.push(child); // workdir, tracked only
+        }
+      }
+    }
+    return filtered.length ? Promise.all(filtered.map(walk)) : []
+  };
+
+  const entries = await _walk({
+    fs,
+    cache: {},
+    dir,
+    gitdir,
+    trees,
+    map,
+    reduce,
+    iterate,
+  });
+
+  if (changedEntries.length === 0 || entries.length === 0) {
+    return null // no changes found to stash
+  }
+
+  const processedEntries = await processTreeEntries({
+    fs,
+    dir,
+    gitdir,
+    entries,
+  });
+
+  const treeEntries = processedEntries.filter(Boolean).map(entry => ({
+    mode: entry.mode,
+    path: entry.path,
+    oid: entry.oid,
+    type: entry.type,
+  }));
+
+  return _writeTree({ fs, gitdir, tree: treeEntries })
+}
+
+async function applyTreeChanges({
+  fs,
+  dir,
+  gitdir,
+  stashCommit,
+  parentCommit,
+  wasStaged,
+}) {
+  const dirRemoved = [];
+  const stageUpdated = [];
+
+  // analyze the changes
+  const ops = await _walk({
+    fs,
+    cache: {},
+    dir,
+    gitdir,
+    trees: [TREE({ ref: parentCommit }), TREE({ ref: stashCommit })],
+    map: async (filepath, [parent, stash]) => {
+      if (
+        filepath === '.' ||
+        (await GitIgnoreManager.isIgnored({ fs, dir, gitdir, filepath }))
+      ) {
+        return
+      }
+      const type = stash ? await stash.type() : await parent.type();
+      if (type !== 'tree' && type !== 'blob') {
+        return
+      }
+
+      // deleted tree or blob
+      if (!stash && parent) {
+        const method = type === 'tree' ? 'rmdir' : 'rm';
+        if (type === 'tree') dirRemoved.push(filepath);
+        if (type === 'blob' && wasStaged)
+          stageUpdated.push({ filepath, oid: await parent.oid() }); // stats is undefined, will stage the deletion with index.insert
+        return { method, filepath }
+      }
+
+      const oid = await stash.oid();
+      if (!parent || (await parent.oid()) !== oid) {
+        // only apply changes if changed from the parent commit or doesn't exist in the parent commit
+        if (type === 'tree') {
+          return { method: 'mkdir', filepath }
+        } else {
+          if (wasStaged)
+            stageUpdated.push({
+              filepath,
+              oid,
+              stats: await fs.lstat(pathBrowserify.join(dir, filepath)),
+            });
+          return {
+            method: 'write',
+            filepath,
+            oid,
+          }
+        }
+      }
+    },
+  });
+
+  // apply the changes to work dir
+  await acquireLock$1({ fs, gitdir, dirRemoved, ops }, async () => {
+    for (const op of ops) {
+      const currentFilepath = pathBrowserify.join(dir, op.filepath);
+      switch (op.method) {
+        case 'rmdir':
+          await fs.rmdir(currentFilepath);
+          break
+        case 'mkdir':
+          await fs.mkdir(currentFilepath);
+          break
+        case 'rm':
+          await fs.rm(currentFilepath);
+          break
+        case 'write':
+          // only writes if file is not in the removedDirs
+          if (
+            !dirRemoved.some(removedDir =>
+              currentFilepath.startsWith(removedDir)
+            )
+          ) {
+            const { object } = await _readObject({
+              fs,
+              cache: {},
+              gitdir,
+              oid: op.oid,
+            });
+            // just like checkout, since mode only applicable to create, not update, delete first
+            if (await fs.exists(currentFilepath)) {
+              await fs.rm(currentFilepath);
+            }
+            await fs.write(currentFilepath, object); // only handles regular files for now
+          }
+          break
+      }
+    }
+  });
+
+  // update the stage
+  await GitIndexManager.acquire({ fs, gitdir, cache: {} }, async index => {
+    stageUpdated.forEach(({ filepath, stats, oid }) => {
+      index.insert({ filepath, stats, oid });
+    });
+  });
+}
+
+class GitStashManager {
+  constructor({ fs, dir, gitdir = pathBrowserify.join(dir, '.git') }) {
+    Object.assign(this, {
+      fs,
+      dir,
+      gitdir,
+      _author: null,
+    });
+  }
+
+  static get refStash() {
+    return 'refs/stash'
+  }
+
+  static get refLogsStash() {
+    return 'logs/refs/stash'
+  }
+
+  get refStashPath() {
+    return pathBrowserify.join(this.gitdir, GitStashManager.refStash)
+  }
+
+  get refLogsStashPath() {
+    return pathBrowserify.join(this.gitdir, GitStashManager.refLogsStash)
+  }
+
+  async getAuthor() {
+    if (!this._author) {
+      this._author = await normalizeAuthorObject({
+        fs: this.fs,
+        gitdir: this.gitdir,
+        author: {},
+      });
+      if (!this._author) throw new MissingNameError('author')
+    }
+    return this._author
+  }
+
+  async getStashSHA(refIdx, stashEntries) {
+    if (!(await this.fs.exists(this.refStashPath))) {
+      return null
+    }
+
+    const entries =
+      stashEntries || (await this.readStashReflogs({ parsed: false }));
+    return entries[refIdx].split(' ')[1]
+  }
+
+  async writeStashCommit({ message, tree, parent }) {
+    return _writeCommit({
+      fs: this.fs,
+      gitdir: this.gitdir,
+      commit: {
+        message,
+        tree,
+        parent,
+        author: await this.getAuthor(),
+        committer: await this.getAuthor(),
+      },
+    })
+  }
+
+  async readStashCommit(refIdx) {
+    const stashEntries = await this.readStashReflogs({ parsed: false });
+    if (refIdx !== 0) {
+      // non-default case, throw exceptions if not valid
+      if (refIdx < 0 || refIdx > stashEntries.length - 1) {
+        throw new InvalidRefNameError(
+          `stash@${refIdx}`,
+          'number that is in range of [0, num of stash pushed]'
+        )
+      }
+    }
+
+    const stashSHA = await this.getStashSHA(refIdx, stashEntries);
+    if (!stashSHA) {
+      return {} // no stash found
+    }
+
+    // get the stash commit object
+    return _readCommit({
+      fs: this.fs,
+      cache: {},
+      gitdir: this.gitdir,
+      oid: stashSHA,
+    })
+  }
+
+  async writeStashRef(stashCommit) {
+    return GitRefManager.writeRef({
+      fs: this.fs,
+      gitdir: this.gitdir,
+      ref: GitStashManager.refStash,
+      value: stashCommit,
+    })
+  }
+
+  async writeStashReflogEntry({ stashCommit, message }) {
+    const author = await this.getAuthor();
+    const entry = GitRefStash.createStashReflogEntry(
+      author,
+      stashCommit,
+      message
+    );
+    const filepath = this.refLogsStashPath;
+
+    await acquireLock$1({ filepath, entry }, async () => {
+      const appendTo = (await this.fs.exists(filepath))
+        ? await this.fs.read(filepath, 'utf8')
+        : '';
+      await this.fs.write(filepath, appendTo + entry, 'utf8');
+    });
+  }
+
+  async readStashReflogs({ parsed = false }) {
+    if (!(await this.fs.exists(this.refLogsStashPath))) {
+      return []
+    }
+
+    const reflogBuffer = await this.fs.read(this.refLogsStashPath);
+    const reflogString = reflogBuffer.toString();
+
+    return GitRefStash.getStashReflogEntry(reflogString, parsed)
+  }
+}
+
+// @ts-check
+
+async function _stashPush({ fs, dir, gitdir, message = '' }) {
+  const stashMgr = new GitStashManager({ fs, dir, gitdir });
+
+  await stashMgr.getAuthor(); // ensure there is an author
+  const branch = await _currentBranch({
+    fs,
+    gitdir,
+    fullname: false,
+  });
+
+  // prepare the stash commit: first parent is the current branch HEAD
+  const headCommit = await GitRefManager.resolve({
+    fs,
+    gitdir,
+    ref: 'HEAD',
+  });
+
+  const headCommitObj = await readCommit({ fs, dir, gitdir, oid: headCommit });
+  const headMsg = headCommitObj.commit.message;
+
+  const stashCommitParents = [headCommit];
+  let stashCommitTree = null;
+  let workDirCompareBase = TREE({ ref: 'HEAD' });
+
+  const indexTree = await writeTreeChanges({
+    fs,
+    dir,
+    gitdir,
+    treePair: [TREE({ ref: 'HEAD' }), 'stage'],
+  });
+  if (indexTree) {
+    // this indexTree will be the tree of the stash commit
+    // create a commit from the index tree, which has one parent, the current branch HEAD
+    const stashCommitOne = await stashMgr.writeStashCommit({
+      message: `stash-Index: WIP on ${branch} - ${new Date().toISOString()}`,
+      tree: indexTree, // stashCommitTree
+      parent: stashCommitParents,
+    });
+    stashCommitParents.push(stashCommitOne);
+    stashCommitTree = indexTree;
+    workDirCompareBase = STAGE();
+  }
+
+  const workingTree = await writeTreeChanges({
+    fs,
+    dir,
+    gitdir,
+    treePair: [workDirCompareBase, 'workdir'],
+  });
+  if (workingTree) {
+    // create a commit from the working directory tree, which has one parent, either the one we just had, or the headCommit
+    const workingHeadCommit = await stashMgr.writeStashCommit({
+      message: `stash-WorkDir: WIP on ${branch} - ${new Date().toISOString()}`,
+      tree: workingTree,
+      parent: [stashCommitParents[stashCommitParents.length - 1]],
+    });
+
+    stashCommitParents.push(workingHeadCommit);
+    stashCommitTree = workingTree;
+  }
+
+  if (!stashCommitTree || (!indexTree && !workingTree)) {
+    throw new NotFoundError('changes, nothing to stash')
+  }
+
+  // create another commit from the tree, which has three parents: HEAD and the commit we just made:
+  const stashMsg =
+    (message.trim() || `WIP on ${branch}`) +
+    `: ${headCommit.substring(0, 7)} ${headMsg}`;
+
+  const stashCommit = await stashMgr.writeStashCommit({
+    message: stashMsg,
+    tree: stashCommitTree,
+    parent: stashCommitParents,
+  });
+
+  // next, write this commit into .git/refs/stash:
+  await stashMgr.writeStashRef(stashCommit);
+
+  // write the stash commit to the logs
+  await stashMgr.writeStashReflogEntry({
+    stashCommit,
+    message: stashMsg,
+  });
+
+  // finally, go back to a clean working directory
+  await checkout({
+    fs,
+    dir,
+    gitdir,
+    ref: branch,
+    track: false,
+    force: true, // force checkout to discard changes
+  });
+
+  return stashCommit
+}
+
+async function _stashApply({ fs, dir, gitdir, refIdx = 0 }) {
+  const stashMgr = new GitStashManager({ fs, dir, gitdir });
+
+  // get the stash commit object
+  const stashCommit = await stashMgr.readStashCommit(refIdx);
+  const { parent: stashParents = null } = stashCommit.commit
+    ? stashCommit.commit
+    : {};
+  if (!stashParents || !Array.isArray(stashParents)) {
+    return // no stash found
+  }
+
+  // compare the stash commit tree with its parent commit
+  for (let i = 0; i < stashParents.length - 1; i++) {
+    const applyingCommit = await _readCommit({
+      fs,
+      cache: {},
+      gitdir,
+      oid: stashParents[i + 1],
+    });
+    const wasStaged = applyingCommit.commit.message.startsWith('stash-Index');
+
+    await applyTreeChanges({
+      fs,
+      dir,
+      gitdir,
+      stashCommit: stashParents[i + 1],
+      parentCommit: stashParents[i],
+      wasStaged,
+    });
+  }
+}
+
+async function _stashDrop({ fs, dir, gitdir, refIdx = 0 }) {
+  const stashMgr = new GitStashManager({ fs, dir, gitdir });
+  const stashCommit = await stashMgr.readStashCommit(refIdx);
+  if (!stashCommit.commit) {
+    return // no stash found
+  }
+  // remove stash ref first
+  const stashRefPath = stashMgr.refStashPath;
+  await acquireLock$1(stashRefPath, async () => {
+    if (await fs.exists(stashRefPath)) {
+      await fs.rm(stashRefPath);
+    }
+  });
+
+  // read from stash reflog and list the stash commits
+  const reflogEntries = await stashMgr.readStashReflogs({ parsed: false });
+  if (!reflogEntries.length) {
+    return // no stash reflog entry
+  }
+
+  // remove the specified stash reflog entry from reflogEntries, then update the stash reflog
+  reflogEntries.splice(refIdx, 1);
+
+  const stashReflogPath = stashMgr.refLogsStashPath;
+  await acquireLock$1({ reflogEntries, stashReflogPath, stashMgr }, async () => {
+    if (reflogEntries.length) {
+      await fs.write(stashReflogPath, reflogEntries.join('\n'), 'utf8');
+      const lastStashCommit = reflogEntries[reflogEntries.length - 1].split(
+        ' '
+      )[1];
+      await stashMgr.writeStashRef(lastStashCommit);
+    } else {
+      // remove the stash reflog file if no entry left
+      await fs.rm(stashReflogPath);
+    }
+  });
+}
+
+async function _stashList({ fs, dir, gitdir }) {
+  const stashMgr = new GitStashManager({ fs, dir, gitdir });
+  return stashMgr.readStashReflogs({ parsed: true })
+}
+
+async function _stashClear({ fs, dir, gitdir }) {
+  const stashMgr = new GitStashManager({ fs, dir, gitdir });
+  const stashRefPath = [stashMgr.refStashPath, stashMgr.refLogsStashPath];
+
+  await acquireLock$1(stashRefPath, async () => {
+    await Promise.all(
+      stashRefPath.map(async path => {
+        if (await fs.exists(path)) {
+          return fs.rm(path)
+        }
+      })
+    );
+  });
+}
+
+async function _stashPop({ fs, dir, gitdir, refIdx = 0 }) {
+  await _stashApply({ fs, dir, gitdir, refIdx });
+  await _stashDrop({ fs, dir, gitdir, refIdx });
+}
+
+// @ts-check
+
+/**
+ * stash api, supports  {'push' | 'pop' | 'apply' | 'drop' | 'list' | 'clear'} StashOp
+ * _note_,
+ * - all stash operations are done on tracked files only with loose objects, no packed objects
+ * - when op === 'push', both working directory and index (staged) changes will be stashed, tracked files only
+ * - when op === 'push', message is optional, and only applicable when op === 'push'
+ * - when op === 'apply | pop', the stashed changes will overwrite the working directory, no abort when conflicts
+ *
+ * @param {object} args
+ * @param {FsClient} args.fs - [required] a file system client
+ * @param {string} [args.dir] - [required] The [working tree](dir-vs-gitdir.md) directory path
+ * @param {string} [args.gitdir=join(dir,'.git')] - [optional] The [git directory](dir-vs-gitdir.md) path
+ * @param {'push' | 'pop' | 'apply' | 'drop' | 'list' | 'clear'} [args.op = 'push'] - [optional] name of stash operation, default to 'push'
+ * @param {string} [args.message = ''] - [optional] message to be used for the stash entry, only applicable when op === 'push'
+ * @param {number} [args.refIdx = 0] - [optional - Number] stash ref index of entry, only applicable when op === ['apply' | 'drop' | 'pop'], refIdx >= 0 and < num of stash pushed
+ * @returns {Promise<string | void>}  Resolves successfully when stash operations are complete
+ *
+ * @example
+ * // stash changes in the working directory and index
+ * let dir = '/tutorial'
+ * await fs.promises.writeFile(`${dir}/a.txt`, 'original content - a')
+ * await fs.promises.writeFile(`${dir}/b.js`, 'original content - b')
+ * await git.add({ fs, dir, filepath: [`a.txt`,`b.txt`] })
+ * let sha = await git.commit({
+ *   fs,
+ *   dir,
+ *   author: {
+ *     name: 'Mr. Stash',
+ *     email: 'mstasher@stash.com',
+ *   },
+ *   message: 'add a.txt and b.txt to test stash'
+ * })
+ * console.log(sha)
+ *
+ * await fs.promises.writeFile(`${dir}/a.txt`, 'stashed chang- a')
+ * await git.add({ fs, dir, filepath: `${dir}/a.txt` })
+ * await fs.promises.writeFile(`${dir}/b.js`, 'work dir change. not stashed - b')
+ *
+ * await git.stash({ fs, dir }) // default gitdir and op
+ *
+ * console.log(await git.status({ fs, dir, filepath: 'a.txt' })) // 'unmodified'
+ * console.log(await git.status({ fs, dir, filepath: 'b.txt' })) // 'unmodified'
+ *
+ * const refLog = await git.stash({ fs, dir, op: 'list' })
+ * console.log(refLog) // [{stash{#} message}]
+ *
+ * await git.stash({ fs, dir, op: 'apply' }) // apply the stash
+ *
+ * console.log(await git.status({ fs, dir, filepath: 'a.txt' })) // 'modified'
+ * console.log(await git.status({ fs, dir, filepath: 'b.txt' })) // '*modified'
+ */
+
+async function stash({
+  fs,
+  dir,
+  gitdir = pathBrowserify.join(dir, '.git'),
+  op = 'push',
+  message = '',
+  refIdx = 0,
+}) {
+  assertParameter('fs', fs);
+  assertParameter('dir', dir);
+  assertParameter('gitdir', gitdir);
+  assertParameter('op', op);
+
+  const stashMap = {
+    push: _stashPush,
+    apply: _stashApply,
+    drop: _stashDrop,
+    list: _stashList,
+    clear: _stashClear,
+    pop: _stashPop,
+  };
+
+  const opsNeedRefIdx = ['apply', 'drop', 'pop'];
+
+  try {
+    const _fs = new FileSystem(fs);
+    const folders = ['refs', 'logs', 'logs/refs'];
+    folders
+      .map(f => pathBrowserify.join(gitdir, f))
+      .forEach(async folder => {
+        if (!(await _fs.exists(folder))) {
+          await _fs.mkdir(folder);
+        }
+      });
+
+    const opFunc = stashMap[op];
+    if (opFunc) {
+      if (opsNeedRefIdx.includes(op) && refIdx < 0) {
+        throw new InvalidRefNameError(
+          `stash@${refIdx}`,
+          'number that is in range of [0, num of stash pushed]'
+        )
+      }
+      return await opFunc({ fs: _fs, dir, gitdir, message, refIdx })
+    }
+    throw new Error(`To be implemented: ${op}`)
+  } catch (err) {
+    err.caller = 'git.stash';
+    throw err
+  }
+}
+
+// @ts-check
+
+/**
  * Tell whether a file has been changed
  *
  * The possible resolve values are:
@@ -69074,31 +69892,6 @@ async function writeBlob({ fs, dir, gitdir = pathBrowserify.join(dir, '.git'), b
 // @ts-check
 
 /**
- * @param {object} args
- * @param {import('../models/FileSystem.js').FileSystem} args.fs
- * @param {string} args.gitdir
- * @param {CommitObject} args.commit
- *
- * @returns {Promise<string>}
- * @see CommitObject
- *
- */
-async function _writeCommit({ fs, gitdir, commit }) {
-  // Convert object to buffer
-  const object = GitCommit.from(commit).toObject();
-  const oid = await _writeObject({
-    fs,
-    gitdir,
-    type: 'commit',
-    object,
-    format: 'content',
-  });
-  return oid
-}
-
-// @ts-check
-
-/**
  * Write a commit object directly
  *
  * @param {object} args
@@ -69484,6 +70277,7 @@ var index = {
   listBranches,
   listFiles,
   listNotes,
+  listRefs,
   listRemotes,
   listServerRefs,
   listTags,
@@ -69515,6 +70309,7 @@ var index = {
   writeRef,
   writeTag,
   writeTree,
+  stash,
 };
 
 exports.Errors = Errors;
@@ -69554,6 +70349,7 @@ exports.isIgnored = isIgnored;
 exports.listBranches = listBranches;
 exports.listFiles = listFiles;
 exports.listNotes = listNotes;
+exports.listRefs = listRefs;
 exports.listRemotes = listRemotes;
 exports.listServerRefs = listServerRefs;
 exports.listTags = listTags;
@@ -69574,6 +70370,7 @@ exports.renameBranch = renameBranch;
 exports.resetIndex = resetIndex;
 exports.resolveRef = resolveRef;
 exports.setConfig = setConfig;
+exports.stash = stash;
 exports.status = status;
 exports.statusMatrix = statusMatrix;
 exports.tag = tag;
