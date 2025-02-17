@@ -27,7 +27,7 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
-    "@octokit/rest": "^20.1.1",
+    "@octokit/rest": "^21.1.1",
     "fp-ts": "^2.16.9",
     "io-ts": "^2.2.22",
     "isomorphic-git": "^1.29.0"
