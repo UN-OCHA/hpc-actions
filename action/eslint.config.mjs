@@ -1,13 +1,13 @@
-const baseConfig = require('@unocha/hpc-repo-tools/eslint.config.base');
+import baseConfig from '@unocha/hpc-repo-tools/eslint.config.base.js';
 
-module.exports = [
+export default [
   ...baseConfig,
   {
     files: ['**/*.ts'],
     languageOptions: {
       parserOptions: {
         projectService: true,
-        tsconfigRootDir: __dirname,
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     rules: {
