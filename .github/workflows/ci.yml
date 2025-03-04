@@ -21,6 +21,7 @@ jobs:
         with:
           node-version: '20'
       - name: Install NPM Packages
+        # Cannot use `npm ci` here, because we want to fail if `package-lock.json` is out of date
         run: |
           cd action
           npm install
@@ -42,7 +43,7 @@ jobs:
       - name: Install NPM Packages
         run: |
           cd action
-          npm install
+          npm ci
       - name: Check Typescript types
         run: |
           cd action
@@ -69,7 +70,7 @@ jobs:
       - name: Install NPM Packages
         run: |
           cd action
-          npm install
+          npm ci
       - name: Run Unit Tests
         run: |
           cd action
