@@ -1,6 +1,5 @@
 name: "Stage Release Action"
 description: "Reusable GitHub Action to create stage release PRs"
-author: enxtur <enxtur.mon@gmail.com>
 
 on:
   workflow_call:
