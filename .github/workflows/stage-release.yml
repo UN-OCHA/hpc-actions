@@ -11,7 +11,7 @@ on:
         type: string
         default: "patch"
     secrets:
-      GITHUB_TOKEN:
+      GH_TOKEN:
         description: "GitHub token"
         required: true
 
@@ -60,7 +60,7 @@ jobs:
 
       - name: Create Pull Request
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           gh pr create --base env/stage \
           --head ${{ steps.bump_version.outputs.release_branch }} \
