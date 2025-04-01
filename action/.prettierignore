@@ -1,2 +1,6 @@
+.git-blame-ignore-revs
 /dist/
 .husky/_/
+
+# Ignored file types
+*.snap
