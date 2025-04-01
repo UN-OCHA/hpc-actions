@@ -55307,8 +55307,11 @@ function createCache() {
 }
 
 async function updateCachedIndexFile(fs, filepath, cache) {
-  const stat = await fs.lstat(filepath);
-  const rawIndexFile = await fs.read(filepath);
+  const [stat, rawIndexFile] = await Promise.all([
+    fs.lstat(filepath),
+    fs.read(filepath),
+  ]);
+
   const index = await GitIndex.from(rawIndexFile);
   // cache the GitIndex object so we don't need to re-read it every time.
   cache.map.set(filepath, index);
@@ -55320,8 +55323,9 @@ async function updateCachedIndexFile(fs, filepath, cache) {
 async function isIndexStale(fs, filepath, cache) {
   const savedStats = cache.stats.get(filepath);
   if (savedStats === undefined) return true
-  const currStats = await fs.lstat(filepath);
   if (savedStats === null) return false
+
+  const currStats = await fs.lstat(filepath);
   if (currStats === null) return false
   return compareStats(savedStats, currStats)
 }
@@ -55337,7 +55341,9 @@ class GitIndexManager {
    * @param {function(GitIndex): any} closure
    */
   static async acquire({ fs, gitdir, cache, allowUnmerged = true }, closure) {
-    if (!cache[IndexCache]) cache[IndexCache] = createCache();
+    if (!cache[IndexCache]) {
+      cache[IndexCache] = createCache();
+    }
 
     const filepath = `${gitdir}/index`;
     if (lock === null) lock = new AsyncLock({ maxPending: Infinity });
@@ -55348,10 +55354,11 @@ class GitIndexManager {
       // to make sure other processes aren't writing to it
       // simultaneously, which could result in a corrupted index.
       // const fileLock = await Lock(filepath)
-      if (await isIndexStale(fs, filepath, cache[IndexCache])) {
-        await updateCachedIndexFile(fs, filepath, cache[IndexCache]);
+      const theIndexCache = cache[IndexCache];
+      if (await isIndexStale(fs, filepath, theIndexCache)) {
+        await updateCachedIndexFile(fs, filepath, theIndexCache);
       }
-      const index = cache[IndexCache].map.get(filepath);
+      const index = theIndexCache.map.get(filepath);
       unmergedPaths = index.unmergedPaths;
 
       if (unmergedPaths.length && !allowUnmerged)
@@ -55364,7 +55371,7 @@ class GitIndexManager {
         const buffer = await index.toObject();
         await fs.write(filepath, buffer);
         // Update cached stat value
-        cache[IndexCache].stats.set(filepath, await fs.lstat(filepath));
+        theIndexCache.stats.set(filepath, await fs.lstat(filepath));
         index._dirty = false;
       }
     });
@@ -55817,6 +55824,10 @@ function compareRefNames(a, b) {
 
 // This is straight from parse_unit_factor in config.c of canonical git
 const num = val => {
+  if (typeof val === 'number') {
+    return val
+  }
+
   val = val.toLowerCase();
   let n = parseInt(val);
   if (val.endsWith('k')) n *= 1024;
@@ -55827,6 +55838,10 @@ const num = val => {
 
 // This is straight from git_parse_maybe_bool_text in config.c of canonical git
 const bool = val => {
+  if (typeof val === 'boolean') {
+    return val
+  }
+
   val = val.trim().toLowerCase();
   if (val === 'true' || val === 'yes' || val === 'on') return true
   if (val === 'false' || val === 'no' || val === 'off') return false
@@ -55942,6 +55957,7 @@ const normalizePath = path => {
     name,
     path: getPath(section, subsection, name),
     sectionPath: getPath(section, subsection, null),
+    isSection: !!section,
   }
 };
 
@@ -56002,7 +56018,7 @@ class GitConfig {
 
   async getSubsections(section) {
     return this.parsedConfig
-      .filter(config => config.section === section && config.isSection)
+      .filter(config => config.isSection && config.section === section)
       .map(config => config.subsection)
   }
 
@@ -56024,7 +56040,9 @@ class GitConfig {
       name,
       path: normalizedPath,
       sectionPath,
+      isSection,
     } = normalizePath(path);
+
     const configIndex = findLastIndex(
       this.parsedConfig,
       config => config.path === normalizedPath
@@ -56066,6 +56084,7 @@ class GitConfig {
           } else {
             // Add a new section
             const newSection = {
+              isSection,
               section,
               subsection,
               modified: true,
@@ -58452,6 +58471,8 @@ class GitWalkerFs {
     this.cache = cache;
     this.dir = dir;
     this.gitdir = gitdir;
+
+    this.config = null;
     const walker = this;
     this.ConstructEntry = class WorkdirEntry {
       constructor(fullpath) {
@@ -58538,7 +58559,7 @@ class GitWalkerFs {
       if ((await entry.type()) === 'tree') {
         entry._content = undefined;
       } else {
-        const config = await GitConfigManager.get({ fs, gitdir });
+        const config = await this._getGitConfig(fs, gitdir);
         const autocrlf = await config.get('core.autocrlf');
         const content = await fs.read(`${dir}/${entry._fullpath}`, { autocrlf });
         // workaround for a BrowserFS edge case
@@ -58554,6 +58575,7 @@ class GitWalkerFs {
 
   async oid(entry) {
     if (entry._oid === false) {
+      const self = this;
       const { fs, gitdir, cache } = this;
       let oid;
       // See if we can use the SHA1 hash in the index.
@@ -58562,7 +58584,7 @@ class GitWalkerFs {
       ) {
         const stage = index.entriesMap.get(entry._fullpath);
         const stats = await entry.stat();
-        const config = await GitConfigManager.get({ fs, gitdir });
+        const config = await self._getGitConfig(fs, gitdir);
         const filemode = await config.get('core.filemode');
         const trustino =
           typeof process !== 'undefined'
@@ -58574,7 +58596,7 @@ class GitWalkerFs {
             oid = undefined;
           } else {
             oid = await shasum(
-              GitObject.wrap({ type: 'blob', object: await entry.content() })
+              GitObject.wrap({ type: 'blob', object: content })
             );
             // Update the stats in the index so we will get a "cache hit" next time
             // 1) if we can (because the oid and mode are the same)
@@ -58600,6 +58622,14 @@ class GitWalkerFs {
       entry._oid = oid;
     }
     return entry._oid
+  }
+
+  async _getGitConfig(fs, gitdir) {
+    if (this.config) {
+      return this.config
+    }
+    this.config = await GitConfigManager.get({ fs, gitdir });
+    return this.config
   }
 }
 
@@ -58757,15 +58787,20 @@ async function _walk({
   const range = arrayRange(0, walkers.length);
   const unionWalkerFromReaddir = async entries => {
     range.map(i => {
-      entries[i] = entries[i] && new walkers[i].ConstructEntry(entries[i]);
+      const entry = entries[i];
+      entries[i] = entry && new walkers[i].ConstructEntry(entry);
     });
     const subdirs = await Promise.all(
-      range.map(i => (entries[i] ? walkers[i].readdir(entries[i]) : []))
+      range.map(i => {
+        const entry = entries[i];
+        return entry ? walkers[i].readdir(entry) : []
+      })
     );
     // Now process child directories
-    const iterators = subdirs
-      .map(array => (array === null ? [] : array))
-      .map(array => array[Symbol.iterator]());
+    const iterators = subdirs.map(array => {
+      return (array === null ? [] : array)[Symbol.iterator]()
+    });
+
     return {
       entries,
       children: unionOfIterators(iterators),
@@ -59394,6 +59429,8 @@ async function add({
 
     const fs = new FileSystem(_fs);
     await GitIndexManager.acquire({ fs, gitdir, cache }, async index => {
+      const config = await GitConfigManager.get({ fs, gitdir });
+      const autocrlf = await config.get('core.autocrlf');
       return addToIndex({
         dir,
         gitdir,
@@ -59402,6 +59439,7 @@ async function add({
         index,
         force,
         parallel,
+        autocrlf,
       })
     });
   } catch (err) {
@@ -59418,6 +59456,7 @@ async function addToIndex({
   index,
   force,
   parallel,
+  autocrlf,
 }) {
   // TODO: Should ignore UNLESS it's already in the index.
   filepath = Array.isArray(filepath) ? filepath : [filepath];
@@ -59446,6 +59485,7 @@ async function addToIndex({
             index,
             force,
             parallel,
+            autocrlf,
           })
         );
         await Promise.all(promises);
@@ -59459,12 +59499,11 @@ async function addToIndex({
             index,
             force,
             parallel,
+            autocrlf,
           });
         }
       }
     } else {
-      const config = await GitConfigManager.get({ fs, gitdir });
-      const autocrlf = await config.get('core.autocrlf');
       const object = stats.isSymbolicLink()
         ? await fs.readlink(pathBrowserify.join(dir, currentFilepath)).then(posixifyPathBuffer)
         : await fs.read(pathBrowserify.join(dir, currentFilepath), { autocrlf });
@@ -61933,8 +61972,8 @@ function filterCapabilities(server, client) {
 
 const pkg = {
   name: 'isomorphic-git',
-  version: '1.29.0',
-  agent: 'git/isomorphic-git@1.29.0',
+  version: '1.30.1',
+  agent: 'git/isomorphic-git@1.30.1',
 };
 
 class FIFO {
@@ -69589,11 +69628,9 @@ async function updateIndex({
       return await GitIndexManager.acquire(
         { fs, gitdir, cache },
         async function(index) {
-          let fileStats;
-
           if (!force) {
             // Check if the file is still present in the working directory
-            fileStats = await fs.lstat(pathBrowserify.join(dir, filepath));
+            const fileStats = await fs.lstat(pathBrowserify.join(dir, filepath));
 
             if (fileStats) {
               if (fileStats.isDirectory()) {
@@ -69643,18 +69680,7 @@ async function updateIndex({
         )
       }
 
-      // By default we use 0 for the stats of the index file
-      let stats = {
-        ctime: new Date(0),
-        mtime: new Date(0),
-        dev: 0,
-        ino: 0,
-        mode,
-        uid: 0,
-        gid: 0,
-        size: 0,
-      };
-
+      let stats;
       if (!oid) {
         stats = fileStats;
 
@@ -69670,6 +69696,18 @@ async function updateIndex({
           format: 'content',
           object,
         });
+      } else {
+        // By default we use 0 for the stats of the index file
+        stats = {
+          ctime: new Date(0),
+          mtime: new Date(0),
+          dev: 0,
+          ino: 0,
+          mode,
+          uid: 0,
+          gid: 0,
+          size: 0,
+        };
       }
 
       index.insert({
