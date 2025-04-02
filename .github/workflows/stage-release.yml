@@ -31,14 +31,15 @@ jobs:
         with:
           node-version: 20
 
-      - name: Extract version
-        id: extract_version
+      - name: Bump version
+        id: bump_version
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
           CLEAN_VERSION=$(echo "$CURRENT_VERSION" | sed -E 's/-hotfix.*//')
           NEW_VERSION=$(npx semver "$CLEAN_VERSION" -i ${{ inputs.version_type }})
           echo "New version: $NEW_VERSION"
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          npm version "$NEW_VERSION" --no-git-tag-version
+          echo "version=v$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "release_branch=release/v$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Setup git config
@@ -48,25 +49,20 @@ jobs:
 
       - name: Create release branch
         run: |
-          git checkout -b ${{ steps.extract_version.outputs.release_branch }}
-          git push --set-upstream origin ${{ steps.extract_version.outputs.release_branch }}
+          git checkout -b ${{ steps.bump_version.outputs.release_branch }}
+          git add package.json
+          if [ -f "package-lock.json" ]; then
+            git add package-lock.json
+          fi
+          git commit -m "🔖 Bump version to \`${{ steps.bump_version.outputs.version }}\`"
+          git push --set-upstream origin ${{ steps.bump_version.outputs.release_branch }}
 
       - name: Create Pull Request
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           gh pr create --base env/stage \
-          --head ${{ steps.extract_version.outputs.release_branch }} \
-          --title "📦 Prepare release \`v${{ steps.extract_version.outputs.version }}\` and deploy to stage" \
-          --body "This is an automated release PR for version \`v${{ steps.extract_version.outputs.version }}\`" \
+          --head ${{ steps.bump_version.outputs.release_branch }} \
+          --title "📦 Prepare release \`${{ steps.bump_version.outputs.version }}\` and deploy to stage" \
+          --body "This is an automated release PR for version \`${{ steps.bump_version.outputs.version }}\`" \
           --label "deployment"
-
-      - name: Bump version
-        run: |
-          npm version ${{ steps.extract_version.outputs.version }} --no-git-tag-version
-          git add package.json
-          if [ -f "package-lock.json" ]; then
-            git add package-lock.json
-          fi
-          git commit -m "🔖 Bump version to \`v${{ steps.extract_version.outputs.version }}\`"
-          git push
