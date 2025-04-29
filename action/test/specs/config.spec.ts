@@ -47,7 +47,7 @@ describe('config', () => {
       .catch((error: Error) => {
         expect(error.message.replace(TEST_CONFIG_PATH, '<file>')).toEqual(
           'The configuration file at "<file>" is not valid JSON: ' +
-            "Expected property name or '}' in JSON at position 1"
+            "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
         );
       });
   });
