@@ -2,7 +2,7 @@
   "name": "hpc-actions",
   "scripts": {
     "build": "tsc && ncc build lib/src",
-    "check-formatting": "prettier -c \"./**/*.{ts,js,mjs,cjs,md,yml,yaml,json}\"",
+    "check-formatting": "prettier -c .",
     "check-types": "tsc --noEmit",
     "lint": "eslint --quiet .",
     "prepare": "git config blame.ignoreRevsFile action/.git-blame-ignore-revs && cd .. && husky action/.husky",
@@ -10,14 +10,14 @@
     "test": "jest --config test/jest.config.js --runInBand --verbose"
   },
   "engines": {
-    "node": ">=20.15.1",
-    "npm": ">=9.6.5 || >=10.7.0"
+    "node": ">=20.19.0 || >=22.14.0",
+    "npm": ">=9.6.5 || >=10.9.0 || >=11.3.0"
   },
   "devDependencies": {
     "@octokit/webhooks-types": "^7.6.1",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.13.16",
-    "@unocha/hpc-repo-tools": "^6.3.0",
+    "@unocha/hpc-repo-tools": "^7.0.0",
     "@vercel/ncc": "^0.38.3",
     "eslint": "^9.23.0",
     "husky": "^9.1.7",
