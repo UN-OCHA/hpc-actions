@@ -1,6 +1,8 @@
 .git-blame-ignore-revs
 /dist/
 .husky/_/
+# Interferes with TOC Generator
+/../README.md
 
 # Ignored file types
 *.snap
