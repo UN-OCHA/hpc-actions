@@ -22475,8 +22475,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.chainReaderKW = exports.chainReaderK = exports.fromReaderK = exports.asks = exports.ask = exports.chainFirstIOK = exports.chainIOK = exports.fromIOK = exports.tapReaderIO = exports.tapTask = exports.tapReader = exports.tapIO = exports.tap = exports.flatMapReaderIO = exports.flatMapReader = exports.flatMapTask = exports.flatMapIO = exports.FromReader = exports.FromTask = exports.FromIO = exports.MonadTask = exports.MonadIO = exports.Monad = exports.Chain = exports.ApplicativeSeq = exports.ApplySeq = exports.ApplicativePar = exports.apSecond = exports.apFirst = exports.ApplyPar = exports.Pointed = exports.flap = exports.asUnit = exports.as = exports.Functor = exports.URI = exports.flatten = exports.flattenW = exports.flatMap = exports.of = exports.apW = exports.ap = exports.map = exports.asksReaderTask = exports.asksReaderTaskW = exports.local = exports.fromReaderIO = exports.fromIO = exports.fromTask = exports.fromReader = void 0;
-exports.getMonoid = exports.getSemigroup = exports.readerTaskSeq = exports.readerTask = exports.sequenceSeqArray = exports.chainFirstW = exports.chainFirst = exports.chainW = exports.chain = exports.traverseSeqArray = exports.traverseSeqArrayWithIndex = exports.sequenceArray = exports.traverseArray = exports.traverseArrayWithIndex = exports.traverseReadonlyArrayWithIndexSeq = exports.traverseReadonlyNonEmptyArrayWithIndexSeq = exports.traverseReadonlyArrayWithIndex = exports.traverseReadonlyNonEmptyArrayWithIndex = exports.ApT = exports.apSW = exports.apS = exports.bindW = exports.bind = exports["let"] = exports.bindTo = exports.Do = exports.chainFirstTaskK = exports.chainTaskK = exports.fromTaskK = exports.chainFirstReaderIOK = exports.chainFirstReaderIOKW = exports.chainReaderIOK = exports.chainReaderIOKW = exports.fromReaderIOK = exports.chainFirstReaderKW = exports.chainFirstReaderK = void 0;
+exports.fromReaderK = exports.asks = exports.ask = exports.chainFirstIOK = exports.chainIOK = exports.fromIOK = exports.tapReaderIO = exports.tapTask = exports.tapReader = exports.tapIO = exports.tap = exports.flatMapReaderIO = exports.flatMapReader = exports.flatMapTask = exports.flatMapIO = exports.FromReader = exports.FromTask = exports.FromIO = exports.MonadTask = exports.MonadIO = exports.Monad = exports.Chain = exports.ApplicativeSeq = exports.ApplySeq = exports.ApplicativePar = exports.apSecondW = exports.apSecond = exports.apFirstW = exports.apFirst = exports.ApplyPar = exports.Pointed = exports.flap = exports.asUnit = exports.as = exports.Functor = exports.URI = exports.flatten = exports.flattenW = exports.flatMap = exports.of = exports.apW = exports.ap = exports.map = exports.asksReaderTask = exports.asksReaderTaskW = exports.local = exports.fromReaderIO = exports.fromIO = exports.fromTask = exports.fromReader = void 0;
+exports.getMonoid = exports.getSemigroup = exports.readerTaskSeq = exports.readerTask = exports.sequenceSeqArray = exports.chainFirstW = exports.chainFirst = exports.chainW = exports.chain = exports.traverseSeqArray = exports.traverseSeqArrayWithIndex = exports.sequenceArray = exports.traverseArray = exports.traverseArrayWithIndex = exports.traverseReadonlyArrayWithIndexSeq = exports.traverseReadonlyNonEmptyArrayWithIndexSeq = exports.traverseReadonlyArrayWithIndex = exports.traverseReadonlyNonEmptyArrayWithIndex = exports.ApT = exports.apSW = exports.apS = exports.bindW = exports.bind = exports["let"] = exports.bindTo = exports.Do = exports.chainFirstTaskK = exports.chainTaskK = exports.fromTaskK = exports.chainFirstReaderIOK = exports.chainFirstReaderIOKW = exports.chainReaderIOK = exports.chainReaderIOKW = exports.fromReaderIOK = exports.chainFirstReaderKW = exports.chainFirstReaderK = exports.chainReaderKW = exports.chainReaderK = void 0;
 exports.run = run;
 /**
  * @since 2.3.0
@@ -22649,11 +22649,27 @@ exports.ApplyPar = {
  */
 exports.apFirst = (0, Apply_1.apFirst)(exports.ApplyPar);
 /**
+ * Less strict version of [`apFirst`](#apfirst).
+ *
+ * The `W` suffix (short for **W**idening) means that the environment types will be merged.
+ *
+ * @since 2.16.10
+ */
+exports.apFirstW = exports.apFirst;
+/**
  * Combine two effectful actions, keeping only the result of the second.
  *
  * @since 2.3.0
  */
 exports.apSecond = (0, Apply_1.apSecond)(exports.ApplyPar);
+/**
+ * Less strict version of [`apSecond`](#apsecond).
+ *
+ * The `W` suffix (short for **W**idening) means that the environment types will be merged.
+ *
+ * @since 2.16.10
+ */
+exports.apSecondW = exports.apSecond;
 /**
  * Runs computations in parallel.
  *
