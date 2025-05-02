@@ -1,17 +1,17 @@
-name: "Stage Release Action"
-description: "Reusable GitHub Action to create stage release PRs"
+name: 'Stage Release Action'
+description: 'Reusable GitHub Action to create stage release PRs'
 
 on:
   workflow_call:
     inputs:
       version_type:
-        description: "Version type (minor or patch)"
+        description: 'Version type (minor or patch)'
         required: true
         type: string
-        default: "patch"
+        default: 'patch'
     secrets:
       GH_TOKEN:
-        description: "GitHub token"
+        description: 'GitHub token'
         required: true
 
 jobs:

@@ -2,7 +2,7 @@
   "name": "hpc-actions",
   "scripts": {
     "build": "tsc && ncc build lib/src",
-    "check-formatting": "prettier -c .",
+    "check-formatting": "prettier --config prettier.config.mjs -c ..",
     "check-types": "tsc --noEmit",
     "lint": "eslint --quiet .",
     "prepare": "git config blame.ignoreRevsFile action/.git-blame-ignore-revs && cd .. && husky action/.husky",
