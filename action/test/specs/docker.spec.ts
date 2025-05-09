@@ -6,7 +6,7 @@ import * as util from '../util';
 import { REAL_DOCKER } from '../../src/docker';
 
 const DOCKER_FILE = `
-FROM alpine:3.19
+FROM alpine:3.21
 
 ARG COMMIT_SHA
 ARG TREE_SHA
