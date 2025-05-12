@@ -6,13 +6,12 @@ import * as util from '../util';
 import { REAL_DOCKER } from '../../src/docker';
 
 const DOCKER_FILE = `
-FROM alpine:3.19
+FROM alpine:3.21
 
 ARG COMMIT_SHA
 ARG TREE_SHA
-ENV HPC_ACTIONS_COMMIT_SHA $COMMIT_SHA
-ENV HPC_ACTIONS_TREE_SHA $TREE_SHA
-
+ENV HPC_ACTIONS_COMMIT_SHA=$COMMIT_SHA
+ENV HPC_ACTIONS_TREE_SHA=$TREE_SHA
 `;
 
 describe('docker', () => {
