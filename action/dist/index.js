@@ -60635,6 +60635,8 @@ const worthWalking = (filepath, root) => {
  * @param {boolean} [args.dryRun]
  * @param {boolean} [args.force]
  * @param {boolean} [args.track]
+ * @param {boolean} [args.nonBlocking]
+ * @param {number} [args.batchSize]
  *
  * @returns {Promise<void>} Resolves successfully when filesystem operations are complete
  *
@@ -60654,6 +60656,8 @@ async function _checkout({
   dryRun,
   force,
   track = true,
+  nonBlocking = false,
+  batchSize = 100,
 }) {
   // oldOid is defined only if onPostCheckout hook is attached
   let oldOid;
@@ -60786,10 +60790,10 @@ async function _checkout({
         if (method === 'rmdir' || method === 'rmdir-index') {
           const filepath = `${dir}/${fullpath}`;
           try {
-            if (method === 'rmdir-index') {
-              index.delete({ filepath: fullpath });
+            if (method === 'rmdir') {
+              await fs.rmdir(filepath);
             }
-            await fs.rmdir(filepath);
+            index.delete({ filepath: fullpath });
             if (onProgress) {
               await onProgress({
                 phase: 'Updating workdir',
@@ -60826,72 +60830,122 @@ async function _checkout({
         })
     );
 
-    await GitIndexManager.acquire({ fs, gitdir, cache }, async function(index) {
-      await Promise.all(
-        ops
-          .filter(
-            ([method]) =>
-              method === 'create' ||
-              method === 'create-index' ||
-              method === 'update' ||
-              method === 'mkdir-index'
-          )
-          .map(async function([method, fullpath, oid, mode, chmod]) {
-            const filepath = `${dir}/${fullpath}`;
-            try {
-              if (method !== 'create-index' && method !== 'mkdir-index') {
-                const { object } = await _readObject({ fs, cache, gitdir, oid });
-                if (chmod) {
-                  // Note: the mode option of fs.write only works when creating files,
-                  // not updating them. Since the `fs` plugin doesn't expose `chmod` this
-                  // is our only option.
-                  await fs.rm(filepath);
-                }
-                if (mode === 0o100644) {
-                  // regular file
-                  await fs.write(filepath, object);
-                } else if (mode === 0o100755) {
-                  // executable file
-                  await fs.write(filepath, object, { mode: 0o777 });
-                } else if (mode === 0o120000) {
-                  // symlink
-                  await fs.writelink(filepath, object);
-                } else {
-                  throw new InternalError(
-                    `Invalid mode 0o${mode.toString(8)} detected in blob ${oid}`
-                  )
-                }
-              }
-
-              const stats = await fs.lstat(filepath);
-              // We can't trust the executable bit returned by lstat on Windows,
-              // so we need to preserve this value from the TREE.
-              // TODO: Figure out how git handles this internally.
-              if (mode === 0o100755) {
-                stats.mode = 0o755;
-              }
-              // Submodules are present in the git index but use a unique mode different from trees
-              if (method === 'mkdir-index') {
-                stats.mode = 0o160000;
-              }
-              index.insert({
-                filepath: fullpath,
-                stats,
-                oid,
-              });
-              if (onProgress) {
-                await onProgress({
-                  phase: 'Updating workdir',
-                  loaded: ++count,
-                  total,
-                });
-              }
-            } catch (e) {
-              console.log(e);
-            }
-          })
+    if (nonBlocking) {
+      // Filter eligible operations first
+      const eligibleOps = ops.filter(
+        ([method]) =>
+          method === 'create' ||
+          method === 'create-index' ||
+          method === 'update' ||
+          method === 'mkdir-index'
       );
-    });
+
+      const updateWorkingDirResults = await batchAllSettled(
+        'Update Working Dir',
+        eligibleOps.map(([method, fullpath, oid, mode, chmod]) => () =>
+          updateWorkingDir({ fs, cache, gitdir, dir }, [
+            method,
+            fullpath,
+            oid,
+            mode,
+            chmod,
+          ])
+        ),
+        onProgress,
+        batchSize
+      );
+
+      await GitIndexManager.acquire(
+        { fs, gitdir, cache, allowUnmerged: true },
+        async function(index) {
+          await batchAllSettled(
+            'Update Index',
+            updateWorkingDirResults.map(([fullpath, oid, stats]) => () =>
+              updateIndex({ index, fullpath, oid, stats })
+            ),
+            onProgress,
+            batchSize
+          );
+        }
+      );
+    } else {
+      await GitIndexManager.acquire(
+        { fs, gitdir, cache, allowUnmerged: true },
+        async function(index) {
+          await Promise.all(
+            ops
+              .filter(
+                ([method]) =>
+                  method === 'create' ||
+                  method === 'create-index' ||
+                  method === 'update' ||
+                  method === 'mkdir-index'
+              )
+              .map(async function([method, fullpath, oid, mode, chmod]) {
+                const filepath = `${dir}/${fullpath}`;
+                try {
+                  if (method !== 'create-index' && method !== 'mkdir-index') {
+                    const { object } = await _readObject({
+                      fs,
+                      cache,
+                      gitdir,
+                      oid,
+                    });
+                    if (chmod) {
+                      // Note: the mode option of fs.write only works when creating files,
+                      // not updating them. Since the `fs` plugin doesn't expose `chmod` this
+                      // is our only option.
+                      await fs.rm(filepath);
+                    }
+                    if (mode === 0o100644) {
+                      // regular file
+                      await fs.write(filepath, object);
+                    } else if (mode === 0o100755) {
+                      // executable file
+                      await fs.write(filepath, object, { mode: 0o777 });
+                    } else if (mode === 0o120000) {
+                      // symlink
+                      await fs.writelink(filepath, object);
+                    } else {
+                      throw new InternalError(
+                        `Invalid mode 0o${mode.toString(
+                          8
+                        )} detected in blob ${oid}`
+                      )
+                    }
+                  }
+
+                  const stats = await fs.lstat(filepath);
+                  // We can't trust the executable bit returned by lstat on Windows,
+                  // so we need to preserve this value from the TREE.
+                  // TODO: Figure out how git handles this internally.
+                  if (mode === 0o100755) {
+                    stats.mode = 0o755;
+                  }
+                  // Submodules are present in the git index but use a unique mode different from trees
+                  if (method === 'mkdir-index') {
+                    stats.mode = 0o160000;
+                  }
+                  index.insert({
+                    filepath: fullpath,
+                    stats,
+                    oid,
+                  });
+                  if (onProgress) {
+                    await onProgress({
+                      phase: 'Updating workdir',
+                      loaded: ++count,
+                      total,
+                    });
+                  }
+                } catch (e) {
+                  console.log(e);
+                }
+              })
+          );
+        }
+      );
+    }
 
     if (onPostCheckout) {
       await onPostCheckout({
@@ -61070,7 +61124,7 @@ async function analyze({
         case '101': {
           switch (await stage.type()) {
             case 'tree': {
-              return ['rmdir', fullpath]
+              return ['rmdir-index', fullpath]
             }
             case 'blob': {
               // Git checks that the workdir.oid === stage.oid before deleting file
@@ -61209,6 +61263,78 @@ async function analyze({
   })
 }
 
+async function updateIndex({ index, fullpath, stats, oid }) {
+  try {
+    index.insert({
+      filepath: fullpath,
+      stats,
+      oid,
+    });
+  } catch (e) {
+    console.warn(`Error inserting ${fullpath} into index:`, e);
+  }
+}
+async function updateWorkingDir(
+  { fs, cache, gitdir, dir },
+  [method, fullpath, oid, mode, chmod]
+) {
+  const filepath = `${dir}/${fullpath}`;
+  if (method !== 'create-index' && method !== 'mkdir-index') {
+    const { object } = await _readObject({ fs, cache, gitdir, oid });
+    if (chmod) {
+      await fs.rm(filepath);
+    }
+    if (mode === 0o100644) {
+      // regular file
+      await fs.write(filepath, object);
+    } else if (mode === 0o100755) {
+      // executable file
+      await fs.write(filepath, object, { mode: 0o777 });
+    } else if (mode === 0o120000) {
+      // symlink
+      await fs.writelink(filepath, object);
+    } else {
+      throw new InternalError(
+        `Invalid mode 0o${mode.toString(8)} detected in blob ${oid}`
+      )
+    }
+  }
+  const stats = await fs.lstat(filepath);
+  if (mode === 0o100755) {
+    stats.mode = 0o755;
+  }
+  if (method === 'mkdir-index') {
+    stats.mode = 0o160000;
+  }
+  return [fullpath, oid, stats]
+}
+
+async function batchAllSettled(operationName, tasks, onProgress, batchSize) {
+  const results = [];
+  try {
+    for (let i = 0; i < tasks.length; i += batchSize) {
+      const batch = tasks.slice(i, i + batchSize).map(task => task());
+      const batchResults = await Promise.allSettled(batch);
+      batchResults.forEach(result => {
+        if (result.status === 'fulfilled') results.push(result.value);
+      });
+      if (onProgress) {
+        await onProgress({
+          phase: 'Updating workdir',
+          loaded: i + batch.length,
+          total: tasks.length,
+        });
+      }
+    }
+
+    return results
+  } catch (error) {
+    console.error(`Error during ${operationName}: ${error}`);
+  }
+
+  return results
+}
+
 // @ts-check
 
 /**
@@ -61231,6 +61357,8 @@ async function analyze({
  * @param {boolean} [args.force = false] - If true, conflicts will be ignored and files will be overwritten regardless of local changes.
  * @param {boolean} [args.track = true] - If false, will not set the remote branch tracking information. Defaults to true.
  * @param {object} [args.cache] - a [cache](cache.md) object
+ * @param {boolean} [args.nonBlocking = false] - If true, will use non-blocking file system operations to allow for better performance in certain environments (For example, in Browsers)
+ * @param {number} [args.batchSize = 100] - If args.nonBlocking is true, batchSize is the number of files to process at a time avoid blocking the executing thread. The default value of 100 is a good starting point.
  *
  * @returns {Promise<void>} Resolves successfully when filesystem operations are complete
  *
@@ -61280,6 +61408,8 @@ async function checkout({
   force = false,
   track = true,
   cache = {},
+  nonBlocking = false,
+  batchSize = 100,
 }) {
   try {
     assertParameter('fs', fs);
@@ -61302,6 +61432,8 @@ async function checkout({
       dryRun,
       force,
       track,
+      nonBlocking,
+      batchSize,
     })
   } catch (err) {
     err.caller = 'git.checkout';
@@ -61988,8 +62120,8 @@ function filterCapabilities(server, client) {
 
 const pkg = {
   name: 'isomorphic-git',
-  version: '1.30.2',
-  agent: 'git/isomorphic-git@1.30.2',
+  version: '1.32.1',
+  agent: 'git/isomorphic-git@1.32.1',
 };
 
 class FIFO {
@@ -62744,6 +62876,8 @@ async function _init({
  * @param {string[]} args.exclude
  * @param {boolean} args.relative
  * @param {Object<string, string>} args.headers
+ * @param {boolean} [args.nonBlocking]
+ * @param {number} [args.batchSize]
  *
  * @returns {Promise<void>} Resolves successfully when clone completes
  *
@@ -62772,6 +62906,8 @@ async function _clone({
   noCheckout,
   noTags,
   headers,
+  nonBlocking,
+  batchSize = 100,
 }) {
   try {
     await _init({ fs, gitdir });
@@ -62816,6 +62952,8 @@ async function _clone({
       ref,
       remote,
       noCheckout,
+      nonBlocking,
+      batchSize,
     });
   } catch (err) {
     // Remove partial local repository, see #1283
@@ -62857,6 +62995,8 @@ async function _clone({
  * @param {boolean} [args.relative = false] - Changes the meaning of `depth` to be measured from the current shallow depth rather than from the branch tip.
  * @param {Object<string, string>} [args.headers = {}] - Additional headers to include in HTTP requests, similar to git's `extraHeader` config
  * @param {object} [args.cache] - a [cache](cache.md) object
+ * @param {boolean} [args.nonBlocking = false] - if true, checkout will happen non-blockingly (useful for long-running operations blocking the thread in browser environments)
+ * @param {number} [args.batchSize = 100] - If args.nonBlocking is true, batchSize is the number of files to process at a time avoid blocking the executing thread. The default value of 100 is a good starting point.
  *
  * @returns {Promise<void>} Resolves successfully when clone completes
  *
@@ -62897,6 +63037,8 @@ async function clone({
   noTags = false,
   headers = {},
   cache = {},
+  nonBlocking = false,
+  batchSize = 100,
 }) {
   try {
     assertParameter('fs', fs);
@@ -62931,6 +63073,8 @@ async function clone({
       noCheckout,
       noTags,
       headers,
+      nonBlocking,
+      batchSize,
     })
   } catch (err) {
     err.caller = 'git.clone';
@@ -63637,13 +63781,26 @@ async function mergeTree({
             : undefined
         }
         case 'true-true': {
-          // Modifications
+          // Handle tree-tree merges (directories)
           if (
             ours &&
-            base &&
+            theirs &&
+            (await ours.type()) === 'tree' &&
+            (await theirs.type()) === 'tree'
+          ) {
+            return {
+              mode: await ours.mode(),
+              path,
+              oid: await ours.oid(),
+              type: 'tree',
+            }
+          }
+
+          // Modifications - both are blobs
+          if (
+            ours &&
             theirs &&
             (await ours.type()) === 'blob' &&
-            (await base.type()) === 'blob' &&
             (await theirs.type()) === 'blob'
           ) {
             return mergeBlobs({
@@ -63662,13 +63819,18 @@ async function mergeTree({
                 unmergedFiles.push(filepath);
                 bothModified.push(filepath);
                 if (!abortOnConflict) {
-                  const baseOid = await base.oid();
+                  let baseOid = '';
+                  if (base && (await base.type()) === 'blob') {
+                    baseOid = await base.oid();
+                  }
                   const ourOid = await ours.oid();
                   const theirOid = await theirs.oid();
 
                   index.delete({ filepath });
 
-                  index.insert({ filepath, oid: baseOid, stage: 1 });
+                  if (baseOid) {
+                    index.insert({ filepath, oid: baseOid, stage: 1 });
+                  }
                   index.insert({ filepath, oid: ourOid, stage: 2 });
                   index.insert({ filepath, oid: theirOid, stage: 3 });
                 }
@@ -63736,7 +63898,12 @@ async function mergeTree({
           }
 
           // deleted by both
-          if (base && !ours && !theirs && (await base.type()) === 'blob') {
+          if (
+            base &&
+            !ours &&
+            !theirs &&
+            ((await base.type()) === 'blob' || (await base.type()) === 'tree')
+          ) {
             return undefined
           }
 
@@ -63760,9 +63927,19 @@ async function mergeTree({
             if (!parent) return
 
             // automatically delete directories if they have been emptied
-            if (parent && parent.type === 'tree' && entries.length === 0) return
+            // except for the root directory
+            if (
+              parent &&
+              parent.type === 'tree' &&
+              entries.length === 0 &&
+              parent.path !== '.'
+            )
+              return
 
-            if (entries.length > 0) {
+            if (
+              entries.length > 0 ||
+              (parent.path === '.' && entries.length === 0)
+            ) {
               const tree = new GitTree(entries);
               const object = tree.toObject();
               const oid = await _writeObject({
@@ -63840,10 +64017,16 @@ async function mergeBlobs({
   const type = 'blob';
   // Compute the new mode.
   // Since there are ONLY two valid blob modes ('100755' and '100644') it boils down to this
+  let baseMode = '100755';
+  let baseOid = '';
+  let baseContent = '';
+  if (base && (await base.type()) === 'blob') {
+    baseMode = await base.mode();
+    baseOid = await base.oid();
+    baseContent = Buffer.from(await base.content()).toString('utf8');
+  }
   const mode =
-    (await base.mode()) === (await ours.mode())
-      ? await theirs.mode()
-      : await ours.mode();
+    baseMode === (await ours.mode()) ? await theirs.mode() : await ours.mode();
   // The trivial case: nothing to merge except maybe mode
   if ((await ours.oid()) === (await theirs.oid())) {
     return {
@@ -63852,13 +64035,13 @@ async function mergeBlobs({
     }
   }
   // if only one side made oid changes, return that side's oid
-  if ((await ours.oid()) === (await base.oid())) {
+  if ((await ours.oid()) === baseOid) {
     return {
       cleanMerge: true,
       mergeResult: { mode, path, oid: await theirs.oid(), type },
     }
   }
-  if ((await theirs.oid()) === (await base.oid())) {
+  if ((await theirs.oid()) === baseOid) {
     return {
       cleanMerge: true,
       mergeResult: { mode, path, oid: await ours.oid(), type },
@@ -63866,7 +64049,6 @@ async function mergeBlobs({
   }
   // if both sides made changes do a merge
   const ourContent = Buffer.from(await ours.content()).toString('utf8');
-  const baseContent = Buffer.from(await base.content()).toString('utf8');
   const theirContent = Buffer.from(await theirs.content()).toString('utf8');
   const { mergedText, cleanMerge } = await mergeDriver({
     branches: [baseName, ourName, theirName],
@@ -63924,6 +64106,7 @@ async function mergeBlobs({
  * @param {string} [args.signingKey]
  * @param {SignCallback} [args.onSign] - a PGP signing implementation
  * @param {MergeDriverCallback} [args.mergeDriver]
+ * @param {boolean} args.allowUnrelatedHistories
  *
  * @returns {Promise<MergeResult>} Resolves to a description of the merge operation
  *
@@ -63946,6 +64129,7 @@ async function _merge({
   signingKey,
   onSign,
   mergeDriver,
+  allowUnrelatedHistories = false,
 }) {
   if (ours === undefined) {
     ours = await _currentBranch({ fs, gitdir, fullname: true });
@@ -63978,8 +64162,13 @@ async function _merge({
     oids: [ourOid, theirOid],
   });
   if (baseOids.length !== 1) {
-    // TODO: Recursive Merge strategy
-    throw new MergeNotSupportedError()
+    if (baseOids.length === 0 && allowUnrelatedHistories) {
+      // 4b825…  == the empty tree used by git
+      baseOids.push('4b825dc642cb6eb9a060e54bf8d69288fbee4904');
+    } else {
+      // TODO: Recursive Merge strategy
+      throw new MergeNotSupportedError()
+    }
   }
   const baseOid = baseOids[0];
   // handle fast-forward case
@@ -64026,7 +64215,7 @@ async function _merge({
     );
 
     // Defer throwing error until the index lock is relinquished and index is
-    // written to filsesystem
+    // written to filesystem
     if (tree instanceof MergeConflictError) throw tree
 
     if (!message) {
@@ -66202,6 +66391,7 @@ async function log({
  * @param {string} [args.signingKey] - passed to [commit](commit.md) when creating a merge commit
  * @param {object} [args.cache] - a [cache](cache.md) object
  * @param {MergeDriverCallback} [args.mergeDriver] - a [merge driver](mergeDriver.md) implementation
+ * @param {boolean} [args.allowUnrelatedHistories = false] - If true, allows merging histories of two branches that started their lives independently.
  *
  * @returns {Promise<MergeResult>} Resolves to a description of the merge operation
  * @see MergeResult
@@ -66234,6 +66424,7 @@ async function merge({
   signingKey,
   cache = {},
   mergeDriver,
+  allowUnrelatedHistories = false,
 }) {
   try {
     assertParameter('fs', _fs);
@@ -66275,6 +66466,7 @@ async function merge({
       signingKey,
       onSign,
       mergeDriver,
+      allowUnrelatedHistories,
     })
   } catch (err) {
     err.caller = 'git.merge';
@@ -69641,7 +69833,7 @@ async function tag({
  *   oid
  * })
  */
-async function updateIndex({
+async function updateIndex$1({
   fs: _fs,
   dir,
   gitdir = pathBrowserify.join(dir, '.git'),
@@ -70511,7 +70703,7 @@ var index = {
   removeNote,
   renameBranch,
   resetIndex,
-  updateIndex,
+  updateIndex: updateIndex$1,
   resolveRef,
   status,
   statusMatrix,
@@ -70589,7 +70781,7 @@ exports.stash = stash;
 exports.status = status;
 exports.statusMatrix = statusMatrix;
 exports.tag = tag;
-exports.updateIndex = updateIndex;
+exports.updateIndex = updateIndex$1;
 exports.version = version;
 exports.walk = walk;
 exports.writeBlob = writeBlob;
