@@ -62120,8 +62120,8 @@ function filterCapabilities(server, client) {
 
 const pkg = {
   name: 'isomorphic-git',
-  version: '1.32.1',
-  agent: 'git/isomorphic-git@1.32.1',
+  version: '1.32.2',
+  agent: 'git/isomorphic-git@1.32.2',
 };
 
 class FIFO {
