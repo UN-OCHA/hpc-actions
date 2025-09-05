@@ -18743,7 +18743,7 @@ exports.getEq = getEq;
  */
 var getOrd = function (O) { return ({
     equals: (0, exports.getEq)(O).equals,
-    compare: function (x, y) { return (x === y ? 0 : (0, exports.isSome)(x) ? ((0, exports.isSome)(y) ? O.compare(x.value, y.value) : 1) : -1); }
+    compare: function (x, y) { return (x === y ? 0 : (0, exports.isSome)(x) ? ((0, exports.isSome)(y) ? O.compare(x.value, y.value) : 1) : (0, exports.isSome)(y) ? -1 : 0); }
 }); };
 exports.getOrd = getOrd;
 /**
