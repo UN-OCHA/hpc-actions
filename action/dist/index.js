@@ -56789,7 +56789,7 @@ async function testSubtleSHA1() {
   // some browsers that have crypto.subtle.digest don't actually implement SHA-1.
   try {
     const hash = await subtleSHA1(new Uint8Array([]));
-    if (hash === 'da39a3ee5e6b4b0d3255bfef95601890afd80709') return true
+    return hash === 'da39a3ee5e6b4b0d3255bfef95601890afd80709'
   } catch (_) {
     // no bother
   }
@@ -57107,8 +57107,6 @@ function compareStats(entry, stats, filemode = true, trustino = true) {
   return staleness
 }
 
-// import LockManager from 'travix-lock-manager'
-
 // import Lock from '../utils.js'
 
 // const lm = new LockManager()
@@ -57116,6 +57114,10 @@ let lock = null;
 
 const IndexCache = Symbol('IndexCache');
 
+/**
+ * Creates a cache object to store GitIndex and file stats.
+ * @returns {object} A cache object with `map` and `stats` properties.
+ */
 function createCache() {
   return {
     map: new Map(),
@@ -57123,6 +57125,13 @@ function createCache() {
   }
 }
 
+/**
+ * Updates the cached index file by reading the file system and parsing the Git index.
+ * @param {FSClient} fs - A file system implementation.
+ * @param {string} filepath - The path to the Git index file.
+ * @param {object} cache - The cache object to update.
+ * @returns {Promise<void>}
+ */
 async function updateCachedIndexFile(fs, filepath, cache) {
   const [stat, rawIndexFile] = await Promise.all([
     fs.lstat(filepath),
@@ -57136,7 +57145,13 @@ async function updateCachedIndexFile(fs, filepath, cache) {
   cache.stats.set(filepath, stat);
 }
 
-// Determine whether our copy of the index file is stale
+/**
+ * Determines whether the cached index file is stale by comparing file stats.
+ * @param {FSClient} fs - A file system implementation.
+ * @param {string} filepath - The path to the Git index file.
+ * @param {object} cache - The cache object containing file stats.
+ * @returns {Promise<boolean>} `true` if the index file is stale, otherwise `false`.
+ */
 async function isIndexStale(fs, filepath, cache) {
   const savedStats = cache.stats.get(filepath);
   if (savedStats === undefined) return true
@@ -57149,13 +57164,16 @@ async function isIndexStale(fs, filepath, cache) {
 
 class GitIndexManager {
   /**
+   * Manages access to the Git index file, ensuring thread-safe operations and caching.
    *
-   * @param {object} opts
-   * @param {import('../models/FileSystem.js').FileSystem} opts.fs
-   * @param {string} opts.gitdir
-   * @param {object} opts.cache
-   * @param {bool} opts.allowUnmerged
-   * @param {function(GitIndex): any} closure
+   * @param {object} opts - Options for acquiring the Git index.
+   * @param {FSClient} opts.fs - A file system implementation.
+   * @param {string} opts.gitdir - The path to the `.git` directory.
+   * @param {object} opts.cache - A shared cache object for storing index data.
+   * @param {boolean} [opts.allowUnmerged=true] - Whether to allow unmerged paths in the index.
+   * @param {function(GitIndex): any} closure - A function to execute with the Git index.
+   * @returns {Promise<any>} The result of the closure function.
+   * @throws {UnmergedPathsError} If unmerged paths exist and `allowUnmerged` is `false`.
    */
   static async acquire({ fs, gitdir, cache, allowUnmerged = true }, closure) {
     if (!cache[IndexCache]) {
@@ -57936,7 +57954,18 @@ class GitConfig {
   }
 }
 
+/**
+ * Manages access to the Git configuration file, providing methods to read and save configurations.
+ */
 class GitConfigManager {
+  /**
+   * Reads the Git configuration file from the specified `.git` directory.
+   *
+   * @param {object} opts - Options for reading the Git configuration.
+   * @param {FSClient} opts.fs - A file system implementation.
+   * @param {string} opts.gitdir - The path to the `.git` directory.
+   * @returns {Promise<GitConfig>} A `GitConfig` object representing the parsed configuration.
+   */
   static async get({ fs, gitdir }) {
     // We can improve efficiency later if needed.
     // TODO: read from full list of git config files
@@ -57944,6 +57973,15 @@ class GitConfigManager {
     return GitConfig.from(text)
   }
 
+  /**
+   * Saves the provided Git configuration to the specified `.git` directory.
+   *
+   * @param {object} opts - Options for saving the Git configuration.
+   * @param {FSClient} opts.fs - A file system implementation.
+   * @param {string} opts.gitdir - The path to the `.git` directory.
+   * @param {GitConfig} opts.config - The `GitConfig` object to save.
+   * @returns {Promise<void>} Resolves when the configuration has been successfully saved.
+   */
   static async save({ fs, gitdir, config }) {
     // We can improve efficiency later if needed.
     // TODO: handle saving to the correct global/user/repo location
@@ -57952,8 +57990,6 @@ class GitConfigManager {
     });
   }
 }
-
-// This is a convenience wrapper for reading and writing files in the 'refs' directory.
 
 // @see https://git-scm.com/docs/git-rev-parse.html#_specifying_revisions
 const refpaths = ref => [
@@ -57975,7 +58011,25 @@ async function acquireLock(ref, callback) {
   return lock$1.acquire(ref, callback)
 }
 
+/**
+ * A class for managing Git references, including reading, writing, deleting, and resolving refs.
+ */
 class GitRefManager {
+  /**
+   * Updates remote refs based on the provided refspecs and options.
+   *
+   * @param {Object} args
+   * @param {FSClient} args.fs - A file system implementation.
+   * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
+   * @param {string} args.remote - The name of the remote.
+   * @param {Map<string, string>} args.refs - A map of refs to their object IDs.
+   * @param {Map<string, string>} args.symrefs - A map of symbolic refs.
+   * @param {boolean} args.tags - Whether to fetch tags.
+   * @param {string[]} [args.refspecs = undefined] - The refspecs to use.
+   * @param {boolean} [args.prune = false] - Whether to prune stale refs.
+   * @param {boolean} [args.pruneTags = false] - Whether to prune tags.
+   * @returns {Promise<Object>} - An object containing pruned refs.
+   */
   static async updateRemoteRefs({
     fs,
     gitdir,
@@ -58088,6 +58142,16 @@ class GitRefManager {
     return { pruned }
   }
 
+  /**
+   * Writes a ref to the file system.
+   *
+   * @param {Object} args
+   * @param {FSClient} args.fs - A file system implementation.
+   * @param {string} [args.gitdir] - [required] The [git directory](dir-vs-gitdir.md) path
+   * @param {string} args.ref - The ref to write.
+   * @param {string} args.value - The object ID to write.
+   * @returns {Promise<void>}
+   */
   // TODO: make this less crude?
   static async writeRef({ fs, gitdir, ref, value }) {
     // Validate input
@@ -58099,16 +58163,44 @@ class GitRefManager {
     );
   }
 
+  /**
+   * Writes a symbolic ref to the file system.
+   *
+   * @param {Object} args
+   * @param {FSClient} args.fs - A file system implementation.
+   * @param {string} [args.gitdir] - [required] The [git directory](dir-vs-gitdir.md) path
+   * @param {string} args.ref - The ref to write.
+   * @param {string} args.value - The target ref.
+   * @returns {Promise<void>}
+   */
   static async writeSymbolicRef({ fs, gitdir, ref, value }) {
     await acquireLock(ref, async () =>
       fs.write(pathBrowserify.join(gitdir, ref), 'ref: ' + `${value.trim()}\n`, 'utf8')
     );
   }
 
+  /**
+   * Deletes a single ref.
+   *
+   * @param {Object} args
+   * @param {FSClient} args.fs - A file system implementation.
+   * @param {string} [args.gitdir] - [required] The [git directory](dir-vs-gitdir.md) path
+   * @param {string} args.ref - The ref to delete.
+   * @returns {Promise<void>}
+   */
   static async deleteRef({ fs, gitdir, ref }) {
     return GitRefManager.deleteRefs({ fs, gitdir, refs: [ref] })
   }
 
+  /**
+   * Deletes multiple refs.
+   *
+   * @param {Object} args
+   * @param {FSClient} args.fs - A file system implementation.
+   * @param {string} [args.gitdir] - [required] The [git directory](dir-vs-gitdir.md) path
+   * @param {string[]} args.refs - The refs to delete.
+   * @returns {Promise<void>}
+   */
   static async deleteRefs({ fs, gitdir, refs }) {
     // Delete regular ref
     await Promise.all(refs.map(ref => fs.rm(pathBrowserify.join(gitdir, ref))));
@@ -58132,12 +58224,14 @@ class GitRefManager {
   }
 
   /**
-   * @param {object} args
-   * @param {import('../models/FileSystem.js').FileSystem} args.fs
-   * @param {string} args.gitdir
-   * @param {string} args.ref
-   * @param {number} [args.depth]
-   * @returns {Promise<string>}
+   * Resolves a ref to its object ID.
+   *
+   * @param {Object} args
+   * @param {FSClient} args.fs - A file system implementation.
+   * @param {string} [args.gitdir] - [required] The [git directory](dir-vs-gitdir.md) path
+   * @param {string} args.ref - The ref to resolve.
+   * @param {number} [args.depth = undefined] - The maximum depth to resolve symbolic refs.
+   * @returns {Promise<string>} - The resolved object ID.
    */
   static async resolve({ fs, gitdir, ref, depth = undefined }) {
     if (depth !== undefined) {
@@ -58176,6 +58270,15 @@ class GitRefManager {
     throw new NotFoundError(ref)
   }
 
+  /**
+   * Checks if a ref exists.
+   *
+   * @param {Object} args
+   * @param {FSClient} args.fs - A file system implementation.
+   * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
+   * @param {string} args.ref - The ref to check.
+   * @returns {Promise<boolean>} - True if the ref exists, false otherwise.
+   */
   static async exists({ fs, gitdir, ref }) {
     try {
       await GitRefManager.expand({ fs, gitdir, ref });
@@ -58185,6 +58288,15 @@ class GitRefManager {
     }
   }
 
+  /**
+   * Expands a ref to its full name.
+   *
+   * @param {Object} args
+   * @param {FSClient} args.fs - A file system implementation.
+   * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
+   * @param {string} args.ref - The ref to expand.
+   * @returns {Promise<string>} - The full ref name.
+   */
   static async expand({ fs, gitdir, ref }) {
     // Is it a complete and valid SHA?
     if (ref.length === 40 && /[0-9a-f]{40}/.test(ref)) {
@@ -58205,6 +58317,14 @@ class GitRefManager {
     throw new NotFoundError(ref)
   }
 
+  /**
+   * Expands a ref against a provided map.
+   *
+   * @param {Object} args
+   * @param {string} args.ref - The ref to expand.
+   * @param {Map<string, string>} args.map - The map of refs.
+   * @returns {Promise<string>} - The expanded ref.
+   */
   static async expandAgainstMap({ ref, map }) {
     // Look in all the proper paths, in this order
     const allpaths = refpaths(ref);
@@ -58215,6 +58335,16 @@ class GitRefManager {
     throw new NotFoundError(ref)
   }
 
+  /**
+   * Resolves a ref against a provided map.
+   *
+   * @param {Object} args
+   * @param {string} args.ref - The ref to resolve.
+   * @param {string} [args.fullref = args.ref] - The full ref name.
+   * @param {number} [args.depth = undefined] - The maximum depth to resolve symbolic refs.
+   * @param {Map<string, string>} args.map - The map of refs.
+   * @returns {Object} - An object containing the full ref and its object ID.
+   */
   static resolveAgainstMap({ ref, fullref = ref, depth = undefined, map }) {
     if (depth !== undefined) {
       depth--;
@@ -58248,6 +58378,14 @@ class GitRefManager {
     throw new NotFoundError(ref)
   }
 
+  /**
+   * Reads the packed refs file and returns a map of refs.
+   *
+   * @param {Object} args
+   * @param {FSClient} args.fs - A file system implementation.
+   * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
+   * @returns {Promise<Map<string, string>>} - A map of packed refs.
+   */
   static async packedRefs({ fs, gitdir }) {
     const text = await acquireLock('packed-refs', async () =>
       fs.read(`${gitdir}/packed-refs`, { encoding: 'utf8' })
@@ -58256,7 +58394,15 @@ class GitRefManager {
     return packed.refs
   }
 
-  // List all the refs that match the `filepath` prefix
+  /**
+   * Lists all refs matching a given filepath prefix.
+   *
+   * @param {Object} args
+   * @param {FSClient} args.fs - A file system implementation.
+   * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
+   * @param {string} args.filepath - The filepath prefix to match.
+   * @returns {Promise<string[]>} - A sorted list of refs.
+   */
   static async listRefs({ fs, gitdir, filepath }) {
     const packedMap = GitRefManager.packedRefs({ fs, gitdir });
     let files = null;
@@ -58283,6 +58429,15 @@ class GitRefManager {
     return files
   }
 
+  /**
+   * Lists all branches, optionally filtered by remote.
+   *
+   * @param {Object} args
+   * @param {FSClient} args.fs - A file system implementation.
+   * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
+   * @param {string} [args.remote] - The remote to filter branches by.
+   * @returns {Promise<string[]>} - A list of branch names.
+   */
   static async listBranches({ fs, gitdir, remote }) {
     if (remote) {
       return GitRefManager.listRefs({
@@ -58295,6 +58450,14 @@ class GitRefManager {
     }
   }
 
+  /**
+   * Lists all tags.
+   *
+   * @param {Object} args
+   * @param {FSClient} args.fs - A file system implementation.
+   * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
+   * @returns {Promise<string[]>} - A list of tag names.
+   */
   static async listTags({ fs, gitdir }) {
     const tags = await GitRefManager.listRefs({
       fs,
@@ -58446,14 +58609,41 @@ class GitTree {
   }
 }
 
+/**
+ * Represents a Git object and provides methods to wrap and unwrap Git objects
+ * according to the Git object format.
+ */
 class GitObject {
+  /**
+   * Wraps a raw object with a Git header.
+   *
+   * @param {Object} params - The parameters for wrapping.
+   * @param {string} params.type - The type of the Git object (e.g., 'blob', 'tree', 'commit').
+   * @param {Uint8Array} params.object - The raw object data to wrap.
+   * @returns {Uint8Array} The wrapped Git object as a single buffer.
+   */
   static wrap({ type, object }) {
-    return Buffer.concat([
-      Buffer.from(`${type} ${object.byteLength.toString()}\x00`),
-      Buffer.from(object),
-    ])
+    const header = `${type} ${object.length}\x00`;
+    const headerLen = header.length;
+    const totalLength = headerLen + object.length;
+
+    // Allocate a single buffer for the header and object, rather than create multiple buffers
+    const wrappedObject = new Uint8Array(totalLength);
+    for (let i = 0; i < headerLen; i++) {
+      wrappedObject[i] = header.charCodeAt(i);
+    }
+    wrappedObject.set(object, headerLen);
+
+    return wrappedObject
   }
 
+  /**
+   * Unwraps a Git object buffer into its type and raw object data.
+   *
+   * @param {Buffer|Uint8Array} buffer - The buffer containing the wrapped Git object.
+   * @returns {{ type: string, object: Buffer }} An object containing the type and the raw object data.
+   * @throws {InternalError} If the length specified in the header does not match the actual object length.
+   */
   static unwrap(buffer) {
     const s = buffer.indexOf(32); // first space
     const i = buffer.indexOf(0); // first null value
@@ -60728,9 +60918,15 @@ function bindFs(target, fs) {
 }
 
 /**
- * This is just a collection of helper functions really. At least that's how it started.
+ * A wrapper class for file system operations, providing a consistent API for both promise-based
+ * and callback-based file systems. It includes utility methods for common file system tasks.
  */
 class FileSystem {
+  /**
+   * Creates an instance of FileSystem.
+   *
+   * @param {Object} fs - A file system implementation to wrap.
+   */
   constructor(fs) {
     if (typeof fs._original_unwrapped_fs !== 'undefined') return fs
 
@@ -60746,6 +60942,10 @@ class FileSystem {
   /**
    * Return true if a file exists, false if it doesn't exist.
    * Rethrows errors that aren't related to file existence.
+   *
+   * @param {string} filepath - The path to the file.
+   * @param {Object} [options] - Additional options.
+   * @returns {Promise<boolean>} - `true` if the file exists, `false` otherwise.
    */
   async exists(filepath, options = {}) {
     try {
@@ -60768,10 +60968,9 @@ class FileSystem {
   /**
    * Return the contents of a file if it exists, otherwise returns null.
    *
-   * @param {string} filepath
-   * @param {object} [options]
-   *
-   * @returns {Promise<Buffer|string|null>}
+   * @param {string} filepath - The path to the file.
+   * @param {Object} [options] - Options for reading the file.
+   * @returns {Promise<Buffer|string|null>} - The file contents, or `null` if the file doesn't exist.
    */
   async read(filepath, options = {}) {
     try {
@@ -60798,9 +60997,10 @@ class FileSystem {
   /**
    * Write a file (creating missing directories if need be) without throwing errors.
    *
-   * @param {string} filepath
-   * @param {Buffer|Uint8Array|string} contents
-   * @param {object|string} [options]
+   * @param {string} filepath - The path to the file.
+   * @param {Buffer|Uint8Array|string} contents - The data to write.
+   * @param {Object|string} [options] - Options for writing the file.
+   * @returns {Promise<void>}
    */
   async write(filepath, contents, options = {}) {
     try {
@@ -60815,6 +61015,10 @@ class FileSystem {
 
   /**
    * Make a directory (or series of nested directories) without throwing an error if it already exists.
+   *
+   * @param {string} filepath - The path to the directory.
+   * @param {boolean} [_selfCall=false] - Internal flag to prevent infinite recursion.
+   * @returns {Promise<void>}
    */
   async mkdir(filepath, _selfCall = false) {
     try {
@@ -60841,6 +61045,9 @@ class FileSystem {
 
   /**
    * Delete a file without throwing an error if it is already deleted.
+   *
+   * @param {string} filepath - The path to the file.
+   * @returns {Promise<void>}
    */
   async rm(filepath) {
     try {
@@ -60852,6 +61059,10 @@ class FileSystem {
 
   /**
    * Delete a directory without throwing an error if it is already deleted.
+   *
+   * @param {string} filepath - The path to the directory.
+   * @param {Object} [opts] - Options for deleting the directory.
+   * @returns {Promise<void>}
    */
   async rmdir(filepath, opts) {
     try {
@@ -60867,6 +61078,9 @@ class FileSystem {
 
   /**
    * Read a directory without throwing an error is the directory doesn't exist
+   *
+   * @param {string} filepath - The path to the directory.
+   * @returns {Promise<string[]|null>} - An array of file names, or `null` if the path is not a directory.
    */
   async readdir(filepath) {
     try {
@@ -60882,10 +61096,13 @@ class FileSystem {
   }
 
   /**
-   * Return a flast list of all the files nested inside a directory
+   * Return a flat list of all the files nested inside a directory
    *
    * Based on an elegant concurrent recursive solution from SO
    * https://stackoverflow.com/a/45130990/2168416
+   *
+   * @param {string} dir - The directory to read.
+   * @returns {Promise<string[]>} - A flat list of all files in the directory.
    */
   async readdirDeep(dir) {
     const subdirs = await this._readdir(dir);
@@ -60903,6 +61120,9 @@ class FileSystem {
   /**
    * Return the Stats of a file/symlink if it exists, otherwise returns null.
    * Rethrows errors that aren't related to file existence.
+   *
+   * @param {string} filename - The path to the file or symlink.
+   * @returns {Promise<Object|null>} - The stats object, or `null` if the file doesn't exist.
    */
   async lstat(filename) {
     try {
@@ -60919,6 +61139,10 @@ class FileSystem {
   /**
    * Reads the contents of a symlink if it exists, otherwise returns null.
    * Rethrows errors that aren't related to file existence.
+   *
+   * @param {string} filename - The path to the symlink.
+   * @param {Object} [opts={ encoding: 'buffer' }] - Options for reading the symlink.
+   * @returns {Promise<Buffer|null>} - The symlink target, or `null` if it doesn't exist.
    */
   async readlink(filename, opts = { encoding: 'buffer' }) {
     // Note: FileSystem.readlink returns a buffer by default
@@ -60936,6 +61160,10 @@ class FileSystem {
 
   /**
    * Write the contents of buffer to a symlink.
+   *
+   * @param {string} filename - The path to the symlink.
+   * @param {Buffer} buffer - The symlink target.
+   * @returns {Promise<void>}
    */
   async writelink(filename, buffer) {
     return this._symlink(buffer.toString('utf8'), filename)
@@ -61080,6 +61308,16 @@ async function abortMerge({
 // I'm putting this in a Manager because I reckon it could benefit
 // from a LOT of caching.
 class GitIgnoreManager {
+  /**
+   * Determines whether a given file is ignored based on `.gitignore` rules and exclusion files.
+   *
+   * @param {Object} args
+   * @param {FSClient} args.fs - A file system implementation.
+   * @param {string} args.dir - The working directory.
+   * @param {string} [args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
+   * @param {string} args.filepath - The path of the file to check.
+   * @returns {Promise<boolean>} - `true` if the file is ignored, `false` otherwise.
+   */
   static async isIgnored({ fs, dir, gitdir = pathBrowserify.join(dir, '.git'), filepath }) {
     // ALWAYS ignore ".git" folders.
     if (basename(filepath) === '.git') return true
@@ -63587,22 +63825,33 @@ const stringifyBody = async res => {
 };
 
 class GitRemoteHTTP {
+  /**
+   * Returns the capabilities of the GitRemoteHTTP class.
+   *
+   * @returns {Promise<string[]>} - An array of supported capabilities.
+   */
   static async capabilities() {
     return ['discover', 'connect']
   }
 
   /**
+   * Discovers references from a remote Git repository.
+   *
    * @param {Object} args
-   * @param {HttpClient} args.http
-   * @param {ProgressCallback} [args.onProgress]
-   * @param {AuthCallback} [args.onAuth]
-   * @param {AuthFailureCallback} [args.onAuthFailure]
-   * @param {AuthSuccessCallback} [args.onAuthSuccess]
-   * @param {string} [args.corsProxy]
-   * @param {string} args.service
-   * @param {string} args.url
-   * @param {Object<string, string>} args.headers
-   * @param {1 | 2} args.protocolVersion - Git Protocol Version
+   * @param {HttpClient} args.http - The HTTP client to use for requests.
+   * @param {ProgressCallback} [args.onProgress] - Callback for progress updates.
+   * @param {AuthCallback} [args.onAuth] - Callback for providing authentication credentials.
+   * @param {AuthFailureCallback} [args.onAuthFailure] - Callback for handling authentication failures.
+   * @param {AuthSuccessCallback} [args.onAuthSuccess] - Callback for handling successful authentication.
+   * @param {string} [args.corsProxy] - Optional CORS proxy URL.
+   * @param {string} args.service - The Git service (e.g., "git-upload-pack").
+   * @param {string} args.url - The URL of the remote repository.
+   * @param {Object<string, string>} args.headers - HTTP headers to include in the request.
+   * @param {1 | 2} args.protocolVersion - The Git protocol version to use.
+   * @returns {Promise<Object>} - The parsed response from the remote repository.
+   * @throws {HttpError} - If the HTTP request fails.
+   * @throws {SmartHttpError} - If the response cannot be parsed.
+   * @throws {UserCanceledError} - If the user cancels the operation.
    */
   static async discover({
     http,
@@ -63698,15 +63947,19 @@ class GitRemoteHTTP {
   }
 
   /**
+   * Connects to a remote Git repository and sends a request.
+   *
    * @param {Object} args
-   * @param {HttpClient} args.http
-   * @param {ProgressCallback} [args.onProgress]
-   * @param {string} [args.corsProxy]
-   * @param {string} args.service
-   * @param {string} args.url
-   * @param {Object<string, string>} [args.headers]
-   * @param {any} args.body
-   * @param {any} args.auth
+   * @param {HttpClient} args.http - The HTTP client to use for requests.
+   * @param {ProgressCallback} [args.onProgress] - Callback for progress updates.
+   * @param {string} [args.corsProxy] - Optional CORS proxy URL.
+   * @param {string} args.service - The Git service (e.g., "git-upload-pack").
+   * @param {string} args.url - The URL of the remote repository.
+   * @param {Object<string, string>} [args.headers] - HTTP headers to include in the request.
+   * @param {any} args.body - The request body to send.
+   * @param {any} args.auth - Authentication credentials.
+   * @returns {Promise<GitHttpResponse>} - The HTTP response from the remote repository.
+   * @throws {HttpError} - If the HTTP request fails.
    */
   static async connect({
     http,
@@ -63744,6 +63997,47 @@ class GitRemoteHTTP {
   }
 }
 
+/**
+ * A class for managing Git remotes and determining the appropriate remote helper for a given URL.
+ */
+class GitRemoteManager {
+  /**
+   * Determines the appropriate remote helper for the given URL.
+   *
+   * @param {Object} args
+   * @param {string} args.url - The URL of the remote repository.
+   * @returns {Object} - The remote helper class for the specified transport.
+   * @throws {UrlParseError} - If the URL cannot be parsed.
+   * @throws {UnknownTransportError} - If the transport is not supported.
+   */
+  static getRemoteHelperFor({ url }) {
+    // TODO: clean up the remoteHelper API and move into PluginCore
+    const remoteHelpers = new Map();
+    remoteHelpers.set('http', GitRemoteHTTP);
+    remoteHelpers.set('https', GitRemoteHTTP);
+
+    const parts = parseRemoteUrl({ url });
+    if (!parts) {
+      throw new UrlParseError(url)
+    }
+    if (remoteHelpers.has(parts.transport)) {
+      return remoteHelpers.get(parts.transport)
+    }
+    throw new UnknownTransportError(
+      url,
+      parts.transport,
+      parts.transport === 'ssh' ? translateSSHtoHTTP(url) : undefined
+    )
+  }
+}
+
+/**
+ * Parses a remote URL and extracts its transport and address.
+ *
+ * @param {Object} args
+ * @param {string} args.url - The URL of the remote repository.
+ * @returns {Object|undefined} - An object containing the transport and address, or undefined if parsing fails.
+ */
 function parseRemoteUrl({ url }) {
   // the stupid "shorter scp-like syntax"
   if (url.startsWith('git@')) {
@@ -63781,31 +64075,17 @@ function parseRemoteUrl({ url }) {
   }
 }
 
-class GitRemoteManager {
-  static getRemoteHelperFor({ url }) {
-    // TODO: clean up the remoteHelper API and move into PluginCore
-    const remoteHelpers = new Map();
-    remoteHelpers.set('http', GitRemoteHTTP);
-    remoteHelpers.set('https', GitRemoteHTTP);
-
-    const parts = parseRemoteUrl({ url });
-    if (!parts) {
-      throw new UrlParseError(url)
-    }
-    if (remoteHelpers.has(parts.transport)) {
-      return remoteHelpers.get(parts.transport)
-    }
-    throw new UnknownTransportError(
-      url,
-      parts.transport,
-      parts.transport === 'ssh' ? translateSSHtoHTTP(url) : undefined
-    )
-  }
-}
-
 let lock$2 = null;
 
 class GitShallowManager {
+  /**
+   * Reads the `shallow` file in the Git repository and returns a set of object IDs (OIDs).
+   *
+   * @param {Object} args
+   * @param {FSClient} args.fs - A file system implementation.
+   * @param {string} [args.gitdir] - [required] The [git directory](dir-vs-gitdir.md) path
+   * @returns {Promise<Set<string>>} - A set of shallow object IDs.
+   */
   static async read({ fs, gitdir }) {
     if (lock$2 === null) lock$2 = new AsyncLock();
     const filepath = pathBrowserify.join(gitdir, 'shallow');
@@ -63822,6 +64102,16 @@ class GitShallowManager {
     return oids
   }
 
+  /**
+   * Writes a set of object IDs (OIDs) to the `shallow` file in the Git repository.
+   * If the set is empty, the `shallow` file is removed.
+   *
+   * @param {Object} args
+   * @param {FSClient} args.fs - A file system implementation.
+   * @param {string} [args.gitdir] - [required] The [git directory](dir-vs-gitdir.md) path
+   * @param {Set<string>} args.oids - A set of shallow object IDs to write.
+   * @returns {Promise<void>}
+   */
   static async write({ fs, gitdir, oids }) {
     if (lock$2 === null) lock$2 = new AsyncLock();
     const filepath = pathBrowserify.join(gitdir, 'shallow');
@@ -63921,8 +64211,8 @@ function filterCapabilities(server, client) {
 
 const pkg = {
   name: 'isomorphic-git',
-  version: '1.32.2',
-  agent: 'git/isomorphic-git@1.32.2',
+  version: '1.33.1',
+  agent: 'git/isomorphic-git@1.33.1',
 };
 
 class FIFO {
@@ -66897,17 +67187,18 @@ async function hashBlob({ object }) {
     // Convert object to buffer
     if (typeof object === 'string') {
       object = Buffer.from(object, 'utf8');
-    } else {
-      object = Buffer.from(object);
+    } else if (!(object instanceof Uint8Array)) {
+      object = new Uint8Array(object);
     }
 
     const type = 'blob';
     const { oid, object: _object } = await hashObject({
-      type: 'blob',
+      type,
       format: 'content',
       object,
     });
-    return { oid, type, object: new Uint8Array(_object), format: 'wrapped' }
+
+    return { oid, type, object: _object, format: 'wrapped' }
   } catch (err) {
     err.caller = 'git.hashBlob';
     throw err
@@ -70670,6 +70961,14 @@ async function applyTreeChanges({
 }
 
 class GitStashManager {
+  /**
+   * Creates an instance of GitStashManager.
+   *
+   * @param {Object} args
+   * @param {FSClient} args.fs - A file system implementation.
+   * @param {string} args.dir - The working directory.
+   * @param {string}[args.gitdir=join(dir, '.git')] - [required] The [git directory](dir-vs-gitdir.md) path
+   */
   constructor({ fs, dir, gitdir = pathBrowserify.join(dir, '.git') }) {
     Object.assign(this, {
       fs,
@@ -70679,22 +70978,48 @@ class GitStashManager {
     });
   }
 
+  /**
+   * Gets the reference name for the stash.
+   *
+   * @returns {string} - The stash reference name.
+   */
   static get refStash() {
     return 'refs/stash'
   }
 
+  /**
+   * Gets the reference name for the stash reflogs.
+   *
+   * @returns {string} - The stash reflogs reference name.
+   */
   static get refLogsStash() {
     return 'logs/refs/stash'
   }
 
+  /**
+   * Gets the file path for the stash reference.
+   *
+   * @returns {string} - The file path for the stash reference.
+   */
   get refStashPath() {
     return pathBrowserify.join(this.gitdir, GitStashManager.refStash)
   }
 
+  /**
+   * Gets the file path for the stash reflogs.
+   *
+   * @returns {string} - The file path for the stash reflogs.
+   */
   get refLogsStashPath() {
     return pathBrowserify.join(this.gitdir, GitStashManager.refLogsStash)
   }
 
+  /**
+   * Retrieves the author information for the stash.
+   *
+   * @returns {Promise<Object>} - The author object.
+   * @throws {MissingNameError} - If the author name is missing.
+   */
   async getAuthor() {
     if (!this._author) {
       this._author = await normalizeAuthorObject({
@@ -70707,6 +71032,13 @@ class GitStashManager {
     return this._author
   }
 
+  /**
+   * Gets the SHA of a stash entry by its index.
+   *
+   * @param {number} refIdx - The index of the stash entry.
+   * @param {string[]} [stashEntries] - Optional preloaded stash entries.
+   * @returns {Promise<string|null>} - The SHA of the stash entry or `null` if not found.
+   */
   async getStashSHA(refIdx, stashEntries) {
     if (!(await this.fs.exists(this.refStashPath))) {
       return null
@@ -70717,6 +71049,15 @@ class GitStashManager {
     return entries[refIdx].split(' ')[1]
   }
 
+  /**
+   * Writes a stash commit to the repository.
+   *
+   * @param {Object} args
+   * @param {string} args.message - The commit message.
+   * @param {string} args.tree - The tree object ID.
+   * @param {string[]} args.parent - The parent commit object IDs.
+   * @returns {Promise<string>} - The object ID of the written commit.
+   */
   async writeStashCommit({ message, tree, parent }) {
     return _writeCommit({
       fs: this.fs,
@@ -70731,6 +71072,13 @@ class GitStashManager {
     })
   }
 
+  /**
+   * Reads a stash commit by its index.
+   *
+   * @param {number} refIdx - The index of the stash entry.
+   * @returns {Promise<Object>} - The stash commit object.
+   * @throws {InvalidRefNameError} - If the index is invalid.
+   */
   async readStashCommit(refIdx) {
     const stashEntries = await this.readStashReflogs({ parsed: false });
     if (refIdx !== 0) {
@@ -70757,6 +71105,12 @@ class GitStashManager {
     })
   }
 
+  /**
+   * Writes a stash reference to the repository.
+   *
+   * @param {string} stashCommit - The object ID of the stash commit.
+   * @returns {Promise<void>}
+   */
   async writeStashRef(stashCommit) {
     return GitRefManager.writeRef({
       fs: this.fs,
@@ -70766,6 +71120,14 @@ class GitStashManager {
     })
   }
 
+  /**
+   * Writes a reflog entry for a stash commit.
+   *
+   * @param {Object} args
+   * @param {string} args.stashCommit - The object ID of the stash commit.
+   * @param {string} args.message - The reflog message.
+   * @returns {Promise<void>}
+   */
   async writeStashReflogEntry({ stashCommit, message }) {
     const author = await this.getAuthor();
     const entry = GitRefStash.createStashReflogEntry(
@@ -70783,6 +71145,13 @@ class GitStashManager {
     });
   }
 
+  /**
+   * Reads the stash reflogs.
+   *
+   * @param {Object} args
+   * @param {boolean} [args.parsed=false] - Whether to parse the reflog entries.
+   * @returns {Promise<string[]|Object[]>} - The reflog entries as strings or parsed objects.
+   */
   async readStashReflogs({ parsed = false }) {
     if (!(await this.fs.exists(this.refLogsStashPath))) {
       return []
