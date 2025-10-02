@@ -47676,6 +47676,27 @@ module.exports = reflectApply
 
 /***/ }),
 
+/***/ 3728:
+/***/ ((module) => {
+
+"use strict";
+
+
+// Last updated for git 2.29.0.
+// eslint-disable-next-line no-control-regex
+const bad = /(^|[/.])([/.]|$)|^@$|@{|[\x00-\x20\x7f~^:?*[\\]|\.lock(\/|$)/
+
+module.exports = function validRef (name, onelevel) {
+  if (typeof name !== 'string') {
+    throw new TypeError('Reference name must be a string')
+  }
+
+  return !bad.test(name) && (!!onelevel || name.includes('/'))
+}
+
+
+/***/ }),
+
 /***/ 6405:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -56157,6 +56178,7 @@ var pako = _interopDefault(__nccwpck_require__(3585));
 var pify = _interopDefault(__nccwpck_require__(2946));
 var ignore = _interopDefault(__nccwpck_require__(298));
 var cleanGitRef = _interopDefault(__nccwpck_require__(9308));
+var validRef = _interopDefault(__nccwpck_require__(3728));
 var diff3Merge = _interopDefault(__nccwpck_require__(1832));
 
 /**
@@ -62288,7 +62310,7 @@ async function addNote({
  *
  */
 async function _addRemote({ fs, gitdir, remote, url, force }) {
-  if (remote !== cleanGitRef.clean(remote)) {
+  if (!validRef(remote, true)) {
     throw new InvalidRefNameError(remote, cleanGitRef.clean(remote))
   }
   const config = await GitConfigManager.get({ fs, gitdir });
@@ -62560,7 +62582,7 @@ async function _branch({
   checkout = false,
   force = false,
 }) {
-  if (ref !== cleanGitRef.clean(ref)) {
+  if (!validRef(ref, true)) {
     throw new InvalidRefNameError(ref, cleanGitRef.clean(ref))
   }
 
@@ -64211,8 +64233,8 @@ function filterCapabilities(server, client) {
 
 const pkg = {
   name: 'isomorphic-git',
-  version: '1.33.1',
-  agent: 'git/isomorphic-git@1.33.1',
+  version: '1.33.2',
+  agent: 'git/isomorphic-git@1.33.2',
 };
 
 class FIFO {
@@ -70295,11 +70317,11 @@ async function _renameBranch({
   ref,
   checkout = false,
 }) {
-  if (ref !== cleanGitRef.clean(ref)) {
+  if (!validRef(ref, true)) {
     throw new InvalidRefNameError(ref, cleanGitRef.clean(ref))
   }
 
-  if (oldref !== cleanGitRef.clean(oldref)) {
+  if (!validRef(oldref, true)) {
     throw new InvalidRefNameError(oldref, cleanGitRef.clean(oldref))
   }
 
@@ -72669,7 +72691,7 @@ async function writeRef({
 
     const fs = new FileSystem(_fs);
 
-    if (ref !== cleanGitRef.clean(ref)) {
+    if (!validRef(ref, true)) {
       throw new InvalidRefNameError(ref, cleanGitRef.clean(ref))
     }
 
