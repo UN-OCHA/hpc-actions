@@ -3,6 +3,7 @@
 .husky/_/
 # Interferes with TOC Generator
 /../README.md
+/../.git/
 
 # Ignored file types
 *.snap
